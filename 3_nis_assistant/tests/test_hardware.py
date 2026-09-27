@@ -7,6 +7,11 @@ passing; skipped when no bridge answers. The assistant is driven by a scripted
 model, not a real one, so this costs no API calls; the real model is tried by
 hand in the window (see README). Everything stays within 100 um of where the
 stage is, and the stage is moved back afterwards.
+
+Author: Thom de Hoog, Center for Microscopy and Image Analysis (ZMB), University of Zurich
+        thom.dehoog@zmb.uzh.ch . thomdehoog@gmail.com
+Date: 2026-09-27
+License: MIT
 """
 
 import pytest
@@ -15,7 +20,8 @@ from nis_bridge.client import NisConnectionError
 from nis_engine import NisEngine
 from test_agent import Script, tool_results
 
-from nis_assistant.agent import Assistant, Microscope
+from nis_assistant.agent import Assistant
+from nis_assistant.tools import Microscope
 
 pytestmark = pytest.mark.hardware
 

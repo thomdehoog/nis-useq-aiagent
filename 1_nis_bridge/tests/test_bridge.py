@@ -1,4 +1,10 @@
-"""Client <-> real bridge server <-> fake NIS: each operation, and each refusal."""
+"""Client <-> real bridge server <-> fake NIS: each operation, and each refusal.
+
+Author: Thom de Hoog, Center for Microscopy and Image Analysis (ZMB), University of Zurich
+        thom.dehoog@zmb.uzh.ch . thomdehoog@gmail.com
+Date: 2026-09-27
+License: MIT
+"""
 
 import importlib
 import os
@@ -162,7 +168,7 @@ def test_client_reports_a_bridge_that_never_answers(unpumped, monkeypatch):
 
 
 def test_client_refuses_an_old_bridge(port, monkeypatch):
-    monkeypatch.setattr(bridge, "PROTOCOL_VERSION", 1)
+    monkeypatch.setattr("nis_bridge.dispatch.PROTOCOL_VERSION", 1)
     with pytest.raises(NisConnectionError, match=r"speaks protocol 1.*Restart start_bridge\.mac"):
         NisClient("127.0.0.1", port, timeout=5.0)
 
@@ -185,12 +191,13 @@ def test_macro_carries_the_path_and_port(tmp_path):
     path = install_macros.install(tmp_path, port=6000)
     text = path.read_text()
     assert b"\r\n" in path.read_bytes() and "nis_bridge.bridge as b" in text
-    assert "importlib.reload(p)" in text  # the protocol too, or a changed version stays cached
+    # every module is reloaded, or old code stays cached in NIS
+    assert "nis_bridge.settings" in text and "nis_bridge.protocol" in text
 
 
 def test_macro_lifecycle_start_reload_stop(monkeypatch, tmp_path):
     """What start_bridge.mac does: start, pump, reload the module, stop."""
-    monkeypatch.setattr(bridge, "NisApi", FakeNisApi)
+    monkeypatch.setattr(bridge, "NisDll", FakeNisApi)
     monkeypatch.setattr(tempfile, "tempdir", str(tmp_path))  # where the bridge log goes
     try:
         assert "listening" in bridge.start(port=0)
@@ -199,7 +206,7 @@ def test_macro_lifecycle_start_reload_stop(monkeypatch, tmp_path):
         server = bridge._running["server"]
         reloaded = importlib.reload(bridge)  # the macro reloads to pick up code changes
         assert reloaded._running["server"] is server
-        server.request_stop()  # what a client's "shutdown" request does
+        server._request_shutdown({})  # what a client's "shutdown" request does
         reloaded.pump(0)
         assert os.path.exists(reloaded.STOP_FILE)  # this ends the macro loop
     finally:
@@ -238,9 +245,9 @@ def test_the_fake_refuses_a_move_beyond_the_stage_limits(client, fake):
 def test_the_start_command_runs_the_macro_as_nis_opens(tmp_path):
     from nis_bridge import start
 
-    exe = tmp_path / "nis_ar.exe"
-    command = start.start_command(Path(r"C:\\x\\start_bridge.mac"), exe)
-    assert command == [str(exe), "-c", 'RunMacro("C:\\x\\start_bridge.mac")']
+    exe, macro = tmp_path / "nis_ar.exe", tmp_path / "start_bridge.mac"
+    command = start.start_command(macro, exe)
+    assert command == [str(exe), "-c", f'RunMacro("{macro}")']
     with pytest.raises(FileNotFoundError, match="NIS_ELEMENTS"):
         start.start_nis(Path("m.mac"), exe)  # the executable does not exist
 

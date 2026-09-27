@@ -7,7 +7,7 @@ same computer.
 
 ```
 your Python                     NIS-Elements
-NisClient ── socket ─────────── bridge.py ── g5_regprocs.dll
+NisClient ── socket ─────────── dispatch ── readers, commands ── nis_dll ── g5_regprocs.dll
              127.0.0.1 only     (Python inside NIS, started by a macro)
 ```
 
@@ -90,11 +90,15 @@ raises `NisConnectionError` and says what to check.
 
 ## What the bridge answers
 
-Only these requests exist; the bridge never runs macro text sent to it.
+Only these requests exist; the bridge never runs macro text sent to it. Two are
+about the bridge itself (`dispatch.py`), six only read (`readers.py`), and the
+rest change something (`commands.py`).
 
 | Request | Arguments | Returns |
 |---|---|---|
-| `ping` | | bridge and protocol version |
+| `ping` | | the bridge and protocol versions, and NIS's version |
+| `shutdown` | | stops the bridge |
+| `get_version` | | the NIS-Elements version |
 | `get_position` | | `x`, `y`, `z` in um |
 | `get_limits` | | the stage limits set in NIS, per axis `min` and `max` in um |
 | `move` | any of `x`, `y`, `z` (um, absolute) | the position after the move |
@@ -107,7 +111,6 @@ Only these requests exist; the bridge never runs macro text sent to it.
 | `set_pfs` | `on`, optionally `timeout_s` | the PFS state after switching |
 | `autofocus` | `range_um`, `speed` | the position after NIS's image-based focus sweep |
 | `snap` | `path` | the path of the saved TIFF and the pixel size in um (None when not calibrated) |
-| `shutdown` | | stops the bridge |
 
 Every request carries how long the client will wait. A request NIS has not
 started by then is dropped, so a late move never happens after the client
@@ -147,12 +150,21 @@ ruff check . && ruff format --check .   # lint and formatting, rules in pyprojec
 
 | File | What it is |
 |---|---|
-| `nis_bridge/bridge.py` | The server inside NIS-Elements (standard library only). |
-| `nis_bridge/client.py` | `NisClient`: the connection from your Python. |
+| `nis_bridge/readers.py` | The read-only requests, one method each: they observe NIS and change nothing. |
+| `nis_bridge/commands.py` | The requests that change something, one method each, all in the same shape (check, call NIS, read back). The place to look up or add a command. |
+| `nis_bridge/nis_dll.py` | C to Python: the raw NIS functions of `g5_regprocs.dll`, one thin wrapper each. |
+| `nis_bridge/dispatch.py` | The server inside NIS: the queue, the main-thread pump, the timeouts. |
+| `nis_bridge/bridge.py` | What `start_bridge.mac` calls: start, pump, stop. |
+| `nis_bridge/settings.py` | Every constant: ports, timeouts, defaults. |
 | `nis_bridge/protocol.py` | The message format both sides share. |
+| `nis_bridge/client.py` | `NisClient`: the connection from your Python. |
 | `nis_bridge/install_macros.py` | Writes `start_bridge.mac`. |
 | `nis_bridge/start.py` | Starts NIS-Elements with the macro and waits for the bridge. |
 | `nis_bridge/fake.py` | A fake NIS for tests. |
+
+The bridge side (`readers`, `commands`, `nis_dll`, `dispatch`, `bridge`, `settings`,
+`protocol`) uses the standard library only, because it runs inside
+NIS-Elements' own Python.
 
 ## Where the NIS function names come from
 
@@ -163,4 +175,4 @@ its arguments. `g5_regprocs.dll` exports them, and the bridge calls them with
 NIS's own `nis.call_proc`.
 
 MIT license. Thom de Hoog, Center for Microscopy and Image Analysis (ZMB),
-University of Zurich.
+University of Zurich. thom.dehoog@zmb.uzh.ch, thomdehoog@gmail.com. 2026-09-27.

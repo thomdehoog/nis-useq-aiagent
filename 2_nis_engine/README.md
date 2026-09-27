@@ -155,7 +155,8 @@ custom actions, and colour cameras (set the camera to monochrome in NIS).
 
 | File | What it is |
 |---|---|
-| `nis_engine/engine.py` | `NisEngine`: checks a useq sequence, then turns each step into bridge requests. |
+| `nis_engine/checks.py` | May this sequence run? What an event may hold, the limit check, the plan checks. The place to look up or extend what the engine accepts. |
+| `nis_engine/engine.py` | `NisEngine`: runs each step on the bridge, the session limits, the field of view. |
 
 ## Tests
 
@@ -167,4 +168,4 @@ ruff check . && ruff format --check .   # lint and formatting, rules in pyprojec
 ```
 
 MIT license. Thom de Hoog, Center for Microscopy and Image Analysis (ZMB),
-University of Zurich.
+University of Zurich. thom.dehoog@zmb.uzh.ch, thomdehoog@gmail.com. 2026-09-27.

@@ -201,9 +201,17 @@ only fitted it to the cases.
 
 | File | What it is |
 |---|---|
-| `nis_assistant/agent.py` | The assistant: its instructions, tools, plan format, go-ahead rule and memory. |
-| `nis_assistant/window.py` | The chat window (`nis-assistant`). |
+| `nis_assistant/tools.py` | The tools: everything the model can ask for, one function each, with the go-ahead rule, the refusals and the two guards on a reply. The place to look up or add a tool. |
+| `nis_assistant/instructions.py` | The prose the model reads: its instructions, the advice given with a refusal, and the setup steps it passes on. |
+| `nis_assistant/plans.py` | The plan format, plan to useq sequence, and the plan summary. |
+| `nis_assistant/images.py` | One snap, its statistics, and the binned PNG for the model. |
+| `nis_assistant/memory.py` | The conversation made smaller now and then. |
+| `nis_assistant/models.py` | The ways to reach a model: a provider preset, an API key held in memory, the model object. |
+| `nis_assistant/local.py` | A `.gguf` model file served on this computer by llama.cpp. |
+| `nis_assistant/agent.py` | The assembly: the Agent with the tools and guards, and `Assistant`, one conversation. |
+| `nis_assistant/settings.py` | Every constant: the provider presets, go-ahead distances, memory sizes, window defaults. |
+| `nis_assistant/window.py` | The chat window (`nis-assistant`), with the Model panel from `panel.py`. |
 | `tests/evals.py` | The evaluation with a real model; `eval_cases.json` and `eval_cases_holdout.json`. |
 
 MIT license. Thom de Hoog, Center for Microscopy and Image Analysis (ZMB),
-University of Zurich.
+University of Zurich. thom.dehoog@zmb.uzh.ch, thomdehoog@gmail.com. 2026-09-27.

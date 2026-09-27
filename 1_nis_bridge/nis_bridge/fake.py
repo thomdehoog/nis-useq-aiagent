@@ -1,6 +1,6 @@
 """A fake NIS-Elements: a microscope in memory, for testing without one.
 
-``FakeNisApi`` stands in for ``bridge.NisApi``: an in-memory microscope whose
+``FakeNisApi`` stands in for ``nis_dll.NisDll``: an in-memory microscope whose
 limits, objective names and optical configurations match the Ti2 simulator.
 ``running_bridge`` puts the real bridge server in front of it, so code built
 on the client (an engine, an assistant) can be tested end to end:
@@ -15,6 +15,11 @@ the engine and the assistant can be tried without a microscope.
 number, so a test can tell which capture ended up in which frame, or the
 picture in ``frame`` when one is set. Needs numpy and tifffile, which the
 bridge itself does not.
+
+Author: Thom de Hoog, Center for Microscopy and Image Analysis (ZMB), University of Zurich
+        thom.dehoog@zmb.uzh.ch . thomdehoog@gmail.com
+Date: 2026-09-27
+License: MIT
 """
 
 from __future__ import annotations
@@ -26,9 +31,9 @@ from contextlib import contextmanager
 import numpy as np
 import tifffile
 
-from . import bridge
-from .bridge import NisError
-from .protocol import DEFAULT_HOST, DEFAULT_PORT
+from . import dispatch
+from .nis_dll import NisError
+from .settings import HOST, PORT
 
 IMAGE_SHAPE = (48, 64)  # height, width
 
@@ -159,12 +164,12 @@ class FakeNisApi:
 
 
 @contextmanager
-def running_bridge(fake: FakeNisApi) -> Iterator[bridge.BridgeServer]:
+def running_bridge(fake: FakeNisApi) -> Iterator[dispatch.BridgeServer]:
     """The real bridge server on a free local port, with ``fake`` behind it.
 
     A background thread stands in for the NIS macro loop that runs the requests.
     """
-    server = bridge.serve(fake, "127.0.0.1", 0)
+    server = dispatch.serve(fake, HOST, 0)
     stop = threading.Event()
 
     def macro_loop() -> None:
@@ -184,8 +189,8 @@ def running_bridge(fake: FakeNisApi) -> Iterator[bridge.BridgeServer]:
 
 def main() -> None:
     """Serve a fake NIS on the bridge's usual port until Ctrl+C."""
-    server = bridge.serve(FakeNisApi(calibrated=True), DEFAULT_HOST, DEFAULT_PORT)
-    print(f"A fake NIS-Elements answers on port {DEFAULT_PORT}. Press Ctrl+C to stop it.")
+    server = dispatch.serve(FakeNisApi(calibrated=True), HOST, PORT)
+    print(f"A fake NIS-Elements answers on port {PORT}. Press Ctrl+C to stop it.")
     try:
         while True:
             server.pump(wait_s=0.05)

@@ -1,11 +1,12 @@
 """Which model the assistant talks to, and how it is reached.
 
-The chat window offers a few providers. Choosing one fills in a sensible model
-name (and, for a server you run yourself, its address); the operator types the
-API key into the window. The key stays in memory for the session only: it is
-never written to a file, a log, or the conversation. An empty key field falls
-back to the environment variable named in the preset, so `set GEMINI_API_KEY=...`
-before starting still works.
+The chat window offers a few providers (``PROVIDERS`` in ``settings.py``).
+Choosing one fills in a sensible model name (and, for a server you run
+yourself, its address); the operator types the API key into the window. The
+key stays in memory for the session only: it is never written to a file, a
+log, or the conversation. An empty key field falls back to the environment
+variable named in the preset, so `set GEMINI_API_KEY=...` before starting
+still works.
 
 Three kinds of connection exist:
 
@@ -15,6 +16,11 @@ Three kinds of connection exist:
   Ollama, vLLM, LM Studio, a company gateway, or a model file this window serves
   itself (see ``local.py``). Such a server needs a base URL, and a key only if
   it asks for one.
+
+Author: Thom de Hoog, Center for Microscopy and Image Analysis (ZMB), University of Zurich
+        thom.dehoog@zmb.uzh.ch . thomdehoog@gmail.com
+Date: 2026-09-27
+License: MIT
 """
 
 from __future__ import annotations
@@ -23,49 +29,7 @@ import os
 from dataclasses import dataclass, field
 from typing import Any
 
-# vision: the model can be shown a camera image, so the "look" tool gets a real answer
-# about the picture. Without it the tool answers from the measured numbers only.
-PROVIDERS: dict[str, dict[str, Any]] = {
-    "Gemini": {
-        "kind": "google",
-        "model": "gemini-3.5-flash-lite",  # generous free tier, native tool calling
-        "key_env": "GEMINI_API_KEY",
-        "key_env_also": "GOOGLE_API_KEY",  # the older name, still honoured
-        "vision": True,
-    },
-    "OpenAI": {
-        "kind": "openai",
-        "model": "gpt-5-mini",
-        "key_env": "OPENAI_API_KEY",
-        "vision": True,
-    },
-    "OpenAI-style server": {
-        "kind": "openai-compatible",
-        "model": "gemma4:31b",  # needs about 20 GB of GPU memory; smaller ones garble arguments
-        "base_url": "http://localhost:11434/v1",  # an Ollama or vLLM already running somewhere
-        "vision": False,  # set by the operator in the window when their server can see
-    },
-}
-DEFAULT_PROVIDER = "Gemini"
-# The short names pydantic-ai uses in a "provider:model" string, by provider preset.
-PREFIXES = {
-    "google": "Gemini",
-    "google-gla": "Gemini",
-    "openai": "OpenAI",
-}
-
-# Sampling and retries for every model, cloud or local. An assistant that drives an
-# instrument wants the most likely tool call, not a creative one, so the temperature
-# is 0.
-TEMPERATURE = 0.0
-TOOL_CALL_RETRIES = 3  # a malformed tool call goes back to the model up to three times
-MODEL_SETTINGS: dict[str, dict[str, Any]] = {
-    # max_tokens: room for a full acquisition plan. parallel_tool_calls False: one
-    # action at a time, so each is seen before the next.
-    "google": {"temperature": TEMPERATURE, "max_tokens": 16000, "parallel_tool_calls": False},
-    "openai": {"temperature": TEMPERATURE, "parallel_tool_calls": False},
-    "openai-compatible": {"temperature": TEMPERATURE},  # small servers reject the parallel flag
-}
+from .settings import MODEL_SETTINGS, PREFIXES, PROVIDERS
 
 
 @dataclass

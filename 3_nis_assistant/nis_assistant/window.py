@@ -8,6 +8,11 @@ run yourself, or a model file on this computer). Left: the conversation, the but
 and the stage limits in force, which the operator can narrow. Right: the latest
 image, the microscope status, and a red banner for anything refused. The divider
 between the two halves can be dragged.
+
+Author: Thom de Hoog, Center for Microscopy and Image Analysis (ZMB), University of Zurich
+        thom.dehoog@zmb.uzh.ch . thomdehoog@gmail.com
+Date: 2026-09-27
+License: MIT
 """
 
 from __future__ import annotations
@@ -23,7 +28,7 @@ from pathlib import Path
 import numpy as np
 from nis_bridge import start as nis_start
 from nis_bridge.client import NisConnectionError
-from nis_bridge.protocol import DEFAULT_HOST, DEFAULT_PORT
+from nis_bridge.settings import HOST, PORT
 from nis_engine import NisEngine
 from pydantic_ai.exceptions import UnexpectedModelBehavior
 from PySide6.QtCore import QObject, Qt, QTimer, Signal
@@ -44,11 +49,12 @@ from PySide6.QtWidgets import (
 )
 
 from . import models
-from .agent import Assistant, Microscope, as_png, bridge_steps
+from .agent import Assistant
+from .images import as_png
 from .local import CONTEXT_TOO_SMALL_HELP, CONTEXT_TOO_SMALL_SIGNS
 from .panel import ModelPanel, PreferencesBox
-
-FONT_POINTS = 11  # the window's letters: Qt's default of 9 is small at a microscope
+from .settings import DEFAULT_PROVIDER, FONT_POINTS, OUTPUT_FOLDER
+from .tools import Microscope, bridge_steps
 
 WELCOME = (
     "Hello. I can move the stage, change the optical settings, focus, look at the "
@@ -461,10 +467,10 @@ def _start_nis() -> bool:
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Chat with the Nikon microscope assistant.")
-    parser.add_argument("--port", type=int, default=DEFAULT_PORT, help="the bridge's port")
+    parser.add_argument("--port", type=int, default=PORT, help="the bridge's port")
     parser.add_argument(
         "--output",
-        default=str(Path.home() / "nis_assistant_runs"),
+        default=str(Path.home() / OUTPUT_FOLDER),
         help="folder for the acquisitions (default: nis_assistant_runs in your home folder)",
     )
     parser.add_argument(
@@ -491,17 +497,17 @@ def main(argv: list[str] | None = None) -> int:
     app.setFont(font)
     nis_starting = False
     try:
-        engine = NisEngine(DEFAULT_HOST, args.port)
+        engine = NisEngine(HOST, args.port)
     except NisConnectionError:
         # The window opens anyway and says how to start the bridge; it connects
         # with the first message once the bridge is running.
-        engine = NisEngine(DEFAULT_HOST, args.port, connect=False)
+        engine = NisEngine(HOST, args.port, connect=False)
         nis_starting = args.start_nis and _start_nis()
     microscope = Microscope(engine, output_dir=Path(args.output), challenge_no_tool=True)
     endpoint = (
         models.Endpoint.from_name(args.model)
         if args.model
-        else models.Endpoint.from_preset(models.DEFAULT_PROVIDER)
+        else models.Endpoint.from_preset(DEFAULT_PROVIDER)
     )
     window = AssistantWindow(Assistant(microscope), endpoint=endpoint, nis_starting=nis_starting)
     window.show()

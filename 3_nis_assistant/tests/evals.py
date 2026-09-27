@@ -65,6 +65,11 @@ Expectations:
                     them) or must not contain; case does not matter, and a
                     word right after "not" or "no" does not count
 Every case also fails when a reply quotes the <microscope_state> block.
+
+Author: Thom de Hoog, Center for Microscopy and Image Analysis (ZMB), University of Zurich
+        thom.dehoog@zmb.uzh.ch . thomdehoog@gmail.com
+Date: 2026-09-27
+License: MIT
 """
 
 from __future__ import annotations
@@ -87,7 +92,9 @@ from nis_bridge.fake import FakeNisApi, running_bridge
 from nis_engine import NisEngine
 from pydantic_ai.messages import ToolCallPart, ToolReturnPart
 
-from nis_assistant.agent import MODEL, Assistant, Microscope
+from nis_assistant.agent import Assistant
+from nis_assistant.settings import MODEL
+from nis_assistant.tools import Microscope
 
 HERE = Path(__file__).resolve().parent
 CASES = HERE / "eval_cases.json"

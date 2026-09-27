@@ -12,6 +12,11 @@ When NIS-Elements is already open but the bridge is not running, nothing can
 be started from outside: NIS runs one instance, and a second one only brings
 the first to the front. The operator then runs the macro by hand; the message
 says which file.
+
+Author: Thom de Hoog, Center for Microscopy and Image Analysis (ZMB), University of Zurich
+        thom.dehoog@zmb.uzh.ch . thomdehoog@gmail.com
+Date: 2026-09-27
+License: MIT
 """
 
 from __future__ import annotations
@@ -24,17 +29,11 @@ import time
 from collections.abc import Callable
 from pathlib import Path
 
-from .install_macros import PACKAGE_DIR, install
-from .protocol import DEFAULT_HOST, DEFAULT_PORT
-
-NIS_EXECUTABLE = Path(r"C:\Program Files\NIS-Elements\nis_ar.exe")
-NIS_EXECUTABLE_VARIABLE = "NIS_ELEMENTS"  # points to nis_ar.exe when it is somewhere else
-START_TIMEOUT_S = 240  # NIS-Elements with a real microscope takes a while to come up
-POLL_S = 2.0
-MACRO = PACKAGE_DIR / "start_bridge.mac"
+from .install_macros import MACRO, install
+from .settings import HOST, NIS_EXECUTABLE, NIS_EXECUTABLE_VARIABLE, POLL_S, PORT, START_TIMEOUT_S
 
 
-def bridge_answers(host: str = DEFAULT_HOST, port: int = DEFAULT_PORT) -> bool:
+def bridge_answers(host: str = HOST, port: int = PORT) -> bool:
     """True when something listens on the bridge's port."""
     try:
         with socket.create_connection((host, port), timeout=1.0):
@@ -80,8 +79,8 @@ def start_nis(macro: Path, executable: Path | None = None) -> subprocess.Popen:
 
 
 def ensure_bridge(
-    host: str = DEFAULT_HOST,
-    port: int = DEFAULT_PORT,
+    host: str = HOST,
+    port: int = PORT,
     timeout_s: float = START_TIMEOUT_S,
     say: Callable[[str], None] = print,
     executable: Path | None = None,
@@ -108,8 +107,8 @@ def ensure_bridge(
 
 
 def wait_for_bridge(
-    host: str = DEFAULT_HOST,
-    port: int = DEFAULT_PORT,
+    host: str = HOST,
+    port: int = PORT,
     timeout_s: float = START_TIMEOUT_S,
     say: Callable[[str], None] = print,
 ) -> bool:
@@ -131,7 +130,7 @@ def main(argv: list[str] | None = None) -> int:
     import argparse
 
     parser = argparse.ArgumentParser(description="Start NIS-Elements with the bridge running.")
-    parser.add_argument("--port", type=int, default=DEFAULT_PORT, help="the bridge's port")
+    parser.add_argument("--port", type=int, default=PORT, help="the bridge's port")
     parser.add_argument(
         "--timeout", type=float, default=START_TIMEOUT_S, help="seconds to wait for the bridge"
     )

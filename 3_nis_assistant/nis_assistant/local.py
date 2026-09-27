@@ -13,6 +13,11 @@ with GPU support is much faster; see that package's documentation). Model files
 come from Hugging Face, for example a Gemma or Qwen ``.gguf``; put them in the
 models folder shown in the window. A model can also see images when a matching
 projector file (its name contains ``mmproj``) sits next to it.
+
+Author: Thom de Hoog, Center for Microscopy and Image Analysis (ZMB), University of Zurich
+        thom.dehoog@zmb.uzh.ch . thomdehoog@gmail.com
+Date: 2026-09-27
+License: MIT
 """
 
 from __future__ import annotations
@@ -26,17 +31,15 @@ import sys
 import tempfile
 from pathlib import Path
 
-MODEL_SUFFIXES = (".gguf",)
-DEFAULT_FOLDER = Path.home() / "nis_assistant_models"
-# The context window the server is started with. llama-cpp-python's own default
-# is 2,048 tokens, less than one request here (the instructions, the tools and
-# the state reading are about 6,000 tokens). 32K holds a request, a good number
-# of turns, tool results and a margin.
-CONTEXT_TOKENS = 32768
-BATCH_TOKENS = 2048  # prompt batches: the long prefix is processed in fewer passes than at 512
-FLASH_ATTENTION = True  # smaller memory and faster attention where the build supports it
-POLL_MS = 500  # how often the window asks whether the server is up
-START_TIMEOUT_S = 300  # a large file can take minutes to load from a slow disk
+from .settings import (
+    BATCH_TOKENS,
+    CONTEXT_TOKENS,
+    FLASH_ATTENTION,
+    MODEL_SUFFIXES,
+    MODELS_FOLDER,
+)
+
+DEFAULT_FOLDER = Path.home() / MODELS_FOLDER
 # A server you run yourself may keep a small window: Ollama loads a model with
 # 4,096 tokens unless told otherwise and refuses every request here outright.
 CONTEXT_TOO_SMALL_SIGNS = ("exceed_context_size", "exceeds the available context size")

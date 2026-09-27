@@ -9,6 +9,11 @@ the template holds plain calls and literals only: no comments, no variables.
 To end the bridge, press the macro Stop button in NIS, or send the bridge a
 ``shutdown`` request. (A separate stop macro cannot work: NIS runs one macro
 at a time, and the bridge loop is that macro.)
+
+Author: Thom de Hoog, Center for Microscopy and Image Analysis (ZMB), University of Zurich
+        thom.dehoog@zmb.uzh.ch . thomdehoog@gmail.com
+Date: 2026-09-27
+License: MIT
 """
 
 from __future__ import annotations
@@ -17,17 +22,18 @@ import argparse
 from pathlib import Path
 
 from .bridge import STOP_FILE
-from .protocol import DEFAULT_PORT
+from .settings import MACRO_FILE, PORT
 
 PACKAGE_DIR = Path(__file__).resolve().parent
+MACRO = PACKAGE_DIR / MACRO_FILE  # where the macro goes unless another folder is named
 PROJECT_DIR = PACKAGE_DIR.parent  # the folder that contains the nis_bridge package
 
 TEMPLATE = """WaitText(1, "nis-bridge: starting");
-Python_RunString("import sys; p = r'{project_dir}'; sys.path.insert(0, p) if p not in sys.path else None; import importlib, nis_bridge.protocol as p, nis_bridge.bridge as b; importlib.reload(p); importlib.reload(b); import nis; nis.log(b.start(port={port}))");
+Python_RunString("import sys; p = r'{project_dir}'; sys.path.insert(0, p) if p not in sys.path else None; import importlib, nis_bridge.settings, nis_bridge.protocol, nis_bridge.nis_dll, nis_bridge.readers, nis_bridge.commands, nis_bridge.dispatch, nis_bridge.bridge as b; [importlib.reload(m) for m in (nis_bridge.settings, nis_bridge.protocol, nis_bridge.nis_dll, nis_bridge.readers, nis_bridge.commands, nis_bridge.dispatch, b)]; import nis; nis.log(b.start(port={port}))");
 WaitText(1, "nis-bridge: running on port {port}. Press the macro Stop button to end it.");
 while (ExistFile("{stop_file}") == 0)
 {{
-    Python_RunString("import nis_bridge.bridge as b; b.pump(0.05)");
+    Python_RunString("import nis_bridge.bridge as b; b.pump()");
     Wait(0.01);
 }}
 Python_RunString("import nis_bridge.bridge as b; import nis; nis.log(b.stop())");
@@ -46,7 +52,7 @@ def render(project_dir: Path | str, stop_file: Path | str, port: int) -> str:
     )
 
 
-def install(target_dir: Path | None = None, port: int = DEFAULT_PORT) -> Path:
+def install(target_dir: Path | None = None, port: int = PORT) -> Path:
     """Write ``start_bridge.mac`` (in the package folder by default); return its path.
 
     The macro adds this project's folder to NIS's Python. That only works with
@@ -59,7 +65,7 @@ def install(target_dir: Path | None = None, port: int = DEFAULT_PORT) -> Path:
             f"nis-bridge is installed in {PROJECT_DIR}, not from its project folder. "
             "Install it with 'pip install -e <the 1_nis_bridge folder>' and run this again."
         )
-    path = Path(target_dir or PACKAGE_DIR) / "start_bridge.mac"
+    path = Path(target_dir or PACKAGE_DIR) / MACRO_FILE
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(render(PROJECT_DIR, STOP_FILE, port), encoding="utf-8", newline="\r\n")
     return path
@@ -68,7 +74,7 @@ def install(target_dir: Path | None = None, port: int = DEFAULT_PORT) -> Path:
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Write the NIS macro that starts the bridge.")
     parser.add_argument("--target", help="folder for the .mac file (default: the package folder)")
-    parser.add_argument("--port", type=int, default=DEFAULT_PORT)
+    parser.add_argument("--port", type=int, default=PORT)
     args = parser.parse_args(argv)
     print(f"wrote {install(Path(args.target) if args.target else None, args.port)}")
     print("In NIS-Elements: Macro > Run Macro From File..., then pick start_bridge.mac.")

@@ -9,6 +9,11 @@ not started by then, so a request the client gave up on never runs later.
 ``kind`` is ValueError for a bad request and RuntimeError when NIS refused or
 failed; the client raises the same type. Standard library only, because the
 bridge imports this file inside NIS-Elements.
+
+Author: Thom de Hoog, Center for Microscopy and Image Analysis (ZMB), University of Zurich
+        thom.dehoog@zmb.uzh.ch . thomdehoog@gmail.com
+Date: 2026-09-27
+License: MIT
 """
 
 from __future__ import annotations
@@ -16,10 +21,9 @@ from __future__ import annotations
 import json
 from typing import Any
 
+from .settings import REQUEST_TIMEOUT_S
+
 PROTOCOL_VERSION = 2
-DEFAULT_HOST = "127.0.0.1"  # the bridge only ever listens on this computer
-DEFAULT_PORT = 54470
-DEFAULT_TIMEOUT_S = 30.0
 
 _ERRORS = {"ValueError": ValueError, "RuntimeError": RuntimeError}
 
@@ -45,7 +49,7 @@ def decode_request(line: str) -> tuple[int | None, str, dict[str, Any], float]:
     request_id = msg.get("id")
     timeout = msg.get("timeout")
     if not isinstance(timeout, (int, float)) or timeout <= 0:
-        timeout = DEFAULT_TIMEOUT_S
+        timeout = REQUEST_TIMEOUT_S
     return (request_id if isinstance(request_id, int) else None), msg["op"], args, float(timeout)
 
 

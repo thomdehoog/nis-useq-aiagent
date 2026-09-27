@@ -136,10 +136,12 @@ anything that looked wrong.
 ## Status
 
 Validated on 2026-09-26 on NIS-Elements AR 6.10.02 with the Ti2 simulator:
-all hardware tests of the three parts, and the assistant with Gemini. Not yet
-run on a live Ti2 with a sample. Two things only a real turret can settle: how
+all hardware tests of the three parts, and the assistant with Gemini. The code
+was then reorganised into smaller files (2026-09-27), without changing what it
+does, and re-tested on the fake NIS only; the next run on NIS-Elements will
+confirm it there. Not yet run on a live Ti2 with a sample. Two things only a real turret can settle: how
 an empty nosepiece slot is reported, and whether a failing `Capture` returns a
 negative code.
 
 MIT license. Thom de Hoog, Center for Microscopy and Image Analysis (ZMB),
-University of Zurich.
+University of Zurich. thom.dehoog@zmb.uzh.ch, thomdehoog@gmail.com. 2026-09-27.

@@ -1,8 +1,13 @@
 """The assistant's tools and approvals, with a scripted model in place of the real one.
 
 ``Script`` plays the model: it makes the tool calls it is given, in order, so
-each test controls exactly what the model asks for and checks what the
+each test controls exactly what "the model" asks for and checks what the
 microscope (the real bridge over a fake NIS) and the operator see.
+
+Author: Thom de Hoog, Center for Microscopy and Image Analysis (ZMB), University of Zurich
+        thom.dehoog@zmb.uzh.ch . thomdehoog@gmail.com
+Date: 2026-09-27
+License: MIT
 """
 
 import json
@@ -28,19 +33,12 @@ from pydantic_ai.messages import (
 )
 from pydantic_ai.models.function import FunctionModel
 
-from nis_assistant.agent import (
-    GO_AHEAD_ADVICE,
-    HISTORY_KEEP_TURNS,
-    LIMIT_ADVICE,
-    MODEL_SETTINGS,
-    OPTIONS_ADVICE,
-    Assistant,
-    Microscope,
-    as_png,
-    binned,
-    image_statistics,
-)
+from nis_assistant.agent import Assistant
+from nis_assistant.images import as_png, binned, image_statistics
+from nis_assistant.instructions import GO_AHEAD_ADVICE, LIMIT_ADVICE, OPTIONS_ADVICE
 from nis_assistant.models import Endpoint
+from nis_assistant.settings import DEFAULT_MODEL_SETTINGS, HISTORY_KEEP_TURNS
+from nis_assistant.tools import Microscope
 
 
 class Script:
@@ -122,8 +120,8 @@ def test_a_quoted_state_block_is_taken_out_of_the_reply(microscope):
 
 
 def test_the_model_acts_one_step_at_a_time():
-    assert MODEL_SETTINGS["parallel_tool_calls"] is False
-    assert MODEL_SETTINGS["max_tokens"] >= 16000
+    assert DEFAULT_MODEL_SETTINGS["parallel_tool_calls"] is False
+    assert DEFAULT_MODEL_SETTINGS["max_tokens"] >= 16000
 
 
 def test_status(microscope):
@@ -371,7 +369,7 @@ def test_check_setup_walks_through_adding_an_optical_configuration(microscope, f
 
 
 def test_check_setup_says_how_to_start_a_missing_bridge(microscope, tmp_path, monkeypatch):
-    from nis_assistant import agent as agent_module
+    from nis_assistant import tools as tools_module
 
     # The bridge went away: the connection is closed and cannot be made again.
     microscope.engine.client.close()
@@ -380,7 +378,7 @@ def test_check_setup_says_how_to_start_a_missing_bridge(microscope, tmp_path, mo
         raise NisConnectionError("no bridge at 127.0.0.1:54468")
 
     monkeypatch.setattr(microscope.engine, "reconnect", no_bridge)
-    monkeypatch.setattr(agent_module, "BRIDGE_MACRO", tmp_path / "start_bridge.mac")
+    monkeypatch.setattr(tools_module, "MACRO", tmp_path / "start_bridge.mac")
     assistant, script = talk(microscope, ("check_setup", {}), "Start the bridge first.")
     assert assistant.send("where is the stage?") == "Start the bridge first."
     # the model was told the microscope does not answer, not shown an error
@@ -444,7 +442,7 @@ def test_a_reply_that_called_nothing_is_challenged_when_asked(microscope):
 
 def test_use_switches_the_model_and_its_settings(microscope):
     assistant = Assistant(microscope)
-    assert assistant.model_settings is MODEL_SETTINGS
+    assert assistant.model_settings is DEFAULT_MODEL_SETTINGS
     assistant.use(Endpoint.from_preset("Gemini", api_key="k"))
     assert type(assistant.model).__name__ == "GoogleModel"
     assert assistant.model_settings["temperature"] == 0.0 and microscope.vision
@@ -799,7 +797,7 @@ def test_nothing_outside_those_sources_can_be_read(microscope):
 
 
 def answer(n):
-    """A model answer with reasoning attached, as a thinking model sends it."""
+    """A model answer with its reasoning attached, as some models send it."""
     return ModelResponse(parts=[ThinkingPart("thinking", signature=f"sig{n}"), TextPart(f"{n}")])
 
 
@@ -833,7 +831,7 @@ def test_a_long_conversation_is_made_smaller_between_turns(microscope):
     # the newest three turns keep the full state; older ones keep a one-line reading
     assert ["<microscope_state>" in p for p in prompts] == [False] * 7 + [True] * 3
     assert "<microscope_state_then>" in prompts[0] and "position_um" in prompts[0]
-    # the old reasoning is left out, all of it, so what remains is valid for the model
+    # the old reasoning is left out, all of it, so what remains passes the model's check
     parts = [part for message in assistant.history for part in message.parts]
     assert not any(isinstance(part, ThinkingPart) for part in parts)
     assert any(isinstance(part, TextPart) and part.content == "16" for part in parts)

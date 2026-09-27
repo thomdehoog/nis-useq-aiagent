@@ -8,6 +8,11 @@ computer, which the window serves itself (see ``local.py``). "Use this model"
 applies the choice; the conversation so far is kept.
 
 The API key typed here stays in memory for this session only.
+
+Author: Thom de Hoog, Center for Microscopy and Image Analysis (ZMB), University of Zurich
+        thom.dehoog@zmb.uzh.ch . thomdehoog@gmail.com
+Date: 2026-09-27
+License: MIT
 """
 
 from __future__ import annotations
@@ -35,6 +40,7 @@ from PySide6.QtWidgets import (
 
 from . import local, models
 from .models import Endpoint
+from .settings import DEFAULT_PROVIDER, PROVIDERS, SERVER_POLL_MS, SERVER_START_TIMEOUT_S
 
 CLOUD = "Cloud"
 LOCAL_FILE = "File on this computer"
@@ -64,7 +70,7 @@ class ModelPicker(QGroupBox):
         self.mode = QComboBox()
         self.mode.addItems(([SAME] if same_as else []) + [CLOUD, LOCAL_FILE])
         self.provider = QComboBox()
-        self.provider.addItems(list(models.PROVIDERS))
+        self.provider.addItems(list(PROVIDERS))
         self.provider.setSizeAdjustPolicy(QComboBox.SizeAdjustPolicy.AdjustToContents)
         self.model = QLineEdit()
         self.model.setMinimumWidth(140)
@@ -111,14 +117,14 @@ class ModelPicker(QGroupBox):
         grid.addWidget(self.sees, 1, 7)
         grid.setColumnStretch(5, 1)
 
-        self.provider.setCurrentText(models.DEFAULT_PROVIDER)
+        self.provider.setCurrentText(DEFAULT_PROVIDER)
         self.mode.setCurrentText(SAME if same_as else CLOUD)
         self.mode.currentTextChanged.connect(self._on_mode_changed)
         self.provider.currentTextChanged.connect(self._on_provider_changed)
         self.folder_button.clicked.connect(self.choose_folder)
         for widget in (self.mode, self.provider, self.local_model):
             widget.currentTextChanged.connect(lambda *_: self.changed.emit())
-        self._on_provider_changed(models.DEFAULT_PROVIDER)
+        self._on_provider_changed(DEFAULT_PROVIDER)
 
     # -- what is chosen -------------------------------------------------------------------
 
@@ -133,7 +139,7 @@ class ModelPicker(QGroupBox):
 
     def cloud_endpoint(self) -> Endpoint:
         provider = self.provider.currentText()
-        kind = models.PROVIDERS[provider]["kind"]
+        kind = PROVIDERS[provider]["kind"]
         vision = self.sees.isChecked() if kind == "openai-compatible" else None
         return Endpoint.from_preset(
             provider, self.model.text(), self.key.text(), self.base_url.text(), vision=vision
@@ -158,9 +164,7 @@ class ModelPicker(QGroupBox):
         """Show the fields for the type chosen; the file list is rescanned when it appears."""
         cloud = self.mode.currentText() == CLOUD
         is_local = self.is_local
-        server = cloud and models.PROVIDERS[self.provider.currentText()]["kind"] == (
-            "openai-compatible"
-        )
+        server = cloud and PROVIDERS[self.provider.currentText()]["kind"] == ("openai-compatible")
         for widget in (self.labels["local_model"], self.local_model, self.folder_button):
             widget.setVisible(is_local)
         for name in ("provider", "model", "key"):
@@ -173,7 +177,7 @@ class ModelPicker(QGroupBox):
 
     def _on_provider_changed(self, name: str) -> None:
         """Prefill the preset and say where the key comes from when the field is left empty."""
-        preset = models.PROVIDERS[name]
+        preset = PROVIDERS[name]
         self.model.setText(preset["model"])
         self.base_url.setText(preset.get("base_url", ""))
         variable = preset.get("key_env")
@@ -354,7 +358,7 @@ class ModelPanel(QWidget):
             self.use_button.setEnabled(False)
             self.note.setText("Loading the model file ... (a large file takes a while)")
             self._waited_ms = 0
-            QTimer.singleShot(local.POLL_MS, self._poll)
+            QTimer.singleShot(SERVER_POLL_MS, self._poll)
         else:
             self._finish()
 
@@ -373,12 +377,12 @@ class ModelPanel(QWidget):
         except RuntimeError as exc:
             self._failed(str(exc))
             return
-        self._waited_ms += local.POLL_MS
+        self._waited_ms += SERVER_POLL_MS
         if not ready:
-            if self._waited_ms > local.START_TIMEOUT_S * 1000:
+            if self._waited_ms > SERVER_START_TIMEOUT_S * 1000:
                 self._failed("the model server did not answer in time")
             else:
-                QTimer.singleShot(local.POLL_MS, self._poll)
+                QTimer.singleShot(SERVER_POLL_MS, self._poll)
             return
         self._finish()
 

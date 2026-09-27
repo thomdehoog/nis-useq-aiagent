@@ -1,4 +1,10 @@
-"""The chat window, offscreen, with a scripted model and the fake NIS behind the bridge."""
+"""The chat window, offscreen, with a scripted model and the fake NIS behind the bridge.
+
+Author: Thom de Hoog, Center for Microscopy and Image Analysis (ZMB), University of Zurich
+        thom.dehoog@zmb.uzh.ch . thomdehoog@gmail.com
+Date: 2026-09-27
+License: MIT
+"""
 
 import time
 
@@ -12,7 +18,8 @@ from nis_engine import NisEngine
 from PySide6.QtWidgets import QMessageBox
 from test_agent import Script, moves
 
-from nis_assistant.agent import Assistant, Microscope
+from nis_assistant.agent import Assistant
+from nis_assistant.tools import Microscope
 from nis_assistant.window import AssistantWindow
 
 
@@ -224,9 +231,9 @@ def test_while_nis_starts_the_window_waits_and_then_connects(qtbot, port, tmp_pa
 def test_without_the_bridge_the_window_opens_and_says_which_file_to_run(
     qtbot, port, tmp_path, monkeypatch
 ):
-    from nis_assistant import agent as agent_module
+    from nis_assistant import tools as tools_module
 
-    monkeypatch.setattr(agent_module, "BRIDGE_MACRO", tmp_path / "start_bridge.mac")
+    monkeypatch.setattr(tools_module, "MACRO", tmp_path / "start_bridge.mac")
     (tmp_path / "start_bridge.mac").write_text("")
     engine = NisEngine("127.0.0.1", port, timeout=5.0, connect=False)  # as main() does
     microscope = Microscope(engine, output_dir=tmp_path, vision=False)
