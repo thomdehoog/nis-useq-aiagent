@@ -90,6 +90,34 @@ LOOK_MAX_SIDE = 1024  # a still larger image is binned further until it fits
 SOURCE_MATCHES = 40  # search results returned at most
 SOURCE_LINES = 200  # lines read at most in one go
 
+# -- the coordinate system ---------------------------------------------------------------
+# What a positive move on each axis does to the sample in the image, as the operator
+# sees it on their screen, so that "left", "up" and "deeper" mean one thing. The first
+# choice of each pair is the default; the window's Coordinate system box changes it.
+AXIS_CHOICES = {
+    "x": ("right", "left"),
+    "y": ("up", "down"),
+    "z": ("deeper into the sample", "toward the coverslip"),
+}
+DEFAULT_AXES = {axis: choices[0] for axis, choices in AXIS_CHOICES.items()}
+
+# -- the eyes ----------------------------------------------------------------------------
+# The vision model keeps a conversation of its own for the session, with every image a
+# look took, so it can compare the current image with earlier ones. The newest images
+# stay attached; older turns keep their text (time, settings, numbers, and what the eyes
+# said) and lose the picture, which keeps the cost of a look about one image.
+VISION_FRAMES_KEPT = 8
+# The eyes' conversation is also cut to this many looks, oldest first, so a look every
+# few minutes for a whole day does not send the whole day with every question.
+VISION_TURNS_KEPT = 40
+
+# -- schedules ---------------------------------------------------------------------------
+# "Look every three minutes", "in ten minutes start the plan": the assistant sets a
+# schedule and the window's clock fires each due instruction as a turn of its own.
+SCHEDULE_MIN_SECONDS = 5  # no schedule fires more often than this
+SCHEDULES_MAX = 10
+CLOCK_FORMAT = "%H:%M:%S"  # how the state, the eyes and the schedules write a time of day
+
 # The conversation is made smaller now and then, between turns (see memory.compact()).
 HISTORY_COMPACT_AFTER = 15  # operator turns before the history is made smaller
 HISTORY_KEEP_TURNS = 10  # turns kept when it is; older ones are forgotten

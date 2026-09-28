@@ -26,7 +26,6 @@ import asyncio
 import contextlib
 import functools
 import inspect
-import json
 import os
 import re
 import threading
@@ -45,11 +44,12 @@ from nis_bridge.install_macros import MACRO
 from nis_bridge.settings import FOCUS_TIMEOUT_S
 from nis_engine import NisEngine
 from pydantic import BaseModel
-from pydantic_ai import Agent, ModelRetry, RunContext
+from pydantic_ai import ModelRetry, RunContext
 from pydantic_ai.messages import ToolCallPart
 from pymmcore_plus.mda import MDARunner
 
-from .images import as_png, image_statistics, snap
+from .eyes import Eyes
+from .images import image_statistics, snap
 from .instructions import (
     BRIDGE_MACRO_MISSING,
     BRIDGE_STEPS,
@@ -64,13 +64,15 @@ from .instructions import (
     OPTCONF_STEPS,
     OPTIONS_ADVICE,
     START_ADVICE,
-    VISION_INSTRUCTIONS,
 )
 from .memory import _is_operator_turn
 from .plans import AcquisitionPlan, PositionSpec, count_images, describe, plan_to_sequence
+from .schedules import Scheduler
 from .settings import (
+    CLOCK_FORMAT,
     CONFIRM_XY_UM,
     CONFIRM_Z_UM,
+    DEFAULT_AXES,
     MAX_EXPOSURE_MS,
     MAX_SWEEP_UM,
     MODEL,
@@ -99,6 +101,10 @@ class Microscope:
     on_tool: Callable[[str, dict], None] = lambda name, args: None  # each tool call, as it starts
     vision_model: Any = MODEL  # a model name, a model object, or a test model
     vision: bool = True  # False when the vision model cannot be shown images
+    _eyes: Eyes | None = field(default=None, repr=False)  # see the ``eyes`` property
+    # What a positive move on each axis does to the sample in the image (settings.AXIS_CHOICES).
+    axes: dict[str, str] = field(default_factory=lambda: dict(DEFAULT_AXES))
+    scheduler: Scheduler = field(default_factory=Scheduler)  # what is to happen later
     # Whether a reply that called no tool is challenged once (see the guards below).
     # Off for scripted tests, on in the window.
     challenge_no_tool: bool = False
@@ -119,24 +125,50 @@ class Microscope:
     def client(self):
         return self.engine.client
 
-    def state(self) -> dict[str, Any]:
-        """A compact picture of the microscope, sent with every message from the operator."""
+    def where(self) -> dict[str, Any]:
+        """The stage position and the objective in use: what a picture depends on."""
         objectives = self.client.request("get_objectives")
         current = objectives["current"]
         return {
             "position_um": self.client.request("get_position"),
-            "stage_limits_um": self.engine.limits(),
             "objective": {"slot": current, "name": objectives["objectives"].get(str(current))},
-            "pfs": self.client.request("get_pfs")["meaning"],
         }
 
+    def state(self) -> dict[str, Any]:
+        """A compact picture of the microscope, sent with every message from the operator."""
+        return {
+            **self.where(),
+            "stage_limits_um": self.engine.limits(),
+            "pfs": self.client.request("get_pfs")["meaning"],
+            "clock": time.strftime(CLOCK_FORMAT),
+            "schedules": self.scheduler.listing(),
+        }
+
+    @property
+    def eyes(self) -> Eyes:
+        """The vision model's own conversation, built from ``vision_model`` on first use.
+
+        When ``vision_model`` is changed, the next look gets new eyes, so the
+        model in use is always the one the eyes talk to; the images seen with
+        the old one are forgotten, since another model cannot read its turns.
+        """
+        if self._eyes is None or self._eyes.model is not self.vision_model:
+            self._eyes = Eyes(self.vision_model)
+        return self._eyes
+
+    @eyes.setter
+    def eyes(self, eyes: Eyes) -> None:
+        self._eyes, self.vision_model = eyes, eyes.model
+
     def stop(self) -> None:
-        """Cancel the assistant's turn and end a running acquisition.
+        """Cancel the assistant's turn, end a running acquisition, and drop every schedule.
 
         A single stage move that NIS has already started runs to its end; the
-        joystick or NIS-Elements itself stops it sooner.
+        joystick or NIS-Elements itself stops it sooner. The schedules go too,
+        or one could start the microscope again a moment after Stop was pressed.
         """
         self.cancel.set()
+        self.scheduler.clear()
         if self.runner is not None:
             self.runner.cancel()
 
@@ -447,8 +479,12 @@ def focus(
 async def look(ctx: RunContext[Microscope], question: str) -> dict[str, Any]:
     """Take one image with the current settings and answer a question about it.
 
+    The answer comes from the eyes, which have seen every image of this session:
+    ask them to compare with an earlier image when that is the question.
+
     Args:
-        question: what to find out, e.g. "what do you see?" or "is it in focus?".
+        question: what to find out, e.g. "what do you see?", "is it in focus?",
+            "is it sharper than the image before?".
     """
     image = await asyncio.to_thread(snap, ctx.deps.client)
     stats = image_statistics(image)
@@ -458,13 +494,34 @@ async def look(ctx: RunContext[Microscope], question: str) -> dict[str, Any]:
             "statistics": stats,
             "note": "the model in use cannot see images; judge from the numbers",
         }
-    # A separate, one-off request: the image never enters the chat history,
-    # which keeps long conversations small.
-    vision = Agent(ctx.deps.vision_model, instructions=VISION_INSTRUCTIONS)
-    result = await vision.run(
-        [f"{question}\n\nMeasured on the raw image: {json.dumps(stats)}", as_png(image)]
-    )
-    return {"answer": result.output, "statistics": stats}
+    # A separate conversation: the image never enters the chat history, which
+    # keeps long conversations small; the eyes remember it instead.
+    eyes = ctx.deps.eyes
+    answer = await eyes.look(image, question, stats, _image_context(ctx.deps))
+    return {"answer": answer, "statistics": stats, "images_seen": eyes.frames}
+
+
+@guarded_tool
+async def ask_eyes(ctx: RunContext[Microscope], question: str) -> dict[str, Any]:
+    """Ask the eyes about the images already seen in this session, without taking
+    a new image: "has the sample moved since the first image?", "which image
+    was sharpest?".
+
+    Args:
+        question: what to compare or recall across the images seen.
+    """
+    if not ctx.deps.vision:
+        return {"note": "the model in use cannot see images; nothing was looked at"}
+    eyes = ctx.deps.eyes
+    return {"answer": await eyes.ask(question), "images_seen": eyes.frames}
+
+
+def _image_context(microscope: Microscope) -> dict[str, Any]:
+    """Where the picture was taken, for the eyes' record of it; empty if the read fails."""
+    try:
+        return microscope.where()
+    except (RuntimeError, OSError, ValueError):  # the bridge is gone, or NIS refused
+        return {}
 
 
 @guarded_tool
@@ -651,13 +708,58 @@ async def describe_image(
     stats = image_statistics(image)
     if not microscope.vision:
         return {"statistics": stats, "note": "the model in use cannot see images"}
-    vision = Agent(microscope.vision_model, instructions=VISION_INSTRUCTIONS)
-    prompt = [f"{question}\n\nMeasured on the raw image: {json.dumps(stats)}", as_png(image)]
     try:
-        answer = (await vision.run(prompt)).output
+        answer = await microscope.eyes.look(image, question, stats, _image_context(microscope))
     except Exception as exc:
         return {"statistics": stats, "vision_error": f"{type(exc).__name__}: {exc}"}
     return {"statistics": stats, "description": answer}
+
+
+# -- schedules ---------------------------------------------------------------------------
+
+
+@guarded_tool
+def schedule(
+    ctx: RunContext[Microscope],
+    name: str,
+    instruction: str,
+    every_seconds: int | None = None,
+    in_seconds: int | None = None,
+    at: str | None = None,
+) -> dict[str, Any]:
+    """Have an instruction carried out later, as if the operator typed it then:
+    every_seconds repeats it, in_seconds does it once after a delay, at does it
+    once at a clock time. Exactly one of the three is given. Returns the
+    schedule as set and every schedule now in place.
+
+    Args:
+        name: a short name, to cancel it by.
+        instruction: what to do then, in the operator's words: "look and tell me
+            whether anything changed".
+        every_seconds: repeat this often; every three minutes is 180.
+        in_seconds: once, this long from now; in ten minutes is 600.
+        at: once, at this clock time, 24-hour "HH:MM".
+    """
+    try:
+        added = ctx.deps.scheduler.add(name, instruction, every_seconds, in_seconds, at)
+    except ValueError as exc:
+        return refusal(ctx, "invalid", str(exc), FAILURE_ADVICE)
+    return {"scheduled": added, "schedules": ctx.deps.scheduler.listing()}
+
+
+@guarded_tool
+def cancel_schedule(ctx: RunContext[Microscope], name: str) -> dict[str, Any]:
+    """Cancel a schedule by its name, or every one with "all".
+
+    Args:
+        name: the schedule's name, or "all".
+    """
+    cancelled = ctx.deps.scheduler.cancel(name)
+    if not cancelled:
+        names = [item["name"] for item in ctx.deps.scheduler.listing()]
+        message = f"no schedule named {name!r}"
+        return refusal(ctx, "invalid", message, OPTIONS_ADVICE, configured_options=names)
+    return {"cancelled": cancelled, "schedules": ctx.deps.scheduler.listing()}
 
 
 @guarded_tool
@@ -744,9 +846,12 @@ TOOLS = (
     set_microscope,
     focus,
     look,
+    ask_eyes,
     plan_acquisition,
     plan_useq_sequence,
     run_acquisition,
+    schedule,
+    cancel_schedule,
     search_source,
     read_source,
 )

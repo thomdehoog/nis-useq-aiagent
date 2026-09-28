@@ -82,7 +82,8 @@ Things to try: *Where is the stage?* · *What do you see?* · *Is it in focus?* 
 *Switch to FITC at 50 ms* · *Take a Z-stack of 10 um in 1 um steps in DAPI and FITC here* ·
 *Image a 3 by 3 grid of tiles around here* · *Run the useq sequence in D:\sequences\cells.json* ·
 *Show me the useq sequence for that plan* · *How does the engine move the stage? Show me the code* ·
-*What is new in useq v2?*
+*What is new in useq v2?* · *Move the sample a little to the left* · *Look again: has anything
+changed since the first image?* · *Look every three minutes and tell me whether it drifts*
 
 ## What it can do
 
@@ -91,8 +92,8 @@ whether an optical configuration exists; when not, it hands you the steps:
 the full path of `start_bridge.mac` and how to run it, or how to add an
 optical configuration in NIS), read the microscope, move the stage, change the
 optical configuration, exposure, objective and PFS, focus (PFS or the NIS
-image sweep), and look at an image and describe it. Acquisitions go through
-useq:
+image sweep), look at an image and describe it, ask about the images already
+seen, and set a schedule. Acquisitions go through useq:
 
 - `plan_acquisition` turns a plan into a `useq.MDASequence` and has the engine
   check every event without moving. A plan has positions, channels (each with
@@ -115,6 +116,38 @@ useq:
 
 Plans run as a classic `useq.MDASequence`, because the pymmcore-plus file
 writers (0.18) keep the channel and Z axes only for that form.
+
+**The eyes remember.** The vision model has a conversation of its own for the
+session: every look is a turn in it, with the image, its time, the stage
+position and objective, and the measured numbers, so *is this sharper than
+before?* and *has the sample moved since the first image?* are answered by
+looking, and `ask_eyes` puts a question to the images already seen without
+taking a new one. The last eight images stay attached; older turns keep their
+words, and beyond forty looks the oldest are dropped. The last image of an
+acquisition is shown to the eyes too. Clear context makes the eyes forget with
+the rest, and so does choosing another vision model, since one model cannot
+read another's images and answers.
+
+**The coordinate system.** Microscopes differ in what a positive stage move
+does to the picture on the screen. The *Coordinate system* box in the Model
+panel says what +x, +y and +z do to the sample in the image (right or left,
+up or down, deeper into the sample or toward the coverslip). The assistant is
+told, so *move it a bit to the left* or *go 10 um deeper* becomes a signed
+move on the right axis, and it says which axis and sign it used.
+
+**Schedules.** *Look every three minutes and tell me whether anything
+changed*, *in ten minutes switch the PFS off*, *at 15:00 start the plan*:
+the assistant sets a named schedule, and the window's clock sends each due
+instruction as a turn of its own, marked `[scheduled 'name']` in the chat,
+through the same tools and checks as anything you type, and never while a
+turn is running. A scheduled turn is not yours: a scheduled acquisition or
+long stage move still asks for your go-ahead in the chat and waits until you
+answer, and moves are still measured from where the stage was when you last
+wrote. The state the assistant reads with every message carries the clock
+and the schedules. At most ten schedules, none more often than every five
+seconds. A scheduled turn that fails cancels its schedule, so a dead model
+does not repeat the same error every period. *Stop microscope* and *Clear
+context* cancel them all.
 
 ## How it stays safe
 
@@ -205,11 +238,13 @@ only fitted it to the cases.
 | `nis_assistant/instructions.py` | The prose the model reads: its instructions, the advice given with a refusal, and the setup steps it passes on. |
 | `nis_assistant/plans.py` | The plan format, plan to useq sequence, and the plan summary. |
 | `nis_assistant/images.py` | One snap, its statistics, and the binned PNG for the model. |
+| `nis_assistant/eyes.py` | The vision model's own conversation: the images seen this session, compared on request. |
+| `nis_assistant/schedules.py` | The schedules the assistant sets, and when each is due. |
 | `nis_assistant/memory.py` | The conversation made smaller now and then. |
 | `nis_assistant/models.py` | The ways to reach a model: a provider preset, an API key held in memory, the model object. |
 | `nis_assistant/local.py` | A `.gguf` model file served on this computer by llama.cpp. |
 | `nis_assistant/agent.py` | The assembly: the Agent with the tools and guards, and `Assistant`, one conversation. |
-| `nis_assistant/settings.py` | Every constant: the provider presets, go-ahead distances, memory sizes, window defaults. |
+| `nis_assistant/settings.py` | Every constant: the provider presets, the coordinate choices, go-ahead distances, memory sizes, window defaults. |
 | `nis_assistant/window.py` | The chat window (`nis-assistant`), with the Model panel from `panel.py`. |
 | `tests/evals.py` | The evaluation with a real model; `eval_cases.json` and `eval_cases_holdout.json`. |
 

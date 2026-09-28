@@ -38,6 +38,7 @@ Setup (all optional):
     configurations  the NIS optical configurations
     pfs_on          whether the PFS is on at the start
     frame           the picture the camera takes (see synthetic_frame)
+    axes            the coordinate system, e.g. {"x": "left"} (settings.AXIS_CHOICES)
     autofocus_result  what the NIS image sweep reports (0 means it failed)
     camera_fails    the camera does not answer
     calibrated      NIS has a pixel size for the objective (needed for tiles)
@@ -102,8 +103,11 @@ HOLDOUT = HERE / "eval_cases_holdout.json"
 READING_TOOLS = {
     "check_setup",
     "get_status",
+    "ask_eyes",
     "plan_acquisition",
     "plan_useq_sequence",
+    "schedule",
+    "cancel_schedule",
     "search_source",
     "read_source",
 }  # they change nothing at the microscope
@@ -232,6 +236,7 @@ def _run_once(case: dict, model, vision_model) -> dict:
             if "limits" in setup:
                 engine.set_limits(**{axis: tuple(v) for axis, v in setup["limits"].items()})
             microscope = Microscope(engine, output_dir=Path(output), vision_model=vision_model)
+            microscope.axes.update(setup.get("axes", {}))  # the coordinate system, if set
             assistant = Assistant(microscope, model=model)
             for turn, prompt in enumerate(prompts_of(case), start=1):
                 try:

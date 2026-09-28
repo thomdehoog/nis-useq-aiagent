@@ -21,13 +21,13 @@ from __future__ import annotations
 import json
 from typing import Any
 
-from pydantic_ai import Agent, capture_run_messages
+from pydantic_ai import Agent, RunContext, capture_run_messages
 from pydantic_ai.messages import ModelMessage, ModelRequest
 
 from . import models
-from .instructions import INSTRUCTIONS
+from .instructions import COORDINATES, INSTRUCTIONS
 from .memory import compact, without_state_block
-from .settings import DEFAULT_MODEL_SETTINGS, MODEL, TOOL_CALL_RETRIES
+from .settings import AXIS_CHOICES, DEFAULT_AXES, DEFAULT_MODEL_SETTINGS, MODEL, TOOL_CALL_RETRIES
 from .tools import REPLY_GUARDS, TOOLS, Microscope
 
 agent = Agent(
@@ -41,6 +41,28 @@ for tool in TOOLS:
     agent.tool(sequential=True)(tool)  # one tool call at a time, so each result is seen
 for guard in REPLY_GUARDS:
     agent.output_validator(guard)
+
+
+@agent.instructions
+def coordinate_system(ctx: RunContext[Microscope]) -> str:
+    """The operator's choice of what +x, +y and +z do, added to the instructions."""
+    return axes_section(ctx.deps.axes)
+
+
+def axes_section(axes: dict[str, str]) -> str:
+    """The coordinate system as the operator sees it, worded for the model.
+
+    An axis that is missing, or set to something that is not one of its two
+    choices, takes the default.
+    """
+    chosen = {
+        axis: axes.get(axis) if axes.get(axis) in AXIS_CHOICES[axis] else DEFAULT_AXES[axis]
+        for axis in AXIS_CHOICES
+    }
+    other = {
+        axis: next(c for c in AXIS_CHOICES[axis] if c != chosen[axis]) for axis in AXIS_CHOICES
+    }
+    return COORDINATES.format(**chosen, **{f"not_{axis}": other[axis] for axis in other})
 
 
 class Assistant:
@@ -59,20 +81,30 @@ class Assistant:
         self.history: list[ModelMessage] = []
         self.last_turn: list[ModelMessage] = []  # the latest turn's messages, for traces
 
-    def send(self, text: str) -> str:
-        """One operator message in, the assistant's answer out."""
+    def send(self, text: str, scheduled: bool = False) -> str:
+        """One message in, the assistant's answer out.
+
+        A message the operator typed starts a new turn of theirs: moves are
+        measured from where the stage is now, and a question the assistant
+        asked in the turn before counts as answered by this message. A
+        ``scheduled`` message (the window sends one when a schedule falls due)
+        does neither, so a repeating schedule cannot creep the stage along in
+        small steps, and cannot stand in for the operator's go-ahead.
+        """
         self.microscope.cancel.clear()
         try:
             if self.microscope.engine.client.closed:  # after a timeout, or a restarted bridge
                 self.microscope.engine.reconnect()
             state = self.microscope.state()
-            self.microscope.anchor = state["position_um"]
+            if not scheduled:
+                self.microscope.anchor = state["position_um"]
         except (RuntimeError, ValueError, OSError) as exc:
             # No bridge, or NIS is closed: the model still gets the message, so it
             # can call check_setup and tell the operator what to do.
             state = {"microscope": f"not answering: {exc}"}
             self.microscope.anchor = None
-        self.microscope.turn += 1
+        if not scheduled:
+            self.microscope.turn += 1
         prompt = f"{text}\n\n<microscope_state>{json.dumps(state)}</microscope_state>"
         with capture_run_messages() as messages:
             try:
@@ -108,8 +140,13 @@ class Assistant:
         self.microscope.vision = seeing.vision
 
     def clear(self) -> None:
-        """Forget the conversation; the next message starts a new one."""
+        """Forget the conversation; the next message starts a new one.
+
+        The eyes forget their images and the schedules are cancelled.
+        """
         self.history, self.last_turn = [], []
         self.microscope.plans.clear()
         self.microscope.planned_in.clear()
         self.microscope.go_ahead_asked.clear()
+        self.microscope.scheduler.clear()
+        self.microscope.eyes.reset()
