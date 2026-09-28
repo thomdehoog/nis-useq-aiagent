@@ -179,6 +179,32 @@ def test_the_preferences_change_the_output_folder_and_the_letters(qtbot, open_wi
     assert window.transcript.font().pointSize() == 14
 
 
+def test_the_coordinate_box_tells_the_assistant(qtbot, open_window):
+    window = open_window()
+    window.axes_box.combos["x"].setCurrentText("left")
+    assert window.assistant.microscope.axes["x"] == "left"
+    assert "+x moves the sample left" in window.transcript.toPlainText()
+
+
+def test_a_due_schedule_runs_as_its_own_turn_and_stop_drops_it(qtbot, open_window):
+    set_it = ("schedule", {"name": "watch", "instruction": "status", "every_seconds": 60})
+    window = open_window(set_it, "Every minute.", ("get_status", {}), "Here is the status.")
+    ask(qtbot, window, "status every minute")
+    scheduler = window.assistant.microscope.scheduler
+    assert [s["name"] for s in scheduler.listing()] == ["watch"]
+    scheduler._clock = lambda: time.time() + 61  # a minute passes
+    qtbot.waitUntil(
+        lambda: "[scheduled 'watch'] status" in window.transcript.toPlainText(), timeout=5000
+    )
+    qtbot.waitUntil(lambda: not window.busy, timeout=10000)
+    assert "Here is the status." in window.transcript.toPlainText()
+    window.stop_microscope()
+    assert (
+        scheduler.listing() == []
+        and "every schedule is cancelled" in window.transcript.toPlainText()
+    )
+
+
 def test_the_halves_sit_in_a_splitter(qtbot, open_window):
     window = open_window()
     assert window.splitter.count() == 2

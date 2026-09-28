@@ -24,6 +24,7 @@ pytest.importorskip("pymmcore_plus")
 from nis_bridge.client import NisConnectionError
 from nis_engine import NisEngine
 from pydantic_ai.messages import (
+    BinaryContent,
     ModelResponse,
     TextPart,
     ThinkingPart,
@@ -33,7 +34,8 @@ from pydantic_ai.messages import (
 )
 from pydantic_ai.models.function import FunctionModel
 
-from nis_assistant.agent import Assistant
+from nis_assistant.agent import Assistant, axes_section
+from nis_assistant.eyes import Eyes
 from nis_assistant.images import as_png, binned, image_statistics
 from nis_assistant.instructions import GO_AHEAD_ADVICE, LIMIT_ADVICE, OPTIONS_ADVICE
 from nis_assistant.models import Endpoint
@@ -331,6 +333,78 @@ def test_look_shows_the_image_and_asks_a_vision_model(microscope):
     assert png.media_type == "image/png"
 
 
+def test_the_eyes_remember_earlier_images(microscope, fake):
+    vision = Script("Three spots.", "The same three spots as in image 1; nothing moved.")
+    microscope.vision_model, microscope.vision = vision.model(), True
+    look = ("look", {"question": "what do you see?"})
+    again = ("look", {"question": "has anything changed since the image before?"})
+    assistant, _ = talk(microscope, look, again, "Nothing moved.")
+    assistant.send("look twice and compare")
+    first, second = tool_results(assistant)
+    assert first["images_seen"] == 1 and second["images_seen"] == 2
+    assert second["answer"].startswith("The same three spots")
+    # the second request to the eyes carries the first image's turn and its answer
+    history = vision.requests[1]
+    texts = [
+        p.content for m in history for p in m.parts if isinstance(p, (UserPromptPart, TextPart))
+    ]
+    assert any(t == "Three spots." for t in texts)
+    prompt = history[-1].parts[-1].content[0]
+    assert prompt.startswith("Image 2,") and "position_um" in prompt and "objective" in prompt
+    assert fake.captures == 2
+
+
+def test_ask_eyes_asks_about_the_images_seen_without_a_new_one(microscope, fake):
+    vision = Script("Three spots.", "Still three; nothing has moved.")
+    microscope.vision_model, microscope.vision = vision.model(), True
+    steps = [
+        ("look", {"question": "what do you see?"}),
+        ("ask_eyes", {"question": "has the sample moved?"}),
+        "No.",
+    ]
+    assistant, _ = talk(microscope, *steps)
+    assistant.send("look, then tell me whether it moved")
+    asked = tool_results(assistant)[1]
+    assert asked["answer"] == "Still three; nothing has moved." and asked["images_seen"] == 1
+    assert fake.captures == 1  # no new image for the question
+    assert vision.requests[1][-1].parts[-1].content.startswith("No new image.")
+
+
+def test_ask_eyes_before_any_look_says_so(microscope):
+    vision = Script()
+    microscope.vision_model, microscope.vision = vision.model(), True
+    assistant, _ = talk(microscope, ("ask_eyes", {"question": "anything?"}), "Look first.")
+    assistant.send("what did you see?")
+    assert "look first" in tool_results(assistant)[0]["answer"] and vision.requests == []
+
+
+def test_older_images_are_detached_but_their_words_stay(microscope):
+    vision = Script("One.", "Two.", "Three.")
+    microscope.vision_model, microscope.vision = vision.model(), True
+    microscope.eyes = Eyes(vision.model(), frames_kept=1)
+    look = ("look", {"question": "what?"})
+    assistant, _ = talk(microscope, look, look, look, "Done.")
+    assistant.send("look three times")
+    turns = [m for m in microscope.eyes._history if isinstance(m.parts[0], UserPromptPart)]
+    assert len(turns) == 3
+    with_image = [any(isinstance(c, BinaryContent) for c in t.parts[0].content) for t in turns]
+    assert with_image == [False, False, True]  # only the newest keeps its picture
+    assert "[image no longer attached]" in turns[0].parts[0].content
+    assert "Image 1," in turns[0].parts[0].content[0]  # the words stay
+
+
+def test_the_eyes_see_the_last_image_of_a_run_and_forget_on_clear(microscope, fake):
+    vision = Script("A dim, even field.")
+    microscope.vision_model, microscope.vision = vision.model(), True
+    steps = [("plan_acquisition", PLAN), RUN, "Start?", RUN, "Saved."]
+    assistant, _ = talk(microscope, *steps)
+    assistant.send("take a stack at a")
+    assistant.send("yes")
+    assert microscope.eyes.frames == 1
+    assistant.clear()
+    assert microscope.eyes.frames == 0 and microscope.eyes._history == []
+
+
 def test_a_model_that_cannot_see_gets_the_numbers_only(microscope):
     microscope.vision = False
     assistant, _ = talk(microscope, ("look", {"question": "what do you see?"}), "Dark.")
@@ -346,6 +420,90 @@ def test_binning_averages_blocks():
     assert small.shape == (2, 2) and small[0, 0] == np.mean([0, 1, 4, 5])
     assert binned(image[:3, :3], 2).shape == (1, 1)  # the ragged edge is dropped
     assert binned(np.zeros((4, 4, 3)), 2).shape == (2, 2, 3)  # colour keeps its planes
+
+
+# -- the coordinate system ---------------------------------------------------------------
+
+
+def test_the_model_is_told_the_coordinate_system(microscope):
+    assistant, script = talk(microscope, "Hello!")
+    assistant.send("hi")
+    told = script.requests[0][-1].instructions
+    assert "right is +x and left is -x; up is +y and down is -y" in told
+    assert "deeper into the sample is +z and toward the coverslip is -z" in told
+    microscope.axes = {"x": "left", "y": "down", "z": "toward the coverslip"}
+    assistant, script = talk(microscope, "Hello again!")
+    assistant.send("hi")
+    told = script.requests[0][-1].instructions
+    assert "left is +x and right is -x; down is +y and up is -y" in told
+    assert "toward the coverslip is +z and deeper into the sample is -z" in told
+
+
+def test_a_missing_axis_takes_the_default():
+    assert "right is +x" in axes_section({"y": "down"}) and "down is +y" in axes_section(
+        {"y": "down"}
+    )
+
+
+# -- schedules ---------------------------------------------------------------------------
+
+
+def test_a_schedule_is_set_and_shows_in_the_state(microscope):
+    steps = [
+        ("schedule", {"name": "watch", "instruction": "look", "every_seconds": 180}),
+        "Every three minutes.",
+        "Hello.",
+    ]
+    assistant, script = talk(microscope, *steps)
+    assistant.send("look every three minutes")
+    result = tool_results(assistant)[0]
+    assert result["scheduled"]["name"] == "watch" and result["scheduled"]["every_seconds"] == 180
+    assert "watch" in [s["name"] for s in microscope.scheduler.listing()]
+    assistant.send("hi")
+    state = json.loads(
+        script.requests[-1][-1]
+        .parts[-1]
+        .content.split("<microscope_state>")[1][: -len("</microscope_state>")]
+    )
+    assert state["schedules"][0]["name"] == "watch" and len(state["clock"]) == 8
+
+
+@pytest.mark.parametrize(
+    ("args", "message"),
+    [
+        ({"name": "x", "instruction": "look", "every_seconds": 1}, "at least"),
+        ({"name": "x", "instruction": "look"}, "exactly one of"),
+        ({"name": "x", "instruction": "look", "at": "25:99"}, "HH:MM"),
+    ],
+)
+def test_a_bad_schedule_is_refused_with_the_reason(microscope, args, message):
+    assistant, _ = talk(microscope, ("schedule", args), "Refused.")
+    assistant.send("later")
+    error = tool_results(assistant)[0]["error"]
+    assert error["code"] == "invalid" and message in error["message"]
+    assert microscope.scheduler.listing() == []
+
+
+def test_cancel_schedule_by_name_and_an_unknown_name_lists_the_known(microscope):
+    microscope.scheduler.add("watch", "look", every_seconds=60)
+    assistant, _ = talk(microscope, ("cancel_schedule", {"name": "nope"}), "Which one?")
+    assistant.send("cancel it")
+    error = tool_results(assistant)[0]["error"]
+    assert error["code"] == "invalid" and error["configured_options"] == ["watch"]
+    assistant, _ = talk(microscope, ("cancel_schedule", {"name": "watch"}), "Cancelled.")
+    assistant.send("cancel the watch")
+    assert (
+        tool_results(assistant)[0]["cancelled"] == ["watch"] and not microscope.scheduler.listing()
+    )
+
+
+def test_stop_and_clear_drop_every_schedule(microscope):
+    microscope.scheduler.add("watch", "look", every_seconds=60)
+    microscope.stop()
+    assert microscope.scheduler.listing() == []
+    microscope.scheduler.add("watch", "look", every_seconds=60)
+    Assistant(microscope).clear()
+    assert microscope.scheduler.listing() == []
 
 
 # -- checking the setup ---------------------------------------------------------------

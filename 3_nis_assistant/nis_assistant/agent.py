@@ -21,13 +21,14 @@ from __future__ import annotations
 import json
 from typing import Any
 
-from pydantic_ai import Agent, capture_run_messages
+from pydantic_ai import Agent, RunContext, capture_run_messages
 from pydantic_ai.messages import ModelMessage, ModelRequest
 
 from . import models
-from .instructions import INSTRUCTIONS
+from .eyes import Eyes
+from .instructions import COORDINATES, INSTRUCTIONS
 from .memory import compact, without_state_block
-from .settings import DEFAULT_MODEL_SETTINGS, MODEL, TOOL_CALL_RETRIES
+from .settings import AXIS_CHOICES, DEFAULT_AXES, DEFAULT_MODEL_SETTINGS, MODEL, TOOL_CALL_RETRIES
 from .tools import REPLY_GUARDS, TOOLS, Microscope
 
 agent = Agent(
@@ -41,6 +42,21 @@ for tool in TOOLS:
     agent.tool(sequential=True)(tool)  # one tool call at a time, so each result is seen
 for guard in REPLY_GUARDS:
     agent.output_validator(guard)
+
+
+@agent.instructions
+def coordinate_system(ctx: RunContext[Microscope]) -> str:
+    """The operator's choice of what +x, +y and +z do, added to the instructions."""
+    return axes_section(ctx.deps.axes)
+
+
+def axes_section(axes: dict[str, str]) -> str:
+    """The coordinate system as the operator sees it, worded for the model."""
+    chosen = {axis: axes.get(axis) or DEFAULT_AXES[axis] for axis in AXIS_CHOICES}
+    other = {
+        axis: next(c for c in AXIS_CHOICES[axis] if c != chosen[axis]) for axis in AXIS_CHOICES
+    }
+    return COORDINATES.format(**chosen, **{f"not_{axis}": other[axis] for axis in other})
 
 
 class Assistant:
@@ -106,10 +122,17 @@ class Assistant:
         seeing = vision or endpoint
         self.microscope.vision_model = self.model if vision is None else models.build_model(seeing)
         self.microscope.vision = seeing.vision
+        self.microscope.eyes = Eyes(self.microscope.vision_model)  # new eyes, nothing seen yet
 
     def clear(self) -> None:
-        """Forget the conversation; the next message starts a new one."""
+        """Forget the conversation; the next message starts a new one.
+
+        The eyes forget their images and the schedules are cancelled.
+        """
         self.history, self.last_turn = [], []
         self.microscope.plans.clear()
         self.microscope.planned_in.clear()
         self.microscope.go_ahead_asked.clear()
+        self.microscope.scheduler.clear()
+        if self.microscope.eyes is not None:
+            self.microscope.eyes.reset()

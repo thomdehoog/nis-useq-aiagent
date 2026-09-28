@@ -5,7 +5,9 @@ Inside are two boxes: the language model that runs the conversation, and the
 vision model that is shown camera images (by default the same one). Each box
 names either a cloud model (provider, model, API key) or a model file on this
 computer, which the window serves itself (see ``local.py``). "Use this model"
-applies the choice; the conversation so far is kept.
+applies the choice; the conversation so far is kept. Below them, the
+Coordinate system box says what a positive move on each axis does to the
+sample in the image, and the Preferences box where images are saved.
 
 The API key typed here stays in memory for this session only.
 
@@ -40,7 +42,13 @@ from PySide6.QtWidgets import (
 
 from . import local, models
 from .models import Endpoint
-from .settings import DEFAULT_PROVIDER, PROVIDERS, SERVER_POLL_MS, SERVER_START_TIMEOUT_S
+from .settings import (
+    AXIS_CHOICES,
+    DEFAULT_PROVIDER,
+    PROVIDERS,
+    SERVER_POLL_MS,
+    SERVER_START_TIMEOUT_S,
+)
 
 CLOUD = "Cloud"
 LOCAL_FILE = "File on this computer"
@@ -214,6 +222,41 @@ class ModelPicker(QGroupBox):
             self.scan_models()
 
 
+class AxesBox(QGroupBox):
+    """The Coordinate system box: what a positive move on x, y and z does to the
+    sample in the image, as the operator sees it on the screen.
+
+    Microscopes differ in this, so the assistant is told the choice and turns
+    "left", "up" and "deeper" into signed moves with it. ``on_change`` gets the
+    choice as a dict such as {"x": "right", "y": "up", "z": "deeper into the
+    sample"} whenever it changes.
+    """
+
+    def __init__(self, axes: dict[str, str], on_change: Callable[[dict[str, str]], None]) -> None:
+        super().__init__("Coordinate system")
+        self.on_change = on_change
+        self.setToolTip(
+            "Watch the sample on the screen while the stage moves in the positive "
+            "direction of each axis, and choose what you see."
+        )
+        self.combos: dict[str, QComboBox] = {}
+        grid = QGridLayout(self)
+        grid.setHorizontalSpacing(8)
+        for column, (axis, choices) in enumerate(AXIS_CHOICES.items()):
+            combo = QComboBox()
+            combo.addItems(list(choices))
+            combo.setCurrentText(axes.get(axis) or choices[0])
+            combo.currentTextChanged.connect(lambda *_: self.on_change(self.axes()))
+            grid.addWidget(QLabel(f"{axis}+ moves the sample"), 0, 2 * column)
+            grid.addWidget(combo, 0, 2 * column + 1)
+            self.combos[axis] = combo
+        grid.setColumnStretch(2 * len(AXIS_CHOICES), 1)
+
+    def axes(self) -> dict[str, str]:
+        """The choice as the assistant takes it: axis -> what a positive move does."""
+        return {axis: combo.currentText() for axis, combo in self.combos.items()}
+
+
 class PreferencesBox(QGroupBox):
     """The third box: where acquisitions are saved, and the size of the letters.
 
@@ -274,11 +317,13 @@ class ModelPanel(QWidget):
         say: Callable[[str], None],
         preferences: PreferencesBox | None = None,
         models_folder: Path | None = None,
+        axes: AxesBox | None = None,
     ) -> None:
         super().__init__()
         self.on_use = on_use
         self.say = say
         self.preferences = preferences
+        self.axes = axes
         self.servers: list[local.LocalModelServer] = []
         self._pending: dict | None = None
 
@@ -309,6 +354,8 @@ class ModelPanel(QWidget):
         body.addWidget(self.language)
         body.addWidget(self.vision)
         body.addLayout(buttons)
+        if axes is not None:
+            body.addWidget(axes)
         if preferences is not None:
             body.addWidget(preferences)
         self.body = QWidget()
