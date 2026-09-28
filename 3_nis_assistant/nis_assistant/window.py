@@ -52,10 +52,14 @@ from PySide6.QtWidgets import (
 from . import models
 from .agent import Assistant
 from .images import as_png
+from .instructions import SCHEDULED_TURN
 from .local import CONTEXT_TOO_SMALL_HELP, CONTEXT_TOO_SMALL_SIGNS
 from .panel import AxesBox, ModelPanel, PreferencesBox
-from .settings import DEFAULT_PROVIDER, FONT_POINTS, OUTPUT_FOLDER, SCHEDULED_TURN
+from .settings import DEFAULT_PROVIDER, FONT_POINTS, OUTPUT_FOLDER
 from .tools import Microscope, bridge_steps
+
+# The colour of each voice in the transcript.
+COLOURS = {"you": "#1a5fb4", "assistant": "#26a269", "system": "#b00020", "scheduled": "#8a5a00"}
 
 WELCOME = (
     "Hello. I can move the stage, change the optical settings, focus, look at the "
@@ -253,9 +257,17 @@ class AssistantWindow(QMainWindow):
         self._say("system", f"Coordinate system: {said}.")
 
     def use_model(self, endpoint: models.Endpoint, vision: models.Endpoint | None) -> None:
-        """The panel's choice: talk to this model from the next message on."""
+        """The panel's choice: talk to this model from the next message on.
+
+        The chat is kept. The eyes start afresh when their model changes, since
+        another model cannot read the images and answers of the old one.
+        """
+        seen = self.assistant.microscope.eyes.frames
         self.assistant.use(endpoint, vision)
-        self._say("system", f"Talking to {endpoint.name}.")
+        note = (
+            f" The eyes start afresh; the {seen} images seen so far are forgotten." if seen else ""
+        )
+        self._say("system", f"Talking to {endpoint.name}.{note}")
 
     def closeEvent(self, event: QCloseEvent) -> None:
         """Do not close in the middle of an action: the microscope would be left mid-way."""
@@ -283,8 +295,10 @@ class AssistantWindow(QMainWindow):
         self._in_background(lambda: self.assistant.send(text))
 
     def fire_due_schedule(self) -> None:
-        """Every second: the first schedule that is due runs as a turn of its own, marked
-        as such in the transcript, never while a turn runs (it waits for the next tick)."""
+        """The window's clock calls this every second. When no turn is running and a
+        schedule is due, its instruction runs as a turn of its own, marked as
+        scheduled in the transcript; while a turn runs it waits for the next tick.
+        """
         if self.busy:
             return
         item = self.assistant.microscope.scheduler.pop_due()
@@ -293,21 +307,29 @@ class AssistantWindow(QMainWindow):
         text = SCHEDULED_TURN.format(name=item["name"], instruction=item["instruction"])
         self.warning.hide()
         self._say("scheduled", text)
-        self._in_background(lambda: self.assistant.send(text))
+        self._in_background(lambda: self.assistant.send(text, scheduled=True), item["name"])
 
     @property
     def busy(self) -> bool:
         return not self.send_button.isEnabled()
 
-    def _in_background(self, turn: Callable[[], str]) -> None:
-        """Run one assistant turn off the window's thread, so the window stays responsive."""
+    def _in_background(self, turn: Callable[[], str], schedule: str | None = None) -> None:
+        """Run one assistant turn off the window's thread, so the window stays responsive.
+
+        A turn that fails ends with its error in the transcript. When it was a
+        scheduled turn, that schedule is cancelled too, or a schedule with a
+        dead model would repeat the same error every period.
+        """
         self._set_busy(True)
 
         def work() -> None:
             try:
                 self.signals.reply.emit(turn())
             except Exception as exc:
-                self.signals.error.emit(_explain(exc, self.assistant.endpoint))
+                text = _explain(exc, self.assistant.endpoint)
+                if schedule and self.assistant.microscope.scheduler.cancel(schedule):
+                    text += f" The schedule '{schedule}' is cancelled."
+                self.signals.error.emit(text)
 
         threading.Thread(target=work, daemon=True).start()
 
@@ -448,13 +470,7 @@ class AssistantWindow(QMainWindow):
     # -- small helpers ------------------------------------------------------------------
 
     def _say(self, who: str, text: str, escape: bool = True) -> None:
-        colours = {
-            "you": "#1a5fb4",
-            "assistant": "#26a269",
-            "system": "#b00020",
-            "scheduled": "#8a5a00",
-        }
-        colour = colours[who]
+        colour = COLOURS[who]
         body = html.escape(text).replace("\n", "<br>") if escape else text
         self.transcript.append(f'<p><b style="color:{colour}">{who}</b><br>{body}</p>')
 

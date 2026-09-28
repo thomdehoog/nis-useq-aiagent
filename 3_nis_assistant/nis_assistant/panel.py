@@ -245,7 +245,7 @@ class AxesBox(QGroupBox):
         for column, (axis, choices) in enumerate(AXIS_CHOICES.items()):
             combo = QComboBox()
             combo.addItems(list(choices))
-            combo.setCurrentText(axes.get(axis) or choices[0])
+            combo.setCurrentText(axes[axis] if axes.get(axis) in choices else choices[0])
             combo.currentTextChanged.connect(lambda *_: self.on_change(self.axes()))
             grid.addWidget(QLabel(f"{axis}+ moves the sample"), 0, 2 * column)
             grid.addWidget(combo, 0, 2 * column + 1)

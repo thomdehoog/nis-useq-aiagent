@@ -78,6 +78,8 @@ def test_a_bad_request_says_what_is_wrong(clock, kwargs, message):
         Scheduler(clock).add("x", "look", **kwargs)
     with pytest.raises(ValueError, match="needs a name"):
         Scheduler(clock).add("", "look", every_seconds=60)
+    with pytest.raises(ValueError, match="cannot be a schedule's name"):
+        Scheduler(clock).add("all", "look", every_seconds=60)
 
 
 def test_at_most_so_many_schedules(clock):

@@ -35,7 +35,7 @@ from pydantic_ai.messages import (
 from pydantic_ai.models.function import FunctionModel
 
 from nis_assistant.agent import Assistant, axes_section
-from nis_assistant.eyes import Eyes
+from nis_assistant.eyes import Eyes, last_turns
 from nis_assistant.images import as_png, binned, image_statistics
 from nis_assistant.instructions import GO_AHEAD_ADVICE, LIMIT_ADVICE, OPTIONS_ADVICE
 from nis_assistant.models import Endpoint
@@ -405,6 +405,56 @@ def test_the_eyes_see_the_last_image_of_a_run_and_forget_on_clear(microscope, fa
     assert microscope.eyes.frames == 0 and microscope.eyes._history == []
 
 
+def test_the_eyes_keep_only_the_last_so_many_looks(microscope):
+    vision = Script("One.", "Two.", "Three.")
+    microscope.vision_model, microscope.vision = vision.model(), True
+    microscope.eyes = Eyes(vision.model(), turns_kept=2)
+    look = ("look", {"question": "what?"})
+    assistant, _ = talk(microscope, look, look, look, "Done.")
+    assistant.send("look three times")
+    turns = [m for m in microscope.eyes._history if isinstance(m.parts[0], UserPromptPart)]
+    assert len(turns) == 2 and "Image 2," in turns[0].parts[0].content[0]
+    assert last_turns([], 3) == []
+
+
+def test_a_failing_vision_model_is_reported_and_the_image_not_counted(microscope, fake):
+    vision = Script(RuntimeError("the vision model is down"))
+    microscope.vision_model, microscope.vision = vision.model(), True
+    assistant, _ = talk(microscope, ("look", {"question": "what?"}), "Sorry.")
+    assistant.send("look")
+    result = tool_results(assistant)[0]
+    assert (
+        result["error"]["code"] == "failed" and "vision model is down" in result["error"]["message"]
+    )
+    assert microscope.eyes.frames == 0 and fake.captures == 1
+    # the last image of a run: the run is not turned into a failure by the describing
+    vision = Script(RuntimeError("still down"))
+    microscope.vision_model = vision.model()
+    steps = [("plan_acquisition", PLAN), RUN, "Start?", RUN, "Saved."]
+    assistant, _ = talk(microscope, *steps)
+    assistant.send("take a stack at a")
+    assistant.send("yes")
+    run = tool_results(assistant)[-1]
+    assert run["finished"] == "completed" and "still down" in run["last_image"]["vision_error"]
+
+
+def test_ask_eyes_with_a_model_that_cannot_see(microscope):
+    microscope.vision = False
+    assistant, _ = talk(microscope, ("ask_eyes", {"question": "anything?"}), "No.")
+    assistant.send("what did you see?")
+    assert "cannot see" in tool_results(assistant)[0]["note"]
+
+
+def test_changing_the_vision_model_gives_new_eyes(microscope):
+    first, second = Script("One."), Script("Two.")
+    microscope.vision_model, microscope.vision = first.model(), True
+    assistant, _ = talk(microscope, ("look", {"question": "what?"}), "Done.")
+    assistant.send("look")
+    assert microscope.eyes.frames == 1
+    microscope.vision_model = second.model()  # as Assistant.use does
+    assert microscope.eyes.frames == 0 and microscope.eyes.model is microscope.vision_model
+
+
 def test_a_model_that_cannot_see_gets_the_numbers_only(microscope):
     microscope.vision = False
     assistant, _ = talk(microscope, ("look", {"question": "what do you see?"}), "Dark.")
@@ -439,10 +489,9 @@ def test_the_model_is_told_the_coordinate_system(microscope):
     assert "toward the coverslip is +z and deeper into the sample is -z" in told
 
 
-def test_a_missing_axis_takes_the_default():
-    assert "right is +x" in axes_section({"y": "down"}) and "down is +y" in axes_section(
-        {"y": "down"}
-    )
+def test_a_missing_or_unknown_axis_choice_takes_the_default():
+    told = axes_section({"y": "down", "z": "sideways"})
+    assert "right is +x" in told and "down is +y" in told and "deeper into the sample is +z" in told
 
 
 # -- schedules ---------------------------------------------------------------------------
@@ -495,6 +544,21 @@ def test_cancel_schedule_by_name_and_an_unknown_name_lists_the_known(microscope)
     assert (
         tool_results(assistant)[0]["cancelled"] == ["watch"] and not microscope.scheduler.listing()
     )
+
+
+def test_a_scheduled_turn_is_not_the_operators(microscope, fake):
+    # A scheduled move does not move the anchor, so repeated small steps still add up
+    # to a question; and it does not count as the reply to a pending question.
+    assistant, _ = talk(microscope, ("move_stage", {"x": 1600}), "Moved.")
+    assistant.send("move x to 1600")
+    step = ("move_stage", {"x": 2200})
+    assistant, _ = talk(microscope, step, "Shall I?", step, "Shall I?")
+    assistant.send("[scheduled 'creep'] move x 600 further", scheduled=True)
+    assert tool_results(assistant)[-1]["status"] == "needs_go_ahead"
+    assistant.send("[scheduled 'creep'] move x 600 further", scheduled=True)
+    assert tool_results(assistant)[-1]["status"] == "needs_go_ahead"
+    assert moves(fake) == ["move_xy(1600,-500)"]
+    assert microscope.turn == 1  # scheduled turns do not count as the operator's
 
 
 def test_stop_and_clear_drop_every_schedule(microscope):

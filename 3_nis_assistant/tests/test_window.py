@@ -36,14 +36,17 @@ def open_window(qtbot, port, tmp_path):
         else:
             microscope.vision = False  # no vision model: the look and run tools skip it
         window = AssistantWindow(Assistant(microscope, model=Script(*steps).model()))
-        qtbot.addWidget(window)
+        # A failed test may leave a turn running; the window refuses to close then
+        # (with a dialog nobody can click), so the turn is ended before the close.
+        qtbot.addWidget(window, before_close_func=settle)
         windows.append(window)
         return window
 
-    yield make
-    for window in windows:  # a failed test may leave a turn waiting: end it first
+    def settle(window):
         window.stop_microscope()
-        qtbot.waitUntil(lambda w=window: not w.busy, timeout=10000)
+        qtbot.waitUntil(lambda: not window.busy, timeout=10000)
+
+    yield make
     for engine in engines:
         engine.close()
 
@@ -180,10 +183,42 @@ def test_the_preferences_change_the_output_folder_and_the_letters(qtbot, open_wi
 
 
 def test_the_coordinate_box_tells_the_assistant(qtbot, open_window):
-    window = open_window()
+    window = open_window("Hello.")
     window.axes_box.combos["x"].setCurrentText("left")
     assert window.assistant.microscope.axes["x"] == "left"
     assert "+x moves the sample left" in window.transcript.toPlainText()
+    ask(qtbot, window, "hi")
+    told = window.assistant.last_turn[0].instructions
+    assert "left is +x and right is -x" in told
+
+
+def test_a_due_schedule_waits_for_a_running_turn(qtbot, open_window, fake):
+    slow = fake.get_position
+
+    def slow_position():  # a slow stage read, so the first turn takes a few seconds
+        time.sleep(2.0)
+        return slow()
+
+    fake.get_position = slow_position
+    window = open_window(("get_status", {}), "Slow status.", "Fired.")
+    scheduler = window.assistant.microscope.scheduler
+    scheduler.add("watch", "hello", every_seconds=60)
+    scheduler.clock = lambda: time.time() + 61
+    start(window, "status")  # a turn is running; the due schedule must wait
+    qtbot.wait(1200)
+    assert "[scheduled" not in window.transcript.toPlainText() and window.busy
+    qtbot.waitUntil(lambda: "Fired." in window.transcript.toPlainText(), timeout=20000)
+    transcript = window.transcript.toPlainText()
+    assert transcript.index("Slow status.") < transcript.index("[scheduled")
+
+
+def test_a_failing_scheduled_turn_cancels_its_schedule(qtbot, open_window):
+    window = open_window()  # an empty script: the model fails on the first call
+    scheduler = window.assistant.microscope.scheduler
+    scheduler.add("watch", "look", every_seconds=60)
+    scheduler.clock = lambda: time.time() + 61
+    qtbot.waitUntil(lambda: "is cancelled" in window.transcript.toPlainText(), timeout=10000)
+    assert scheduler.listing() == [] and "Something went wrong" in window.transcript.toPlainText()
 
 
 def test_a_due_schedule_runs_as_its_own_turn_and_stop_drops_it(qtbot, open_window):
@@ -192,7 +227,7 @@ def test_a_due_schedule_runs_as_its_own_turn_and_stop_drops_it(qtbot, open_windo
     ask(qtbot, window, "status every minute")
     scheduler = window.assistant.microscope.scheduler
     assert [s["name"] for s in scheduler.listing()] == ["watch"]
-    scheduler._clock = lambda: time.time() + 61  # a minute passes
+    scheduler.clock = lambda: time.time() + 61  # a minute passes
     qtbot.waitUntil(
         lambda: "[scheduled 'watch'] status" in window.transcript.toPlainText(), timeout=5000
     )

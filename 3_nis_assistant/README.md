@@ -123,8 +123,10 @@ position and objective, and the measured numbers, so *is this sharper than
 before?* and *has the sample moved since the first image?* are answered by
 looking, and `ask_eyes` puts a question to the images already seen without
 taking a new one. The last eight images stay attached; older turns keep their
-words. The last image of an acquisition is shown to the eyes too. Clear
-context makes the eyes forget with the rest.
+words, and beyond forty looks the oldest are dropped. The last image of an
+acquisition is shown to the eyes too. Clear context makes the eyes forget with
+the rest, and so does choosing another vision model, since one model cannot
+read another's images and answers.
 
 **The coordinate system.** Microscopes differ in what a positive stage move
 does to the picture on the screen. The *Coordinate system* box in the Model
@@ -138,9 +140,14 @@ changed*, *in ten minutes switch the PFS off*, *at 15:00 start the plan*:
 the assistant sets a named schedule, and the window's clock sends each due
 instruction as a turn of its own, marked `[scheduled 'name']` in the chat,
 through the same tools and checks as anything you type, and never while a
-turn is running. The state the assistant reads with every message carries the
-clock and the schedules. At most ten schedules, none more often than every
-five seconds. *Stop microscope* and *Clear context* cancel them all.
+turn is running. A scheduled turn is not yours: a scheduled acquisition or
+long stage move still asks for your go-ahead in the chat and waits until you
+answer, and moves are still measured from where the stage was when you last
+wrote. The state the assistant reads with every message carries the clock
+and the schedules. At most ten schedules, none more often than every five
+seconds. A scheduled turn that fails cancels its schedule, so a dead model
+does not repeat the same error every period. *Stop microscope* and *Clear
+context* cancel them all.
 
 ## How it stays safe
 

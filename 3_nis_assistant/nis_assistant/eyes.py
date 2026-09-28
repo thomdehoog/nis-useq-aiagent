@@ -8,8 +8,9 @@ about the images seen without taking a new one. The chat model itself never
 carries an image; it gets the eyes' answer in words.
 
 The newest VISION_FRAMES_KEPT images stay attached; older turns keep their
-text (time, settings, numbers, and what the eyes said) and lose the picture,
-so the cost of a look stays about one image however long the session runs.
+text (time, settings, numbers, and what the eyes said) and lose the picture.
+Beyond VISION_TURNS_KEPT looks the oldest turns are dropped altogether, so the
+cost of a look stays about one image however long the session runs.
 
 Author: Thom de Hoog, Center for Microscopy and Image Analysis (ZMB), University of Zurich
         thom.dehoog@zmb.uzh.ch . thomdehoog@gmail.com
@@ -30,7 +31,7 @@ from pydantic_ai.messages import ModelMessage, UserPromptPart
 
 from .images import as_png
 from .instructions import EYES_INSTRUCTIONS
-from .settings import TEMPERATURE, VISION_FRAMES_KEPT
+from .settings import CLOCK_FORMAT, TEMPERATURE, VISION_FRAMES_KEPT, VISION_TURNS_KEPT
 
 
 class Eyes:
@@ -41,9 +42,15 @@ class Eyes:
     seen; ``reset`` forgets them all (Clear context does this).
     """
 
-    def __init__(self, model: Any, frames_kept: int = VISION_FRAMES_KEPT) -> None:
+    def __init__(
+        self,
+        model: Any,
+        frames_kept: int = VISION_FRAMES_KEPT,
+        turns_kept: int = VISION_TURNS_KEPT,
+    ) -> None:
         self.model = model
         self.frames_kept = frames_kept
+        self.turns_kept = turns_kept
         self.frames = 0  # images seen this session
         self._history: list[ModelMessage] = []
         self._agent: Agent | None = None
@@ -53,7 +60,7 @@ class Eyes:
     ) -> str:
         """Show the eyes a new image and return their answer to the question."""
         number = self.frames + 1  # counted once the eyes have seen it
-        text = f"Image {number}, {time.strftime('%H:%M:%S')}."
+        text = f"Image {number}, {time.strftime(CLOCK_FORMAT)}."
         if context:
             text += f" Microscope: {json.dumps(context, default=str)}"
         text += f"\nQuestion: {question}\nMeasured on the raw image: {json.dumps(stats)}"
@@ -68,6 +75,7 @@ class Eyes:
         return await self._run(f"No new image. Question about the images seen so far: {question}")
 
     def reset(self) -> None:
+        """Forget every image; Clear context and a change of vision model call this."""
         self._history, self.frames = [], 0
 
     async def _run(self, prompt: Any) -> str:
@@ -78,8 +86,25 @@ class Eyes:
                 model_settings={"temperature": TEMPERATURE},
             )
         result = await self._agent.run(prompt, message_history=self._history)
-        self._history = detach_old_frames(result.all_messages(), self.frames_kept)
+        kept = last_turns(result.all_messages(), self.turns_kept)
+        self._history = detach_old_frames(kept, self.frames_kept)
         return result.output
+
+
+def last_turns(messages: list[ModelMessage], kept: int) -> list[ModelMessage]:
+    """The messages of the last ``kept`` looks or questions, oldest ones dropped.
+
+    A turn starts at a message the eyes were asked (a UserPromptPart), so a
+    question is never separated from its answer.
+    """
+    starts = [
+        i
+        for i, message in enumerate(messages)
+        if any(isinstance(part, UserPromptPart) for part in getattr(message, "parts", []))
+    ]
+    if len(starts) <= kept:
+        return list(messages)
+    return list(messages[starts[-kept] :])
 
 
 def detach_old_frames(messages: list[ModelMessage], kept: int) -> list[ModelMessage]:

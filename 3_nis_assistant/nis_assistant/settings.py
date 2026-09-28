@@ -107,13 +107,16 @@ DEFAULT_AXES = {axis: choices[0] for axis, choices in AXIS_CHOICES.items()}
 # stay attached; older turns keep their text (time, settings, numbers, and what the eyes
 # said) and lose the picture, which keeps the cost of a look about one image.
 VISION_FRAMES_KEPT = 8
+# The eyes' conversation is also cut to this many looks, oldest first, so a look every
+# few minutes for a whole day does not send the whole day with every question.
+VISION_TURNS_KEPT = 40
 
 # -- schedules ---------------------------------------------------------------------------
 # "Look every three minutes", "in ten minutes start the plan": the assistant sets a
 # schedule and the window's clock fires each due instruction as a turn of its own.
 SCHEDULE_MIN_SECONDS = 5  # no schedule fires more often than this
 SCHEDULES_MAX = 10
-SCHEDULED_TURN = "[scheduled '{name}'] {instruction}"  # how a fired instruction is worded
+CLOCK_FORMAT = "%H:%M:%S"  # how the state, the eyes and the schedules write a time of day
 
 # The conversation is made smaller now and then, between turns (see memory.compact()).
 HISTORY_COMPACT_AFTER = 15  # operator turns before the history is made smaller

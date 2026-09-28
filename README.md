@@ -21,7 +21,7 @@ tests, so you can adopt only the part you need:
 |---|---|---|---|
 | [1_nis_bridge](1_nis_bridge/README.md) | `nis-bridge` | Controls NIS-Elements from your own Python: a small server inside NIS and a client. No useq. | NIS-Elements |
 | [2_nis_engine](2_nis_engine/README.md) | `nis-engine` | `NisEngine` runs useq sequences (classic and v2) on the microscope, through the pymmcore-plus runner. | part 1 |
-| [3_nis_assistant](3_nis_assistant/README.md) | `nis-assistant` | A chat window whose assistant drives the microscope through useq and explains it; Gemini, OpenAI, or a model on this computer. | parts 1 and 2 |
+| [3_nis_assistant](3_nis_assistant/README.md) | `nis-assistant` | A chat window whose assistant drives the microscope through useq and explains it, remembers the images it has seen, and carries out instructions on a schedule; Gemini, OpenAI, or a model on this computer. | parts 1 and 2 |
 
 ```
 nis-assistant ──> nis-engine (NisEngine) ──> nis-bridge (client ── bridge in NIS) ──> microscope
@@ -113,6 +113,12 @@ adding it:
 7. *Image a 2 by 2 grid of tiles around here.* (needs a pixel calibration)
 8. *Show me the useq sequence for that plan*, *What is new in useq v2?*, and
    *How does the engine move the stage? Show me the code.*
+9. *Move the sample 100 um to the left.* (check on the screen that it went left; if
+   not, change the Coordinate system box in the Model panel)
+10. *Look again: has anything changed since the first image?* (the eyes compare with
+    what they saw in step 5)
+11. *Look every three minutes and tell me whether the sample drifts.* (a scheduled
+    turn appears in the chat when it is due; *Stop microscope* cancels it)
 
 To let a coding assistant on the microscope computer do all of this, give it this prompt:
 
