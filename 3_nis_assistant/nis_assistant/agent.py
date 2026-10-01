@@ -26,7 +26,7 @@ from pydantic_ai.messages import ModelMessage, ModelRequest
 
 from . import models
 from .instructions import COORDINATES, INSTRUCTIONS
-from .memory import compact, without_state_block
+from .memory import compact, without_a_declined_challenge, without_state_block
 from .settings import AXIS_CHOICES, DEFAULT_AXES, DEFAULT_MODEL_SETTINGS, MODEL, TOOL_CALL_RETRIES
 from .tools import REPLY_GUARDS, TOOLS, Microscope
 
@@ -123,8 +123,8 @@ class Assistant:
                     self.last_turn = list(messages[len(self.history) :])
                     self.history = list(messages)
                 raise
-        self.last_turn = result.new_messages()
-        self.history = compact(result.all_messages())
+        self.last_turn = without_a_declined_challenge(result.new_messages())
+        self.history = compact(without_a_declined_challenge(result.all_messages()))
         return without_state_block(result.output)
 
     def use(self, endpoint: models.Endpoint, vision: models.Endpoint | None = None) -> None:
