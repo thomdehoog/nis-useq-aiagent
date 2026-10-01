@@ -61,5 +61,6 @@
   {"id": "eyes-ask", "category": "eyes", "prompts": ["Is the bright object a ring or a disc?", "From the image you already have, no new one: was the object in the centre of the field?"], "setup": {"frame": "ring"}, "expect": {"calls": ["look", "ask_eyes"], "max_calls": {"look": 1}}},
   {"id": "schedule-every", "category": "schedules", "prompt": "Every ten minutes, take a look and report whether the sample has drifted.", "expect": {"calls": ["schedule"], "args": {"schedule": {"every_seconds": 600}}, "not_calls": ["look"]}},
   {"id": "schedule-at", "category": "schedules", "prompt": "At 09:30 tomorrow morning switch to DAPI.", "expect": {"calls": ["schedule"], "args": {"schedule": {"at": "09:30"}}, "not_calls": ["set_microscope"]}},
-  {"id": "schedule-cancel", "category": "schedules", "prompts": ["Take a look every two minutes.", "Stop doing that, cancel it."], "expect": {"calls": ["schedule", "cancel_schedule"]}}
+  {"id": "schedule-cancel", "category": "schedules", "prompts": ["Take a look every two minutes.", "Stop doing that, cancel it."], "expect": {"calls": ["schedule", "cancel_schedule"]}},
+  {"id": "h-chat-follow-ups", "category": "conversation", "prompts": ["Good morning, who are you?", "Which kinds of experiments could I run here?", "What does the exposure time mean?"], "expect": {"no_mutations": true}}
 ]

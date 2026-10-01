@@ -877,6 +877,9 @@ def hand_back_an_empty_reply(ctx: RunContext[Microscope], output: str) -> str:
     raise ModelRetry(EMPTY_REPLY_CHALLENGE)
 
 
+GUARD_WORD = re.compile(r"^\s*SAME\b[\s.:!-]*")  # the one word CALLED_NOTHING_CHALLENGE asks for
+
+
 def challenge_a_reply_that_called_nothing(ctx: RunContext[Microscope], output: str) -> str:
     """A small model answers "stop" with "I have stopped the microscope." and no call.
 
@@ -894,12 +897,17 @@ def challenge_a_reply_that_called_nothing(ctx: RunContext[Microscope], output: s
     starts = [i for i, m in enumerate(ctx.messages) if _is_operator_turn(m)]
     turn = ctx.messages[starts[-1] :] if starts else ctx.messages
     called = any(isinstance(part, ToolCallPart) for m in turn for part in getattr(m, "parts", []))
-    if called:
-        first.pop(ctx.run_id, None)
-        return output
-    if ctx.run_id in first:
+    if not called and ctx.run_id in first:
         return first.pop(ctx.run_id)  # challenged, and still nothing called: as it was
-    first[ctx.run_id] = output
+    first.pop(ctx.run_id, None)
+    # "SAME" and the challenge are for this guard, never for the operator: a reply
+    # that opens with them, or holds nothing else, is asked for again.
+    reply = GUARD_WORD.sub("", output, count=1).strip()
+    if not reply or CALLED_NOTHING_CHALLENGE[:40] in reply:
+        raise ModelRetry(EMPTY_REPLY_CHALLENGE)
+    if called:
+        return reply
+    first[ctx.run_id] = reply
     raise ModelRetry(CALLED_NOTHING_CHALLENGE)
 
 

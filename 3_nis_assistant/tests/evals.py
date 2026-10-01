@@ -65,7 +65,9 @@ Expectations:
     reply_mentions_any, reply_mentions_none   words the replies must (one of
                     them) or must not contain; case does not matter, and a
                     word right after "not" or "no" does not count
-Every case also fails when a reply quotes the <microscope_state> block.
+Every case also fails when a reply quotes the <microscope_state> block, or
+when one is the guard's word SAME (a reply meant for the guard, not the operator).
+The assistant runs with the window's reply guards on, as the operator meets it.
 
 Author: Thom de Hoog, Center for Microscopy and Image Analysis (ZMB), University of Zurich
         thom.dehoog@zmb.uzh.ch . thomdehoog@gmail.com
@@ -117,6 +119,8 @@ EXPECTATIONS = {
     "state", "state_not", "confirm", "asks", "no_mutations", "reply_mentions_any",
     "reply_mentions_none",
 }  # fmt: skip
+# The word the "called nothing" guard asks for (instructions.CALLED_NOTHING_CHALLENGE).
+GUARD_WORD = re.compile(r"\s*SAME\b|.*No tool was called in this turn", re.DOTALL)
 ASKING = ("?", "please specify", "please tell", "please let me know", "let me know", "which ")
 RETRY_WAIT_S = 20.0  # a provider error is mostly a rate limit: wait it out, then try again
 
@@ -190,25 +194,29 @@ def synthetic_frame(name: str) -> np.ndarray:
 # -- running a case ---------------------------------------------------------------------
 
 
-def run_case(case: dict, model, retries: int = 1, vision_model=None) -> dict:
+def run_case(
+    case: dict, model, retries: int = 1, vision_model=None, challenge_no_tool: bool = True
+) -> dict:
     """Run one case on a fresh fake microscope. Returns its trace.
 
     ``model`` answers the operator, ``vision_model`` (the same when left out)
     looks at the pictures. Either is a Pydantic AI model name or model.
+    ``challenge_no_tool`` is the window's reply guard (tools.Microscope); a
+    scripted model that does not expect the challenge runs with it off.
 
     A provider error (a rate limit, an outage) is tried again after a wait: the
     evaluation is about the assistant's behaviour, not the provider's uptime.
     """
-    trace = _run_once(case, model, vision_model or model)
+    trace = _run_once(case, model, vision_model or model, challenge_no_tool)
     for _ in range(retries):
         if not trace["error"]:
             break
         time.sleep(RETRY_WAIT_S)
-        trace = _run_once(case, model, vision_model or model)
+        trace = _run_once(case, model, vision_model or model, challenge_no_tool)
     return trace
 
 
-def _run_once(case: dict, model, vision_model) -> dict:
+def _run_once(case: dict, model, vision_model, challenge_no_tool: bool) -> dict:
     setup = case.get("setup") or {}
     fake = FakeNisApi()
     fake.position.update(setup.get("position", {}))
@@ -235,7 +243,12 @@ def _run_once(case: dict, model, vision_model) -> dict:
         try:
             if "limits" in setup:
                 engine.set_limits(**{axis: tuple(v) for axis, v in setup["limits"].items()})
-            microscope = Microscope(engine, output_dir=Path(output), vision_model=vision_model)
+            microscope = Microscope(
+                engine,
+                output_dir=Path(output),
+                vision_model=vision_model,
+                challenge_no_tool=challenge_no_tool,
+            )
             microscope.axes.update(setup.get("axes", {}))  # the coordinate system, if set
             assistant = Assistant(microscope, model=model)
             for turn, prompt in enumerate(prompts_of(case), start=1):
@@ -364,6 +377,8 @@ def score(case: dict, trace: dict) -> list[str]:
         failures.append(f"a reply says {said}")
     if "<microscope_state>" in replies:
         failures.append("a reply quotes the <microscope_state> block")
+    if any(GUARD_WORD.match(reply) for reply in trace["replies"]):
+        failures.append("a reply is meant for the reply guard (SAME, or its challenge echoed)")
     return failures
 
 

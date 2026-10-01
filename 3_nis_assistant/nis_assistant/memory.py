@@ -18,12 +18,15 @@ from pydantic_ai.messages import (
     ModelMessage,
     ModelRequest,
     ModelResponse,
+    RetryPromptPart,
     TextPart,
     ThinkingPart,
+    ToolCallPart,
     ToolReturnPart,
     UserPromptPart,
 )
 
+from .instructions import CALLED_NOTHING_CHALLENGE
 from .settings import (
     HISTORY_COMPACT_AFTER,
     HISTORY_FULL_TURNS,
@@ -45,6 +48,32 @@ def without_state_block(reply: str) -> str:
     an earlier answer would spoil the model's check on its earlier reasoning.
     """
     return STATE_BLOCK.sub("", reply).strip() or "(The assistant gave no answer in words.)"
+
+
+def without_a_declined_challenge(messages: list[ModelMessage]) -> list[ModelMessage]:
+    """The turn without the reply guard's challenge, when the model only confirmed.
+
+    When a turn that called no tool is challenged (tools.challenge_a_reply_that_called_nothing)
+    and the model still calls nothing, the operator gets the first reply, and the
+    challenge and the model's "SAME" are of no further use. Left in the history,
+    they teach the model to open its next replies with "SAME", or to echo the
+    challenge, and the guard then passes that on as a first reply. So the
+    conversation ends at the first reply, as the operator saw it. Only the tail
+    is cut; no earlier answer is edited. A challenge that led to a tool call stays.
+    """
+    for index in range(len(messages) - 1, -1, -1):
+        message = messages[index]
+        if isinstance(message, ModelRequest) and any(
+            isinstance(part, RetryPromptPart) and CALLED_NOTHING_CHALLENGE in str(part.content)
+            for part in message.parts
+        ):
+            acted = any(
+                isinstance(part, ToolCallPart) for m in messages[index:] for part in m.parts
+            )
+            return messages if acted else messages[:index]
+        if _is_operator_turn(message):
+            break
+    return messages
 
 
 def compact(messages: list[ModelMessage]) -> list[ModelMessage]:

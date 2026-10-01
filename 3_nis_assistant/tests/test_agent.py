@@ -26,6 +26,7 @@ from nis_engine import NisEngine
 from pydantic_ai.messages import (
     BinaryContent,
     ModelResponse,
+    RetryPromptPart,
     TextPart,
     ThinkingPart,
     ToolCallPart,
@@ -37,7 +38,12 @@ from pydantic_ai.models.function import FunctionModel
 from nis_assistant.agent import Assistant, axes_section
 from nis_assistant.eyes import Eyes, last_turns
 from nis_assistant.images import as_png, binned, image_statistics
-from nis_assistant.instructions import GO_AHEAD_ADVICE, LIMIT_ADVICE, OPTIONS_ADVICE
+from nis_assistant.instructions import (
+    CALLED_NOTHING_CHALLENGE,
+    GO_AHEAD_ADVICE,
+    LIMIT_ADVICE,
+    OPTIONS_ADVICE,
+)
 from nis_assistant.models import Endpoint
 from nis_assistant.settings import DEFAULT_MODEL_SETTINGS, HISTORY_KEEP_TURNS
 from nis_assistant.tools import Microscope
@@ -656,6 +662,26 @@ def test_a_reply_that_called_nothing_is_challenged_when_asked(microscope):
     # challenged and still nothing to call: the first reply reaches the operator as it was
     assistant, _ = talk(microscope, "Hello, how can I help?", "SAME")
     assert assistant.send("hi") == "Hello, how can I help?"
+    # the "SAME" exchange is not kept: the next turn's model sees only the first reply
+    assistant, script = talk(microscope, "Hello.", "SAME", "You can image.", "SAME")
+    assert assistant.send("hi") == "Hello."
+    assert [type(m).__name__ for m in assistant.history] == ["ModelRequest", "ModelResponse"]
+    assert assistant.send("what can I do?") == "You can image."
+    seen = [part for message in script.requests[2] for part in message.parts]
+    assert not any(isinstance(p, RetryPromptPart) for p in seen)
+    assert "SAME" not in str([getattr(p, "content", "") for p in seen])
+    # a reply that opens with the guard's word, or echoes the challenge, is not passed on
+    assistant, _ = talk(microscope, "SAME\nHello.", "SAME")
+    assert assistant.send("hi") == "Hello."
+    assistant, _ = talk(microscope, "SAME", "Hello.", "SAME")
+    assert assistant.send("hi") == "Hello."
+    echoed = "Validation feedback:\n" + CALLED_NOTHING_CHALLENGE
+    assistant, _ = talk(microscope, echoed, "Hi.", "SAME")
+    assert assistant.send("hi") == "Hi."
+    # a challenge that led to a tool call stays in the history
+    assistant, _ = talk(microscope, "I moved it.", ("get_status", {}), "Here is the status.")
+    assistant.send("status")
+    assert any(isinstance(p, RetryPromptPart) for m in assistant.history for p in m.parts)
     # off by default: no challenge, one request
     microscope.challenge_no_tool = False
     assistant, script = talk(microscope, "Hello.")
