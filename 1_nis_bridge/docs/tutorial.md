@@ -10,18 +10,16 @@ request the bridge answers, and every file.
 
 NIS-Elements has a Python inside it: you can write a macro, and from that
 macro call Python, and from that Python call NIS functions like "move the
-stage" or "capture an image". That is useful, but it is NIS's own Python,
-locked inside NIS: it has no numpy beyond the basics, no way to install
-packages, and nothing else on your computer can call it.
+stage" or "capture an image". That is useful, but it is NIS's own Python
+interpreter: it has no packages beyond numpy, you cannot install any, and no
+other program on the computer can call into it.
 
-The bridge gets around this. It is a tiny program that runs *inside* NIS, in
-that locked-in Python, and does only one thing: it listens for messages from
-the outside, such as "where is the stage?" or "take a picture and save it
-here", carries them out by calling the NIS functions, and sends the answer
-back. Your own Python, in your own environment with whatever packages you
-like, sends those messages and reads the answers. Think of it as a
-receptionist sitting inside NIS: you cannot enter the building, but you can
-ask the receptionist to do things for you.
+The bridge is the way around this. It is a small server that runs inside
+NIS, in that interpreter, and does one thing: it receives requests from
+outside, such as "report the stage position" or "capture an image and save it
+at this path", carries each out by calling the corresponding NIS functions,
+and returns the result. Your own Python, in an environment of your own with
+whatever packages you need, sends the requests and reads the results.
 
 ```
 your Python (any packages)          NIS-Elements
@@ -34,9 +32,9 @@ Two consequences that you will meet below:
 - The messages travel over a network connection, but one that never leaves
   your computer (`127.0.0.1`, port 54470). Your Python and NIS must run on the
   same machine.
-- The receptionist is on duty only while a NIS macro runs. The macro's job is
-  to sit in a loop and let the bridge do its work; when you stop the macro,
-  the bridge stops.
+- The bridge runs only while a NIS macro runs. The macro is a loop that
+  lets the bridge process requests; when you stop the macro, the bridge
+  stops.
 
 ## Before you start
 
@@ -84,8 +82,8 @@ Two ways.
 
 **By hand.** Start NIS-Elements. In its menu choose *Macro > Run Macro From
 File...* and pick `start_bridge.mac`. NIS shows "nis-bridge: running on port
-54470", and the macro keeps running. That is correct: it is the receptionist
-on duty. Do not stop it until you are done.
+54470", and the macro keeps running. That is correct; the bridge runs
+inside it. Do not stop the macro until you are done.
 
 **In one command.** From your command window:
 
@@ -108,8 +106,8 @@ You should see something like
 
 ## Step 4: a first session
 
-Open Python (`python` in the command window) and type along. Each line sends
-one message and prints the answer.
+Open Python (`python` in the command window) and enter the lines below. Each
+sends one request and prints the result.
 
 ```python
 from nis_bridge.client import NisClient
@@ -281,7 +279,7 @@ error-prone; that is what part 2, `nis-engine`, is for. It describes the whole
 experiment in one object (a useq sequence), checks it against the microscope
 before anything moves, and saves the result as one OME-TIFF.
 
-## Things that surprise people
+## Points to be aware of
 
 - **The macro keeps running.** It has to: NIS crashes if a camera command
   runs from any thread but its main one, and the running macro *is* that

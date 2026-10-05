@@ -58,8 +58,7 @@ pip install -e "./2_nis_engine[test]"
 
 ## Step 2: a first Z-stack
 
-Open Python and type along. First connect and look at what the microscope
-offers:
+Open Python. First connect and read what the microscope offers:
 
 ```python
 from nis_engine import NisEngine

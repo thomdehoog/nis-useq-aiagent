@@ -33,9 +33,7 @@ So there are two layers of safety. The model is *told* to be careful, in
 instructions it reads with every message; but the rules that matter (a move
 outside the limits is refused, an acquisition or a long move starts only after
 you have agreed in the chat) are in the tools' code, and hold whatever the
-model says. Think of the model as a new lab member who is keen and
-knowledgeable but is only allowed to use the microscope through you, and the
-tools as the rules of the room.
+model says.
 
 The assistant is also a demonstration of the other two parts: its
 acquisitions are useq sequences run on the engine, and it can show you those
@@ -208,9 +206,9 @@ it can compare:
 - *Which of the images so far was best exposed?* (`ask_eyes`: a question to
   the images already seen, without taking a new one)
 
-Trust the comparison the way you would trust a colleague looking over your
-shoulder: good for *the cells have moved left*, *it is less sharp than a
-minute ago*, *the right half is saturated*; not a measurement. Whether an
+The comparison is qualitative: reliable for *the cells have moved left*,
+*it is less sharp than a minute ago*, *the right half is saturated*; it is
+not a measurement. Whether an
 image is well exposed comes from the numbers, not from the picture, because
 each picture is contrast-stretched before the model sees it. The last eight
 images stay attached; older turns keep their words only. *Clear context*
@@ -282,7 +280,7 @@ the newest 10, so long sessions stay quick.
 
 ## Good habits
 
-- Keep NIS-Elements visible next to the window, and glance at it after each
+- Keep NIS-Elements visible next to the window, and check it after each
   action. The status panel shows what the assistant read; NIS shows what is
   true.
 - Narrow the Z limit before you start. It costs nothing and removes the one
