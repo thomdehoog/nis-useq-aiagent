@@ -287,7 +287,7 @@ between instruments, since they are stage coordinates of this one.
 
 The useq fields themselves (every Z, time and grid plan, well plates,
 per-position sequences, the axis order) are documented in
-[docs/useq.md](../../docs/useq.md). This table is what the engine does with
+[docs/useq.md](../docs/useq.md). This table is what the engine does with
 them.
 
 | Field | On the Nikon |
@@ -317,7 +317,7 @@ classic `useq.MDASequence` when the saved file matters; a v2 sequence
 cannot be read back from its own JSON; an autofocus plan focuses at the
 first plane of a Z-stack, where the classic form focuses at the position's
 own z; and a channel's `do_stack`, `acquire_every` and `z_offset` are
-ignored. [docs/useq.md](../../docs/useq.md) documents both APIs in full.
+ignored. [docs/useq.md](../docs/useq.md) documents both APIs in full.
 
 ## When the engine says no
 
