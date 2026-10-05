@@ -1,8 +1,10 @@
 # nis-useq-aiagent
 
-Run [useq-schema](https://github.com/pymmcore-plus/useq-schema) acquisitions on
-a Nikon microscope through NIS-Elements, and talk to the microscope through a
-chat assistant that uses them.
+This repository consists of three things:
+
+1. **nis-bridge:** control NIS-Elements from your own Python. → [README](1_nis_bridge/README.md)
+2. **nis-engine:** run [useq](https://github.com/pymmcore-plus/useq-schema) acquisitions on a Nikon microscope. → [README](2_nis_engine/README.md)
+3. **nis-assistant:** talk to your microscope through an AI agent. → [README](3_nis_assistant/README.md)
 
 ![The assistant window: a chat on the left, the latest image on the right](docs/assistant-window.png)
 
