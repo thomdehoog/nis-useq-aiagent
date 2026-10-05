@@ -21,8 +21,19 @@ classic API and useq v2, as parts 2 and 3 use it.
 
 ## Install
 
-On the microscope computer, with NIS-Elements and Python 3.10 or newer
-(separate from the Python inside NIS-Elements):
+On the microscope computer, with NIS-Elements installed. Python comes from
+conda, in an environment of its own, separate from the Python inside
+NIS-Elements: install [Miniforge](https://github.com/conda-forge/miniforge)
+(conda with the conda-forge channel), open a *Miniforge Prompt*, and make
+the environment:
+
+```
+conda create -n nis -c conda-forge python=3.12
+conda activate nis
+```
+
+Then, in that environment, clone the repository and install the three parts
+into it:
 
 ```
 git clone https://github.com/thomdehoog/nis-useq-aiagent
@@ -31,6 +42,9 @@ pip install -e "./1_nis_bridge[test]"
 pip install -e "./2_nis_engine[test]"
 pip install -e "./3_nis_assistant[test]"
 ```
+
+`conda activate nis` is needed in every new prompt before any command
+below.
 
 Then one command starts NIS-Elements with the bridge and opens the chat window:
 

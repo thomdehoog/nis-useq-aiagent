@@ -58,9 +58,16 @@ Two consequences:
 ## Install
 
 You need NIS-Elements on the microscope computer (with the microscope, or
-its simulated Ti2), and Python 3.10 or newer installed separately from NIS,
-preferably in an environment of its own (`python -m venv nis-env`, then
-`nis-env\Scripts\activate`). In that environment, in the repository folder:
+its simulated Ti2), and a conda environment of your own, separate from the
+Python inside NIS: install [Miniforge](https://github.com/conda-forge/miniforge)
+(conda with the conda-forge channel), then in a Miniforge Prompt:
+
+```
+conda create -n nis -c conda-forge python=3.12
+conda activate nis
+```
+
+In that environment, in the repository folder:
 
 ```
 pip install -e "./1_nis_bridge[test]"

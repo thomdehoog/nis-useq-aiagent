@@ -64,7 +64,8 @@ shows them; nothing here converts coordinate systems.
 
 ## Install
 
-On the microscope computer, part 1 first, then this part:
+On the microscope computer, in the conda environment part 1's README sets
+up (`conda activate nis`), part 1 first, then this part:
 
 ```
 pip install -e "./1_nis_bridge[test]"

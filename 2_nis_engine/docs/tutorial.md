@@ -50,7 +50,8 @@ The pieces you write are the sequence and three lines to run it.
 
 ## Step 1: install
 
-In the same environment as part 1, in the repository folder:
+In the same conda environment as part 1 (`conda activate nis`), in the
+repository folder:
 
 ```
 pip install -e "./2_nis_engine[test]"

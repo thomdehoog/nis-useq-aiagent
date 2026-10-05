@@ -41,22 +41,25 @@ Two consequences that you will meet below:
 
 - NIS-Elements on the microscope computer, with the microscope, or with its
   simulated Ti2 for trying things out.
-- Python 3.10 or newer, installed separately from NIS. If you have never set
-  one up: install Python from python.org, then in a command window make an
-  environment of your own and activate it:
+- A Python of your own, separate from the one inside NIS. It comes from
+  conda: install [Miniforge](https://github.com/conda-forge/miniforge), which
+  is conda set up with the conda-forge channel, from its download page (the
+  Windows installer; the defaults are fine). Then open *Miniforge Prompt*
+  from the Start menu and make an environment named `nis` with Python in it:
 
   ```
-  python -m venv nis-env
-  nis-env\Scripts\activate
+  conda create -n nis -c conda-forge python=3.12
+  conda activate nis
   ```
 
-  You will see `(nis-env)` in front of the prompt. Do this activation step in
-  every new command window.
+  You will see `(nis)` in front of the prompt. Everything in this repository
+  is installed into this environment and run from it; `conda activate nis`
+  is the one step to repeat in every new prompt.
 - This repository, cloned or downloaded, for example to `C:\nis-useq-aiagent`.
 
 ## Step 1: install the package
 
-In the activated environment, in the repository folder:
+In the activated `nis` environment, in the repository folder:
 
 ```
 pip install -e "./1_nis_bridge[test]"
