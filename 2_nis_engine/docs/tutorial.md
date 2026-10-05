@@ -4,8 +4,8 @@ This is a walk-through for a biologist who wants to run multi-dimensional
 acquisitions (channels, Z-stacks, positions, time points, tiles) on a Nikon
 microscope from Python, with no experience of useq. It explains the idea,
 takes a first Z-stack, and then builds up to more complex experiments. The
-[README](../README.md) is the reference: what every useq field does on the
-Nikon, and what the engine refuses.
+[README](../README.md) is the complete documentation: what every useq field
+does on the Nikon, what the engine refuses, and what happens during a run.
 
 You need part 1 (`nis-bridge`) working first: its
 [tutorial](../../1_nis_bridge/docs/tutorial.md) gets you to a first snapped

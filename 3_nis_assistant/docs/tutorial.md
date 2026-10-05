@@ -4,7 +4,8 @@ This is a walk-through for a biologist who wants to use the chat assistant at
 a Nikon microscope, and would like to understand what it does with a request
 before trusting it with the stage. It explains how the assistant works, gets
 you through a first conversation, and then goes through each of its abilities
-with what to expect. The [README](../README.md) is the reference.
+with what to expect. The [README](../README.md) is the complete
+documentation.
 
 You need parts 1 and 2 installed and the bridge running in NIS-Elements (or
 the fake NIS, `python -m nis_bridge.fake`, in another window). Their

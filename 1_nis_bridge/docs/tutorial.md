@@ -3,8 +3,9 @@
 This is a walk-through for someone who works at a Nikon microscope and would
 like to control it from Python, with no experience of this package. It
 explains the idea, gets you to a first image, and then shows a few small
-scripts you can adapt. The [README](../README.md) is the reference: every
-request the bridge answers, and every file.
+scripts you can adapt. The [README](../README.md) is the complete
+documentation: every request the bridge answers, how it works inside, and
+every file.
 
 ## The idea
 

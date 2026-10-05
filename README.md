@@ -14,8 +14,9 @@ can use only the part you need:
 nis-assistant ──> nis-engine ──> nis-bridge ──> NIS-Elements ──> microscope
 ```
 
-Each README is the reference; each tutorial is a step-by-step walk-through
-written for a biologist, from the idea to a first result.
+Each part's README is its complete documentation, from the idea to the
+reference; each tutorial is a longer step-by-step walk-through to a first
+result.
 
 ## Install
 
