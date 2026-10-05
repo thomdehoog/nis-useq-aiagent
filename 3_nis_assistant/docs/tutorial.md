@@ -334,3 +334,10 @@ cannot see without taking an image: the state it reads has no picture in it.
 - *Show me the useq sequence for that plan* and then part 2's
   [tutorial](../../2_nis_engine/docs/tutorial.md): the same experiment, as
   code you can keep and rerun.
+
+---
+
+MIT license. Thom de Hoog, Center for Microscopy and Image Analysis (ZMB),
+University of Zurich. thom.dehoog@zmb.uzh.ch, thomdehoog@gmail.com.
+If you use this work or build on its ideas, please acknowledge the author in
+what you make from it.

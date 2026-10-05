@@ -310,3 +310,10 @@ before anything moves, and saves the result as one OME-TIFF.
   acquisitions as useq sequences.
 - Part 3, [nis-assistant](../../3_nis_assistant/docs/tutorial.md): the same
   microscope, in plain language through a chat window.
+
+---
+
+MIT license. Thom de Hoog, Center for Microscopy and Image Analysis (ZMB),
+University of Zurich. thom.dehoog@zmb.uzh.ch, thomdehoog@gmail.com.
+If you use this work or build on its ideas, please acknowledge the author in
+what you make from it.

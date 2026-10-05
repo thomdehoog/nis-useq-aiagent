@@ -1,3 +1,9 @@
+# Files git ignores in this repository.
+# Author: Thom de Hoog, Center for Microscopy and Image Analysis (ZMB), University of Zurich
+#         thom.dehoog@zmb.uzh.ch . thomdehoog@gmail.com
+# License: MIT. If you use this code or build on its ideas, please acknowledge the
+#         author (name and e-mail addresses above) in your work.
+
 __pycache__/
 *.egg-info/
 .pytest_cache/
