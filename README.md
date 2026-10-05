@@ -73,11 +73,11 @@ for the hardware checklist and the current status.
 
 ## Status
 
-Tested on the NIS-Elements Ti2 simulator (NIS-Elements AR 6.10.02): all
-hardware tests of the three parts, and the assistant with Gemini. Not yet
-run on a real microscope with a sample.
-
-Next: testing on a Ti2 with a sample, following [docs/testing.md](docs/testing.md).
+| | |
+|---|---|
+| **Tested** | On the Ti2 simulator of NIS-Elements AR 6.10.02: all hardware tests of the three parts, and the assistant with Gemini. |
+| **Not yet** | Run on a real microscope with a sample. |
+| **Next** | Testing on a Ti2 with a sample, following [docs/testing.md](docs/testing.md). |
 
 ## A quick look at the assistant
 
