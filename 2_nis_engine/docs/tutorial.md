@@ -406,3 +406,10 @@ does stop it; restart `start_bridge.mac` in NIS and call `engine.reconnect()`.
   for every kind of Z, grid and time plan.
 - Part 3, [nis-assistant](../../3_nis_assistant/docs/tutorial.md): the same
   sequences, planned in a conversation.
+
+---
+
+MIT license. Thom de Hoog, Center for Microscopy and Image Analysis (ZMB),
+University of Zurich. thom.dehoog@zmb.uzh.ch, thomdehoog@gmail.com.
+If you use this work or build on its ideas, please acknowledge the author in
+what you make from it.

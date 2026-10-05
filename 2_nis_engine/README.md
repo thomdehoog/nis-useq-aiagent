@@ -367,4 +367,6 @@ ruff check . && ruff format --check .   # lint and formatting, rules in pyprojec
 | `docs/tutorial.md` | The walk-through, from a first Z-stack to a multi-position time-lapse. |
 
 MIT license. Thom de Hoog, Center for Microscopy and Image Analysis (ZMB),
-University of Zurich. thom.dehoog@zmb.uzh.ch, thomdehoog@gmail.com. 2026-09-27.
+University of Zurich. thom.dehoog@zmb.uzh.ch, thomdehoog@gmail.com.
+If you use this work or build on its ideas, please acknowledge the author in
+what you make from it.

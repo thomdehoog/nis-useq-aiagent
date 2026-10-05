@@ -79,7 +79,12 @@ for the hardware checklist and the current status.
 which channel, shows the plan, runs it as a useq sequence, and describes the
 image it took.*
 
-## Licence
+## Licence and acknowledgement
 
-MIT. Thom de Hoog, Center for Microscopy and Image Analysis (ZMB),
-University of Zurich. thom.dehoog@zmb.uzh.ch, thomdehoog@gmail.com.
+MIT licence. Written by Thom de Hoog, Center for Microscopy and Image
+Analysis (ZMB), University of Zurich: thom.dehoog@zmb.uzh.ch,
+thomdehoog@gmail.com.
+
+If you use any part of this repository, or build on its ideas, in your own
+software, experiments or publications, please acknowledge the author by name
+and e-mail address. Every file carries the same request in its header.

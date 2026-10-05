@@ -1,3 +1,9 @@
+# Packaging of nis-engine: run useq acquisitions on a Nikon microscope.
+# Author: Thom de Hoog, Center for Microscopy and Image Analysis (ZMB), University of Zurich
+#         thom.dehoog@zmb.uzh.ch . thomdehoog@gmail.com
+# License: MIT. If you use this code or build on its ideas, please acknowledge the
+#         author (name and e-mail addresses above) in your work.
+
 [build-system]
 requires = ["setuptools>=61"]
 build-backend = "setuptools.build_meta"

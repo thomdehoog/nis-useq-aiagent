@@ -618,3 +618,10 @@ Both are described in the useq-schema documentation at
 <https://pymmcore-plus.github.io/useq-schema/>. The assistant can read the
 library's source for you: *What is new in useq v2?* and *How does a v2 axis
 contribute to an event? Show me the code.*
+
+---
+
+MIT license. Thom de Hoog, Center for Microscopy and Image Analysis (ZMB),
+University of Zurich. thom.dehoog@zmb.uzh.ch, thomdehoog@gmail.com.
+If you use this work or build on its ideas, please acknowledge the author in
+what you make from it.
