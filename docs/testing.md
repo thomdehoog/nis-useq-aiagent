@@ -1,8 +1,9 @@
 # Testing on NIS-Elements
 
-With NIS-Elements running and `start_bridge.mac` started, test the parts in
-order, and stop at the first step that fails, since each builds on the one
-before. Always name the part's folder, as shown. Everything stays within 100
+With NIS-Elements running, `start_bridge.mac` started, and the `nis` conda
+environment active, test the parts in order, and stop at the first step that
+fails, since each builds on the one before. Always name the part's folder, as
+shown. Everything stays within 100
 um of where the stage is, and the stage is moved back afterwards; still, keep
 the objective clear of the sample for the first run.
 

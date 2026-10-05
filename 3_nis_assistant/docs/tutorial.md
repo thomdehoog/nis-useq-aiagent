@@ -42,7 +42,8 @@ sequences and explain, from the source code, how any part works.
 
 ## Step 1: install and start
 
-In the same environment as parts 1 and 2, in the repository folder:
+In the same conda environment as parts 1 and 2 (`conda activate nis`), in
+the repository folder:
 
 ```
 pip install -e "./3_nis_assistant[test]"

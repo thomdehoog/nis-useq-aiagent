@@ -59,7 +59,8 @@ agreed in the chat. [How it stays safe](#how-it-stays-safe) lists them all.
 
 ## Install and start
 
-On the microscope computer, parts 1 and 2 first, then this part:
+On the microscope computer, in the conda environment part 1's README sets
+up (`conda activate nis`), parts 1 and 2 first, then this part:
 
 ```
 pip install -e ../1_nis_bridge
