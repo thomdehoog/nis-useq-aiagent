@@ -311,6 +311,58 @@ colleague who runs it on a different microscope with a different engine. The
 positions are the one part that does not travel, since they are stage
 coordinates of this instrument.
 
+## Step 8: useq in more depth
+
+Everything above used four useq fields. useq has more, and
+[docs/useq.md](../../docs/useq.md) documents all of them with examples; the
+ones you are most likely to want:
+
+- **Other Z plans.** `{"above": 6, "below": 2, "step": 1}` for an
+  asymmetric stack; `{"top": 3010, "bottom": 2990, "step": 2}` for absolute
+  coordinates; `{"relative": [-5, 0, 5]}` for an explicit list.
+- **Other time plans.** `{"duration": 3600, "loops": 7}`; `{"interval": 60,
+  "duration": 600}`; or a list of plans for a fast phase followed by a slow
+  one: `[{"interval": 1, "loops": 60}, {"interval": 60, "loops": 30}]`.
+- **Other grids.** `{"width": 2000, "height": 1500, "overlap": 10, ...}`
+  for an area of a given size; `useq.GridFromEdges(top=..., left=...,
+  bottom=..., right=..., ...)` for a rectangle in stage coordinates;
+  `useq.RandomPoints(...)` for random fields within a well.
+- **Well plates.** `stage_positions=useq.WellPlatePlan(plate="96-well",
+  a1_center_xy=(x, y), selected_wells=...)` names positions after the wells.
+- **A different Z range at one position**, with `"sequence": {"z_plan":
+  ...}` on that position.
+- **The axis order.** `axis_order="tpgzc"` switches channels at every Z
+  plane instead of taking each channel's stack in one go.
+
+Look at `sequence.sizes` and `for event in sequence` after each change; the
+events are what the engine will carry out, and reading them is the surest
+way to see what a field does.
+
+**useq v2.** The same sequence can be written with `useq.v2.MDASequence`,
+which takes the same fields and runs on the same engine:
+
+```python
+import useq.v2 as v2
+
+sequence = v2.MDASequence(
+    stage_positions=[{"x": here["x"], "y": here["y"], "z": here["z"]}],
+    channels=[{"config": channels[0], "exposure": 20}],
+    z_plan={"range": 4, "step": 1},
+)
+runner.run(sequence, output="v2_stack.ome.tiff")
+```
+
+What v2 adds is that the axes are no longer fixed: you can add an axis of
+your own (a temperature, a drug concentration), give one position or time
+point sub-axes the others do not have, and drop combinations with a rule
+written in Python. For the experiments in this tutorial, the classic form
+is the better choice: in useq-schema 0.9.2, the pymmcore-plus writers save a
+v2 run as one flat stack without the channel and Z axes, a v2 sequence
+cannot be read back from its JSON, and a channel's `do_stack`,
+`acquire_every` and `z_offset` are ignored. The v2 section of
+[docs/useq.md](../../docs/useq.md#useq-v2) shows each of its features
+with a worked example.
+
 ## When the engine says no
 
 The check refuses a plan with a message naming the first problem. The common

@@ -285,6 +285,11 @@ between instruments, since they are stage coordinates of this one.
 
 ## What each useq field does
 
+The useq fields themselves (every Z, time and grid plan, well plates,
+per-position sequences, the axis order) are documented in
+[docs/useq.md](../../docs/useq.md). This table is what the engine does with
+them.
+
 | Field | On the Nikon |
 |---|---|
 | `x_pos`, `y_pos`, `z_pos` | Absolute stage position (um). Missing means "stay". |
@@ -304,12 +309,15 @@ custom actions, and colour cameras (set the camera to monochrome in NIS).
 ## useq v2
 
 The new `useq.v2.MDASequence` runs the same way (`import useq.v2 as v2`, then
-`v2.MDASequence(...)` with the same fields). Three cautions with useq-schema
-0.9.2: the pymmcore-plus file writers (0.18) save a v2 sequence as one flat
-stack of images, without its channel and Z axes, so use the classic
-`useq.MDASequence` when the saved file matters; an autofocus plan focuses at
-the first plane of a Z-stack, where the classic form focuses at the
-position's own z; and a channel's `z_offset` is ignored.
+`v2.MDASequence(...)` with the same fields), and adds axes of your own,
+nested sequences, skip rules and event transforms. Four cautions with
+useq-schema 0.9.2: the pymmcore-plus file writers (0.18) save a v2 sequence
+as one flat stack of images, without its channel and Z axes, so use the
+classic `useq.MDASequence` when the saved file matters; a v2 sequence
+cannot be read back from its own JSON; an autofocus plan focuses at the
+first plane of a Z-stack, where the classic form focuses at the position's
+own z; and a channel's `do_stack`, `acquire_every` and `z_offset` are
+ignored. [docs/useq.md](../../docs/useq.md) documents both APIs in full.
 
 ## When the engine says no
 

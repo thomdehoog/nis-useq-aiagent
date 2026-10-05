@@ -184,6 +184,15 @@ and focus locking with the PFS. Say what you want in words:
 three parts and of useq-schema, and quotes the file and line. It is told to
 look things up rather than answer from memory.
 
+**useq, in the conversation.** Every plan the assistant makes is a classic
+`useq.MDASequence`, and it can show and explain it: *Show me the useq
+sequence for that plan*, *What would axis_order tpgzc change?*, *Explain
+the z_plan*. It also reads the useq library itself, so *What is new in
+useq v2?* or *How does a v2 axis contribute to an event? Show me the code*
+get an answer from the source, with the file and line. For your own
+reading, [docs/useq.md](../../docs/useq.md) documents the classic API and
+v2 with examples.
+
 **Schedules.** *Look every three minutes and tell me whether the sample
 drifts.* *In ten minutes switch the PFS off.* *At 15:00 start the plan.* The
 assistant sets a named schedule, and the window sends the instruction as a

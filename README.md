@@ -16,7 +16,8 @@ nis-assistant ──> nis-engine ──> nis-bridge ──> NIS-Elements ──>
 
 Each part's README is its complete documentation, from the idea to the
 reference; each tutorial is a longer step-by-step walk-through to a first
-result.
+result. [docs/useq.md](docs/useq.md) documents useq-schema itself, the
+classic API and useq v2, as parts 2 and 3 use it.
 
 ## Install
 

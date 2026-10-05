@@ -179,7 +179,8 @@ seen, and set a schedule. Acquisitions go through useq:
   parts and of useq-schema (read only, nothing else on the computer).
 
 Plans run as a classic `useq.MDASequence`, because the pymmcore-plus file
-writers (0.18) keep the channel and Z axes only for that form.
+writers (0.18) keep the channel and Z axes only for that form. The classic
+API and useq v2 are documented in [docs/useq.md](../docs/useq.md).
 
 **The eyes remember.** The vision model has a conversation of its own for the
 session: every look is a turn in it, with the image, its time, the stage
