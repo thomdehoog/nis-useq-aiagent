@@ -14,7 +14,9 @@ classic form and useq v2), runs sequences made in other useq tools, and can
 read the source code of all three parts and of useq-schema to explain how
 things work.
 
-This is part 3 of three; see the [overview](../README.md).
+This is part 3 of three; see the [overview](../README.md). The
+[tutorial](docs/tutorial.md) is a first conversation step by step, with what
+to expect and why; this README is the reference.
 
 ## Install and start
 

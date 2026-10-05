@@ -14,7 +14,9 @@ pymmcore-plus  this part      part 1 (nis-bridge)
 ```
 
 This is part 2 of three; see the [overview](../README.md). Positions are NIS
-stage coordinates in micrometres (um), exactly as NIS shows them.
+stage coordinates in micrometres (um), exactly as NIS shows them. New to
+useq? The [tutorial](docs/tutorial.md) explains the idea and builds up from a
+first Z-stack to a multi-position time-lapse; this README is the reference.
 
 ## Install
 

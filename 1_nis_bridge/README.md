@@ -13,7 +13,8 @@ NisClient ── socket ─────────── dispatch ── reader
 
 This is part 1 of three; see the [overview](../README.md). It has no useq in
 it, so it is useful on its own for any Python that needs to drive a Nikon
-microscope.
+microscope. New to it? The [tutorial](docs/tutorial.md) walks through the
+idea and a first session step by step; this README is the reference.
 
 Status: the NIS functions it calls were validated on NIS-Elements AR 6.10.02
 with the Ti2 simulator. The package itself is tested offline, against a fake

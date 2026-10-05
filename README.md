@@ -3,9 +3,9 @@
 This repository consists of three things to control the NIS-Elements
 microscope software through Python:
 
-1. **nis-bridge:** control NIS-Elements from your own Python. → [README](1_nis_bridge/README.md)
-2. **nis-engine:** run [useq](https://github.com/pymmcore-plus/useq-schema) acquisitions on a Nikon microscope. → [README](2_nis_engine/README.md)
-3. **nis-assistant:** talk to your microscope through an AI agent. → [README](3_nis_assistant/README.md)
+1. **nis-bridge:** control NIS-Elements from your own Python. → [README](1_nis_bridge/README.md) · [tutorial](1_nis_bridge/docs/tutorial.md)
+2. **nis-engine:** run [useq](https://github.com/pymmcore-plus/useq-schema) acquisitions on a Nikon microscope. → [README](2_nis_engine/README.md) · [tutorial](2_nis_engine/docs/tutorial.md)
+3. **nis-assistant:** talk to your microscope through an AI agent. → [README](3_nis_assistant/README.md) · [tutorial](3_nis_assistant/docs/tutorial.md)
 
 Each part is its own Python package and builds on the one before it, so you
 can use only the part you need:
@@ -14,11 +14,8 @@ can use only the part you need:
 nis-assistant ──> nis-engine ──> nis-bridge ──> NIS-Elements ──> microscope
 ```
 
-![The assistant window: a chat on the left, the latest image on the right](docs/assistant-window.png)
-
-*The assistant on a Ti2 (NIS-Elements 6.10, Gemini as the model): it asks
-which channel, shows the plan, runs it as a useq sequence, and describes the
-image it took.*
+Each README is the reference; each tutorial is a step-by-step walk-through
+written for a biologist, from the idea to a first result.
 
 ## Install
 
@@ -57,6 +54,14 @@ window. Stop it with Ctrl+C.
 Each part has tests that run against the fake (`pytest 1_nis_bridge`, and so
 on) and hardware tests for NIS-Elements. See [docs/testing.md](docs/testing.md)
 for the hardware checklist and the current status.
+
+## A quick look at the assistant
+
+![The assistant window: a chat on the left, the latest image on the right](docs/assistant-window.png)
+
+*The assistant on a Ti2 (NIS-Elements 6.10, Gemini as the model): it asks
+which channel, shows the plan, runs it as a useq sequence, and describes the
+image it took.*
 
 ## Licence
 
