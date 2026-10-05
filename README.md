@@ -96,3 +96,13 @@ thomdehoog@gmail.com.
 If you use any part of this repository, or build on its ideas, in your own
 software, experiments or publications, please acknowledge the author by name
 and e-mail address. Every file carries the same request in its header.
+
+## Disclaimer
+
+This software moves the stage, changes the objective and focus, and runs
+acquisitions on a microscope. Use it at your own risk. It is provided as is,
+without warranty of any kind, and the author accepts no liability for damage
+to equipment, samples or data, or for any other loss, arising from its use.
+Check every move against the instrument, keep the objective clear of the
+sample on a first run, and narrow the stage limits before working on
+anything you cannot replace.
