@@ -64,8 +64,10 @@ COORDINATES = (
     "and do not reason about which way the stage itself moves. To move the sample d um "
     "{x}: x_new = x_now + d; {not_x}: x_new = x_now - d; and the same for y with {y} and "
     "{not_y}, and for z with {z} and {not_z}. The operator's left, right, up, down, deeper "
-    "and toward the coverslip are what they see in the image. Say which axis and sign you "
-    "used."
+    'and toward the coverslip are what they see in the image. For the focus, "up" and '
+    '"higher" mean a larger z and "down" and "lower" a smaller z, as on NIS\'s own focus '
+    "readout, whatever the z choice above says about the sample. Say which axis and sign "
+    "you used."
 )
 # A reply with no letter or digit in it (a model once answered a refusal with "_")
 # goes back to the model once with this text; a second such reply reaches the
@@ -76,8 +78,9 @@ EMPTY_REPLY_FALLBACK = "(The assistant gave no answer in words.)"
 # this text (see tools.challenge_a_reply_that_called_nothing).
 CALLED_NOTHING_CHALLENGE = (
     "No tool was called in this turn, so nothing at the microscope has changed. If your "
-    "reply says or implies that you moved, set, focused, imaged or stopped anything, that "
-    "is not true yet: call the tool now. If your reply only answers, asks the operator a "
+    "reply says or implies that you moved, set, focused, imaged, scheduled or stopped "
+    "anything, that is not true yet: call the tool now. If your reply only answers, asks "
+    "the operator a "
     "question, or declines, answer with the single word SAME and your reply goes to the "
     "operator as it is."
 )
