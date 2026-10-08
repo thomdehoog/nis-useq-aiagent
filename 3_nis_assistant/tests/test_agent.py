@@ -362,6 +362,98 @@ def test_the_eyes_remember_earlier_images(microscope, fake):
     assert fake.captures == 2
 
 
+def picture(row, col):
+    """A camera image with one bright spot, for the fake camera to show."""
+    rows, cols = np.mgrid[0:48, 0:64]
+    image = np.full((48, 64), 100.0)
+    image[(rows - row) ** 2 + (cols - col) ** 2 <= 5**2] = 4000
+    return image.astype(np.uint16)
+
+
+def test_a_look_over_earlier_images_measures_the_drift(microscope, fake):
+    fake.calibrated = True  # 0.108 um per pixel
+    vision = Script("One spot.", "The spot moved a little to the right.")
+    microscope.vision_model, microscope.vision = vision.model(), True
+    fake.frame = picture(24, 30)
+    first = ("look", {"question": "what do you see?", "label": "before"})
+    assistant, _ = talk(microscope, first, "A spot.")
+    assistant.send("look and label it 'before'")
+    fake.frame = picture(24, 36)  # the sample drifts 6 pixels to the right
+    again = ("look", {"question": "has it drifted since 'before'?", "frames": "1"})
+    assistant, script = talk(microscope, again, "It drifted 0.6 um to the right.")
+    assistant.send("has it drifted?")
+    result = tool_results(assistant)[0]
+    assert [i["n"] for i in result["images"]] == [1, 2] and result["images"][0]["label"] == "before"
+    (change,) = result["changes"]
+    shift = change["since_first"]["image_shift_um"]
+    assert shift["right"] == pytest.approx(6 * 0.108, abs=0.1) and abs(shift["up"]) < 0.1
+    assert result["answer"].startswith("The spot moved")
+    # the eyes were shown both images, oldest first, then the question
+    content = vision.requests[1][-1].parts[-1].content
+    texts = [c for c in content if isinstance(c, str)]
+    assert texts[1].startswith("Image 1,") and "labelled 'before'" in texts[1]
+    assert (
+        texts[2].startswith("Image 2,") and texts[-1] == "Question: has it drifted since 'before'?"
+    )
+    assert sum(isinstance(c, BinaryContent) for c in content) == 2
+    # the state carries the images in brief, and the map with the labelled place
+    assistant, script = talk(microscope, "Yes.")
+    assistant.send("ok")
+    state = state_sent(script)
+    assert state["frames"]["count"] == 2 and state["frames"]["labels"] == {"before": 1}
+    assert state["map"]["labels"]["before"]["x"] == 1000.0
+    assert state["map"]["objectives"][0]["objective"] == "Plan Apo 10x"
+
+
+def test_a_look_without_a_new_image_shows_the_kept_ones(microscope, fake):
+    microscope.vision = False
+    assistant, _ = talk(microscope, ("look", {"question": "what?", "snap": False}), "Nothing yet.")
+    assistant.send("show me")
+    assert "no image has been taken" in tool_results(assistant)[0]["error"]["message"]
+    steps = [
+        ("look", {"question": "what?"}),
+        ("look", {"question": "again?", "snap": False}),
+        "Ok.",
+    ]
+    assistant, _ = talk(microscope, *steps)
+    assistant.send("look, then look at it again")
+    fresh, kept = tool_results(assistant)
+    assert fresh["image"]["n"] == 1 and kept["image"]["n"] == 1 and "statistics" not in kept
+    assert fake.captures == 1  # the second look took no image
+    assistant, _ = talk(microscope, ("look", {"question": "what?", "frames": "7"}), "No.")
+    assistant.send("show image 7")
+    assert "no image 7" in tool_results(assistant)[0]["error"]["message"]
+
+
+def test_the_last_image_of_a_run_is_kept_and_can_be_looked_at_during_a_run(
+    microscope, slow_camera, monkeypatch
+):
+    from nis_assistant import tools as tools_module
+
+    monkeypatch.setattr(tools_module, "RUN_HOLD_S", 0.2)
+    microscope.vision = False
+    steps = [
+        ("plan_acquisition", LAPSE),
+        "Start?",
+        RUN_LAPSE,
+        ("look", {"question": "what?"}),  # a new image: the camera is the run's
+        ("look", {"question": "what?", "snap": False}),  # kept images: fine
+        "Running.",
+    ]
+    assistant, _ = talk(microscope, *steps)
+    assistant.send("6 time points")
+    assistant.send("yes")
+    refused, kept = tool_results(assistant)[-2:]
+    assert (
+        refused["error"]["code"] == "busy" and "no image has been taken" in kept["error"]["message"]
+    )
+    microscope.run.finished.wait(10)
+    microscope.settle_run()
+    assert microscope.run.result["last_image_number"] == 1
+    assert microscope.frames.frames[0]["source"] == "run stack_test-1"
+    assert microscope.frames.frames[0]["position_um"]["x"] == 100.0
+
+
 def test_ask_eyes_asks_about_the_images_seen_without_a_new_one(microscope, fake):
     vision = Script("Three spots.", "Still three; nothing has moved.")
     microscope.vision_model, microscope.vision = vision.model(), True

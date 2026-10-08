@@ -25,10 +25,16 @@ from .settings import LOOK_BIN, LOOK_MAX_SIDE
 
 def snap(client) -> np.ndarray:
     """One image with the current settings, outside any acquisition run."""
+    return snap_frame(client)[0]
+
+
+def snap_frame(client) -> tuple[np.ndarray, float | None]:
+    """One image with the current settings, and NIS's pixel size for the objective in
+    use (um per pixel), or None when NIS has no pixel calibration for it."""
     with tempfile.TemporaryDirectory(prefix="nis_assistant_look_") as folder:
         path = Path(folder) / "look.tif"
-        client.request("snap", path=str(path), timeout=SNAP_TIMEOUT_S)
-        return tifffile.imread(path)
+        reply = client.request("snap", path=str(path), timeout=SNAP_TIMEOUT_S)
+        return tifffile.imread(path), reply.get("pixel_size_um") or None
 
 
 def _gray(image: np.ndarray) -> np.ndarray:
@@ -54,6 +60,27 @@ def image_statistics(image: np.ndarray) -> dict[str, float]:
         "mean": round(float(data.mean()), 1),
         "saturated_percent": round(float(saturated.mean() * 100), 2),
         "sharpness": round(float(np.mean(gx**2 + gy**2) / max(data.mean(), 1.0)), 2),
+        "signal_centroid": signal_centroid(data),
+    }
+
+
+def signal_centroid(data: np.ndarray) -> dict[str, float] | None:
+    """Where the signal sits: the brightness-weighted centre of the pixels well above
+    the background, as fractions of the height (row) and width (col), from the top
+    left. None for a flat image, which has no signal to place."""
+    background = float(np.percentile(data, 10))
+    top = float(data.max())
+    if top - background < 1.0:
+        return None
+    bright = data > background + 0.25 * (top - background)
+    weights = np.where(bright, data - background, 0.0)
+    total = float(weights.sum())
+    if total <= 0:
+        return None
+    rows, cols = np.indices(data.shape)
+    return {
+        "row": round(float((weights * rows).sum() / total) / data.shape[0], 4),
+        "col": round(float((weights * cols).sum() / total) / data.shape[1], 4),
     }
 
 

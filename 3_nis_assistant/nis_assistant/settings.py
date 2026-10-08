@@ -113,6 +113,23 @@ VISION_FRAMES_KEPT = 8
 # few minutes for a whole day does not send the whole day with every question.
 VISION_TURNS_KEPT = 40
 
+# -- the images seen (frames.py) ------------------------------------------------------------
+# Every image a look takes, and the last image of each acquisition, is kept as a small copy
+# (its longer side at most FRAME_COPY_SIDE pixels) with a few measured numbers, so the
+# assistant can measure drift and sharpness between images instead of guessing. The oldest
+# copies go once they take more than FRAME_HISTORY_BYTES in all (about a hundred of them).
+FRAME_COPY_SIDE = 256
+FRAME_HISTORY_BYTES = 100 * 256 * 256 * 4
+LOOK_FRAMES_MAX = 16  # images shown to the eyes in one look, at most
+# The map, derived from the images seen: an image whose brightest pixel is less than
+# MAP_SIGNAL_MIN of itself above the mean, or more than MAP_SATURATED_MAX_PERCENT saturated,
+# is left out; images within MAP_SAME_PLACE_UM in x and y share a focus curve; the sample's
+# place is the median over the last MAP_PLACE_FRAMES images.
+MAP_SIGNAL_MIN = 0.05
+MAP_SATURATED_MAX_PERCENT = 1.0
+MAP_SAME_PLACE_UM = 25.0
+MAP_PLACE_FRAMES = 5
+
 # -- schedules ---------------------------------------------------------------------------
 # "Look every three minutes", "in ten minutes start the plan": the assistant sets a
 # schedule and the window's clock fires each due instruction as a turn of its own.

@@ -28,6 +28,7 @@ import asyncio
 import contextlib
 import functools
 import inspect
+import json
 import os
 import re
 import threading
@@ -51,7 +52,8 @@ from pydantic_ai.messages import ToolCallPart
 from pymmcore_plus.mda import MDARunner
 
 from .eyes import Eyes
-from .images import image_statistics, snap
+from .frames import FrameHistory, sample_map
+from .images import image_statistics, snap_frame
 from .instructions import (
     BRIDGE_MACRO_MISSING,
     BRIDGE_STEPS,
@@ -120,9 +122,11 @@ class Microscope:
     planned_in: dict[str, int] = field(default_factory=dict)  # plan id -> turn it was last shown
     # The acquisition running on its own thread, or the last one that ran (see Run).
     run: Run | None = None
-    # What each message from the operator set going, over the turns it takes (requests.py).
-    # Made in __post_init__, on the scheduler's clock, unless one is given.
+    # What each message from the operator set going, over the turns it takes (requests.py),
+    # and the images seen this session (frames.py). Both are made in __post_init__, on the
+    # scheduler's clock, unless given.
     requests: Requests | None = None
+    frames: FrameHistory | None = None
     # Set by Cancel: every further tool call in this turn does nothing.
     cancel: threading.Event = field(default_factory=threading.Event)
     # Where the stage was when the operator last wrote, or where they last agreed
@@ -136,6 +140,8 @@ class Microscope:
     def __post_init__(self) -> None:
         if self.requests is None:
             self.requests = Requests(self.scheduler.clock)
+        if self.frames is None:
+            self.frames = FrameHistory(self.scheduler.clock)
 
     @property
     def client(self):
@@ -166,6 +172,9 @@ class Microscope:
         }
         if self.run is not None:
             state["acquisition"] = self.run.report()
+        if self.frames.frames:
+            state["frames"] = self.frames.listing()
+            state["map"] = sample_map(self.frames)
         request = self.requests.current if self.requests is not None else None
         if request is not None and (machine_turn or request.plan or request.wait):
             state["request"] = request.brief(self.scheduler.clock())
@@ -192,7 +201,7 @@ class Microscope:
         run.described = True
         if run.frames.last is not None:
             run.result["last_image"] = _run_now(
-                describe_image(self, run.frames.last, LAST_IMAGE_QUESTION)
+                describe_image(self, run.frames.last, LAST_IMAGE_QUESTION, run.kept)
             )
 
     @property
@@ -273,7 +282,9 @@ def guarded_tool(fn: Callable) -> Callable:
             if v is not None
         }
         ctx.deps.on_tool(fn.__name__, args)
-        if fn.__name__ in INSTRUMENT_TOOLS:
+        if fn.__name__ in INSTRUMENT_TOOLS and not (
+            fn.__name__ == "look" and kwargs.get("snap") is False  # no new image: harmless
+        ):
             # A turn that has asked to wait leaves the microscope alone; and while an
             # acquisition runs on its own thread, the camera and the stage are its.
             if ctx.deps.requests is not None and ctx.deps.requests.is_waiting():
@@ -543,29 +554,83 @@ def focus(
 
 
 @guarded_tool
-async def look(ctx: RunContext[Microscope], question: str) -> dict[str, Any]:
+async def look(
+    ctx: RunContext[Microscope],
+    question: str,
+    snap: bool = True,
+    frames: str | None = None,
+    label: str | None = None,
+) -> dict[str, Any]:
     """Take one image with the current settings and answer a question about it.
 
-    The answer comes from the eyes, which have seen every image of this session:
-    ask them to compare with an earlier image when that is the question.
+    The image is numbered and kept with its measured numbers; earlier images can
+    be shown with it and compared in code (how far the content moved, in um). The
+    answer comes from the eyes, which have seen every image of this session.
 
     Args:
         question: what to find out, e.g. "what do you see?", "is it in focus?",
             "is it sharper than the image before?".
+        snap: take a new image (the default); false shows kept images only, which
+            also works while an acquisition runs.
+        frames: kept images to show as well and compare with: "last 3", "1,7", "3-10".
+        label: a name for the new image, to find it again: "before".
     """
-    image = await asyncio.to_thread(snap, ctx.deps.client)
-    stats = image_statistics(image)
-    ctx.deps.on_image(image, question)
+    history = ctx.deps.frames
+    fresh = stats = None
+    if snap:
+        image, pixel_size_um = await asyncio.to_thread(snap_frame, ctx.deps.client)
+        stats = image_statistics(image)
+        ctx.deps.on_image(image, question)
+        fresh = history.add(
+            image, "look", _image_context(ctx.deps), pixel_size_um, ctx.deps.axes, label
+        )
+    try:
+        shown = history.pick(frames) if frames else []
+    except ValueError as exc:
+        return refusal(ctx, "refused", str(exc), FAILURE_ADVICE)
+    if fresh is not None and all(f is not fresh for f in shown):
+        shown.append(fresh)
+    if not shown:
+        if not history.frames:
+            return refusal(
+                ctx, "refused", "no image has been taken yet; look with snap", FAILURE_ADVICE
+            )
+        shown = [history.frames[-1]]
+        if label:
+            shown[-1]["label"] = str(label)
+    result: dict[str, Any] = {}
+    if stats is not None:
+        result["statistics"] = stats
+    if len(shown) == 1:
+        result["image"] = history.brief(shown[0])
+    else:
+        result["images"] = [history.brief(f) for f in shown]
+        result["changes"] = history.compare(shown)
     if not ctx.deps.vision:
-        return {
-            "statistics": stats,
-            "note": "the model in use cannot see images; judge from the numbers",
-        }
+        result["note"] = "the model in use cannot see images; judge from the numbers"
+        return result
     # A separate conversation: the image never enters the chat history, which
     # keeps long conversations small; the eyes remember it instead.
     eyes = ctx.deps.eyes
-    answer = await eyes.look(image, question, stats, _image_context(ctx.deps))
-    return {"answer": answer, "statistics": stats, "images_seen": eyes.frames}
+    pictures = [(_picture_text(history, f), f["image"]) for f in shown]
+    if fresh is not None:
+        pictures[-1] = (pictures[-1][0], image)  # the new one in full, not its small copy
+    result["answer"] = await eyes.look(
+        question, pictures, _image_context(ctx.deps), ctx.deps.scheduler.clock
+    )
+    result["images_seen"] = eyes.frames
+    return result
+
+
+def _picture_text(history: FrameHistory, entry: dict[str, Any]) -> str:
+    """What the eyes are told about an image: its number, time, source, label, where it
+    was taken, and the measured numbers."""
+    brief = history.brief(entry)
+    head = f"Image {brief['n']}, {brief['time']}, {brief['source']}"
+    if "label" in brief:
+        head += f", labelled {brief['label']!r}"
+    rest = {k: v for k, v in brief.items() if k not in ("n", "time", "source", "label")}
+    return f"{head}. Measured: {json.dumps(rest, default=str)}"
 
 
 @guarded_tool
@@ -740,7 +805,9 @@ async def run_acquisition(ctx: RunContext[Microscope], plan_id: str) -> dict[str
     if run.frames.last is not None:
         # The image the operator sees on the right: a few numbers, and a short
         # description from the vision model, so the reply can say what was imaged.
-        result["last_image"] = await describe_image(ctx.deps, run.frames.last, LAST_IMAGE_QUESTION)
+        result["last_image"] = await describe_image(
+            ctx.deps, run.frames.last, LAST_IMAGE_QUESTION, run.kept
+        )
     return result
 
 
@@ -771,6 +838,7 @@ class Run:
         self.output = output
         self.stem = stem
         self.frames = _FrameCounter(microscope.on_image)
+        self.objective = _objective_now(microscope)
         # The runner lives on the assistant's side. Without this, pymmcore-plus
         # would pick Qt signals whenever the chat window is open, which needs qtpy.
         os.environ.setdefault("PYMM_SIGNALS_BACKEND", "psygnal")
@@ -781,6 +849,7 @@ class Run:
         self.ended: float | None = None
         self.result: dict[str, Any] = {}
         self.described = False  # whether the last image has been described (settle_run)
+        self.kept: dict[str, Any] | None = None  # the last image's entry in the frame history
 
     def start(self) -> None:
         threading.Thread(target=self._work, name=f"run {self.plan_id}", daemon=True).start()
@@ -808,6 +877,19 @@ class Run:
         }
         if error:
             self.result["error"] = {"code": "failed", "message": error, "advice": FAILURE_ADVICE}
+        if self.frames.last is not None:
+            # The last image is kept with the others, so it can be compared with later looks.
+            meta = self.frames.last_meta or {}
+            context = {"position_um": meta.get("position"), "objective": self.objective}
+            self.kept = self.microscope.frames.add(
+                self.frames.last,
+                f"run {self.plan_id}",
+                context,
+                meta.get("pixel_size_um"),
+                self.microscope.axes,
+                stats=image_statistics(self.frames.last),
+            )
+            self.result["last_image_number"] = self.kept["n"]
         self.finished.set()
 
     def report(self) -> dict[str, Any]:
@@ -821,6 +903,14 @@ class Run:
                 "running_for_s": int(self.microscope.scheduler.clock() - self.started),
             }
         return {"status": self.result["finished"], **self.result}
+
+
+def _objective_now(microscope: Microscope) -> dict[str, Any] | None:
+    """The objective in use, or None when the microscope does not answer."""
+    try:
+        return microscope.where()["objective"]
+    except (RuntimeError, OSError, ValueError, KeyError):
+        return None
 
 
 def _run_now(coroutine: Any) -> Any:
@@ -838,23 +928,28 @@ def _run_now(coroutine: Any) -> Any:
 
 
 async def describe_image(
-    microscope: Microscope, image: np.ndarray, question: str
+    microscope: Microscope, image: np.ndarray, question: str, entry: dict[str, Any]
 ) -> dict[str, Any]:
     """The measured numbers for an image and, when the model can see, its answer.
 
-    It runs on the assistant's own event loop: the vision model may be the very
-    same client as the chat model, and a client must stay on one loop. A failing
-    description is reported, not raised, so a finished acquisition is never
-    turned into a failure by the describing afterwards.
+    ``entry`` is the image's record in the frame history. It runs on the
+    assistant's own event loop: the vision model may be the very same client as
+    the chat model, and a client must stay on one loop. A failing description is
+    reported, not raised, so a finished acquisition is never turned into a
+    failure by the describing afterwards.
     """
     stats = image_statistics(image)
+    result: dict[str, Any] = {"statistics": stats, "image": microscope.frames.brief(entry)}
     if not microscope.vision:
-        return {"statistics": stats, "note": "the model in use cannot see images"}
+        return {**result, "note": "the model in use cannot see images"}
     try:
-        answer = await microscope.eyes.look(image, question, stats, _image_context(microscope))
+        pictures = [(_picture_text(microscope.frames, entry), image)]
+        answer = await microscope.eyes.look(
+            question, pictures, _image_context(microscope), microscope.scheduler.clock
+        )
     except Exception as exc:
-        return {"statistics": stats, "vision_error": f"{type(exc).__name__}: {exc}"}
-    return {"statistics": stats, "description": answer}
+        return {**result, "vision_error": f"{type(exc).__name__}: {exc}"}
+    return {**result, "description": answer}
 
 
 # -- waiting, for a request that takes longer than one turn ----------------------------------
@@ -1011,10 +1106,11 @@ class _FrameCounter:
     def __init__(self, on_image: Callable[[np.ndarray, str], None]) -> None:
         self.on_image, self.count = on_image, 0
         self.last: np.ndarray | None = None  # the image left on the window when the run ends
+        self.last_meta: dict | None = None  # where it was taken, as the engine reports it
 
     def frameReady(self, image: np.ndarray, event: useq.MDAEvent, meta: dict) -> None:
         self.count += 1
-        self.last = image
+        self.last, self.last_meta = image, meta
         index = ", ".join(f"{getattr(k, 'value', k)}={v}" for k, v in event.index.items())
         self.on_image(image, f"frame {self.count} ({index})")
 

@@ -166,4 +166,5 @@ class Assistant:
         self.microscope.requests = Requests(self.microscope.scheduler.clock)
         if not self.microscope.run_in_progress():  # a run under way is not forgotten
             self.microscope.run = None
+        self.microscope.frames.clear()
         self.microscope.eyes.reset()

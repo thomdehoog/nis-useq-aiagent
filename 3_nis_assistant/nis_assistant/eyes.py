@@ -25,6 +25,7 @@ from __future__ import annotations
 import dataclasses
 import json
 import time
+from collections.abc import Callable
 from typing import Any
 
 import numpy as np
@@ -58,16 +59,31 @@ class Eyes:
         self._agent: Agent | None = None
 
     async def look(
-        self, image: np.ndarray, question: str, stats: dict, context: dict | None = None
+        self,
+        question: str,
+        pictures: list[tuple[str, np.ndarray]],
+        context: dict | None = None,
+        clock: Callable[[], float] = time.time,
     ) -> str:
-        """Show the eyes a new image and return their answer to the question."""
-        number = self.frames + 1  # counted once the eyes have seen it
-        text = f"Image {number}, {time.strftime(CLOCK_FORMAT)}."
-        if context:
-            text += f" Microscope: {json.dumps(context, default=str)}"
-        text += f"\nQuestion: {question}\nMeasured on the raw image: {json.dumps(stats)}"
-        answer = await self._run([text, as_png(image)])
-        self.frames = number
+        """Show the eyes one or more images and return their answer to the question.
+
+        ``pictures`` are (what the image is, the image) pairs, oldest first: the
+        text names the image's number, when and where it was taken, and its
+        measured numbers, as ``FrameHistory.brief`` gives them. ``context`` is
+        the microscope now.
+        """
+        now = time.strftime(CLOCK_FORMAT, time.localtime(clock()))
+        where = f" Microscope: {json.dumps(context, default=str)}" if context else ""
+        if len(pictures) == 1:
+            text, image = pictures[0]
+            prompt: list[Any] = [f"{text}{where}\nQuestion: {question}", as_png(image)]
+        else:
+            prompt = [f"{now}.{where} Images shown, oldest first:"]
+            for text, image in pictures:
+                prompt += [text, as_png(image)]
+            prompt.append(f"Question: {question}")
+        answer = await self._run(prompt)
+        self.frames += 1
         return answer
 
     async def ask(self, question: str) -> str:
