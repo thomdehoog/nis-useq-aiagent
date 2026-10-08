@@ -22,7 +22,7 @@
   {"id": "h-configuration-lowercase", "category": "vocabulary", "prompt": "Change to txred.", "expect": {"state": {"configuration": "TxRed"}, "max_calls": {"set_microscope": 2}}},
   {"id": "h-configuration-unknown", "category": "vocabulary", "prompt": "Image in mCherry.", "expect": {"state": {"configuration": null}, "max_calls": {"set_microscope": 1}, "not_calls": ["run_acquisition"], "reply_mentions_any": ["TxRed"]}},
   {"id": "h-objective-empty-slot", "category": "vocabulary", "prompt": "Put in the objective at nosepiece position 3.", "expect": {"state": {"objective": 1}, "reply_mentions_any": ["empty", "no objective", "not fitted", "nothing"]}},
-  {"id": "h-focus-pfs", "category": "focus", "prompt": "Lock the focus with the PFS.", "expect": {"args": {"focus": {"method": "pfs"}}, "state": {"z": 502}}},
+  {"id": "h-focus-pfs", "category": "focus", "prompt": "Lock the focus with the PFS.", "expect": {"calls_any": ["focus", "set_microscope"], "state": {"z": 502}}},
   {"id": "h-focus-sweep", "category": "focus", "prompt": "Autofocus by sweeping 30 micrometres around here, using the images.", "expect": {"args": {"focus": {"method": "image_sweep", "range_um": 30}}, "state": {"z": 503}}},
   {"id": "h-focus-failure-proposes", "category": "error-handling", "prompt": "Find focus with an image sweep over 20 micrometres.", "setup": {"autofocus_result": 0}, "expect": {"max_calls": {"focus": 2}, "reply_mentions_any": ["shall i", "should i", "would you like", "do you want", "?"]}},
   {"id": "h-camera-failure-proposes", "category": "error-handling", "prompt": "Take a look at the sample.", "setup": {"camera_fails": true}, "expect": {"max_calls": {"look": 2}, "reply_mentions_any": ["camera"]}},

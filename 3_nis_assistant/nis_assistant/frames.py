@@ -110,13 +110,18 @@ class FrameHistory:
             return entry
 
     def pick(self, chosen: Any) -> list[dict[str, Any]]:
-        """The frames ``chosen`` names: "last 3", "4", "1,7", or "3-10". At most
-        LOOK_FRAMES_MAX; a ValueError names a frame the history no longer holds."""
+        """The frames ``chosen`` names: "last 3", "4", "1,7", "3-10", or labels, one or
+        more ("before", "before, after"). At most LOOK_FRAMES_MAX; a ValueError names a
+        frame or label the history does not hold."""
         with self._lock:
             frames = list(self.frames)
         by_number = {f["n"]: f for f in frames}
         text = str(chosen).strip().lower()
-        if match := re.fullmatch(r"last\s*(\d+)", text):
+        labels = {f["label"].lower(): f for f in frames if f.get("label")}
+        wanted = [part.strip().strip("'\"") for part in text.split(",")]
+        if wanted and all(part in labels for part in wanted):
+            picked = [labels[part] for part in wanted]
+        elif match := re.fullmatch(r"last\s*(\d+)", text):
             picked = frames[-int(match.group(1)) :] if int(match.group(1)) > 0 else []
         elif match := re.fullmatch(r"(\d+)\s*-\s*(\d+)", text):
             low, high = int(match.group(1)), int(match.group(2))
@@ -131,7 +136,11 @@ class FrameHistory:
                 )
             picked = [by_number[n] for n in numbers]
         else:
-            raise ValueError("frames is 'last 3', image numbers like '1,7', or a range like '3-10'")
+            known = ", ".join(repr(f["label"]) for f in frames if f.get("label")) or "none"
+            raise ValueError(
+                "frames is 'last 3', image numbers like '1,7', a range like '3-10', or a "
+                f"label; the labels are {known}"
+            )
         if len(picked) > LOOK_FRAMES_MAX:
             raise ValueError(f"at most {LOOK_FRAMES_MAX} images in one look")
         return picked

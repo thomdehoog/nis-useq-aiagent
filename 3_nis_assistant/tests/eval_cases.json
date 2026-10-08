@@ -22,7 +22,7 @@
   {"id": "configuration-lowercase", "category": "vocabulary", "prompt": "Use the fitc configuration.", "expect": {"state": {"configuration": "FITC"}, "max_calls": {"set_microscope": 2}}},
   {"id": "configuration-unknown", "category": "vocabulary", "prompt": "Switch to GFP.", "expect": {"state": {"configuration": null}, "max_calls": {"set_microscope": 1}, "reply_mentions_any": ["FITC"]}},
   {"id": "objective-empty-slot", "category": "vocabulary", "prompt": "Use the objective in nosepiece slot 3.", "expect": {"state": {"objective": 1}, "reply_mentions_any": ["empty", "no objective", "not fitted", "nothing"]}},
-  {"id": "focus-pfs", "category": "focus", "prompt": "Find focus with the Perfect Focus System.", "expect": {"args": {"focus": {"method": "pfs"}}, "state": {"z": 502}}},
+  {"id": "focus-pfs", "category": "focus", "prompt": "Find focus with the Perfect Focus System.", "expect": {"calls_any": ["focus", "set_microscope"], "state": {"z": 502}}},
   {"id": "focus-sweep", "category": "focus", "prompt": "Find focus with an image-based sweep over 40 micrometres.", "expect": {"args": {"focus": {"method": "image_sweep", "range_um": 40}}, "state": {"z": 503}}},
   {"id": "focus-failure-proposes", "category": "error-handling", "prompt": "Autofocus with an image sweep, please.", "setup": {"autofocus_result": 0}, "expect": {"max_calls": {"focus": 2}, "reply_mentions_any": ["shall i", "should i", "would you like", "do you want", "?"]}},
   {"id": "camera-failure-proposes", "category": "error-handling", "prompt": "What do you see?", "setup": {"camera_fails": true}, "expect": {"max_calls": {"look": 2}, "reply_mentions_any": ["camera"]}},

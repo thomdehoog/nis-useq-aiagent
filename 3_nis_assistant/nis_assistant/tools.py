@@ -623,7 +623,7 @@ async def look(
         snap: take a new image (the default); false shows kept images only, which
             also works while an acquisition runs.
         frames: kept images to show as well and compare the new one with: "last 3" (the
-            three taken before it), "1,7", "3-10", or a labelled image's number.
+            three taken before it), "1,7", "3-10", or a label such as "before".
         label: a name for the new image, to find it again: "before".
     """
     history = ctx.deps.frames

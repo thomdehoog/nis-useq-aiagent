@@ -98,8 +98,13 @@ def test_picking_images_by_count_numbers_or_range():
     assert [f["n"] for f in history.pick("3")] == [3]
     with pytest.raises(ValueError, match="no image 9"):
         history.pick("9")
-    with pytest.raises(ValueError, match="image numbers"):
+    with pytest.raises(ValueError, match="labels are none"):
         history.pick("the first one")
+    history.frames[1]["label"], history.frames[3]["label"] = "before", "after"
+    assert [f["n"] for f in history.pick("before")] == [2]
+    assert [f["n"] for f in history.pick("'Before', after")] == [2, 4]
+    with pytest.raises(ValueError, match="labels are 'before', 'after'"):
+        history.pick("later")
 
 
 def test_the_oldest_copies_go_but_the_numbers_keep_counting():
