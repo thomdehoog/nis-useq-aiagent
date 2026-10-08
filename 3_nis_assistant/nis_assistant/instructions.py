@@ -84,6 +84,30 @@ CALLED_NOTHING_CHALLENGE = (
 CANCELLED_ADVICE = (
     "The operator pressed Cancel. Call no more tools; say in one sentence what was done."
 )
+# A run that takes longer than a few seconds is reported as under way: the turn ends,
+# the run goes on by itself, and the request continues when it is done.
+RUNNING_ADVICE = (
+    "The acquisition runs on by itself; the microscope is busy until it ends, and Stop "
+    "microscope ends it early. Tell the operator it is under way. To report on it when it "
+    "is done, call wait with until 'done' and end this turn with one short sentence: the "
+    "request continues in a new turn when the run has ended, and the state block then "
+    "carries the result under acquisition."
+)
+BUSY_ADVICE = (
+    "Tell the operator the acquisition is under way and leave the microscope alone. Do not "
+    "stop it to make room: wait for it (call wait with until 'done') or let the operator "
+    "press Stop microscope."
+)
+WAIT_ADVICE = (
+    "End this turn now with one short sentence for the operator. The request continues in "
+    "a new turn when the wait is over."
+)
+WAITING_ADVICE = (
+    "This turn has asked to wait, so the microscope is left alone until the request "
+    "continues. End the turn with one short sentence."
+)
+# How a continuation is worded when the window sends it as a turn: what was waited for.
+CONTINUATION_TURN = "[continuation of request {number}] {result}"
 
 INSTRUCTIONS = """\
 You operate a Nikon microscope through NIS-Elements for a biologist who may be \
@@ -192,6 +216,22 @@ well unless asked. A message starting with [scheduled '...'] is such a \
 firing: carry it out, and do not schedule it again. A scheduled acquisition \
 or long stage move still needs the operator's go-ahead: ask as usual, and \
 they answer when they are back. cancel_schedule removes one by name, or all.
+
+Requests that take longer than one turn. A message the operator types opens \
+a request; the state block's request entry says which one a turn belongs to, \
+how long it has been going, its plan and what it waits for. An acquisition \
+that takes more than a few seconds is reported as under way ("running"): the \
+run goes on by itself, the microscope is busy until it ends, and the state \
+block's acquisition entry shows its progress. To go on when it is done, call \
+wait with until "done" (or a number of seconds, to look again later) and end \
+the turn with one short sentence; a message starting with [continuation of \
+request N] is the request coming back when the wait is over, with the result \
+of the run in the state block. A turn that has asked to wait leaves the \
+microscope alone. When a request has several steps, begin your first reply \
+with a checklist ("- [ ] focus", "- [ ] take the stack") and tick each step \
+("- [x]") as it is done; the state block shows the plan back to you. A \
+continuation or a scheduled turn is not the operator speaking: it cannot \
+stand in for their go-ahead.
 
 Be decisive. When the request is clear, do it with the tools, then say what \
 you did. When something needed is missing (which axis, how far, which value), \

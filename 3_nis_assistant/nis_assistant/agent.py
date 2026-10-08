@@ -29,6 +29,7 @@ from pydantic_ai.messages import ModelMessage, ModelRequest
 from . import models
 from .instructions import COORDINATES, INSTRUCTIONS
 from .memory import compact, without_a_declined_challenge, without_state_block
+from .requests import Requests
 from .settings import AXIS_CHOICES, DEFAULT_AXES, DEFAULT_MODEL_SETTINGS, MODEL, TOOL_CALL_RETRIES
 from .tools import REPLY_GUARDS, TOOLS, Microscope
 
@@ -83,21 +84,29 @@ class Assistant:
         self.history: list[ModelMessage] = []
         self.last_turn: list[ModelMessage] = []  # the latest turn's messages, for traces
 
-    def send(self, text: str, scheduled: bool = False) -> str:
+    def send(self, text: str, scheduled: bool = False, request: int | None = None) -> str:
         """One message in, the assistant's answer out.
 
-        A message the operator typed starts a new turn of theirs: moves are
-        measured from where the stage is now, and a question the assistant
-        asked in the turn before counts as answered by this message. A
-        ``scheduled`` message (the window sends one when a schedule falls due)
-        does neither, so a repeating schedule cannot creep the stage along in
-        small steps, and cannot stand in for the operator's go-ahead.
+        A message the operator typed starts a new turn of theirs, and a new
+        request: moves are measured from where the stage is now, and a question
+        the assistant asked in the turn before counts as answered by this
+        message. A ``scheduled`` message is one the machine wrote (the window
+        sends one when a schedule falls due, or when a wait is over) for the
+        request numbered ``request``: it does neither, so a repeating schedule
+        cannot creep the stage along in small steps, and a continuation cannot
+        stand in for the operator's go-ahead.
         """
         self.microscope.cancel.clear()
+        requests = self.microscope.requests
+        if scheduled:
+            requests.machine(request)
+        else:
+            requests.typed(text)
         try:
             if self.microscope.engine.client.closed:  # after a timeout, or a restarted bridge
                 self.microscope.engine.reconnect()
-            state = self.microscope.state()
+            self.microscope.settle_run()  # a run that ended meanwhile gets its last image described
+            state = self.microscope.state(machine_turn=scheduled)
             if not scheduled:
                 self.microscope.anchor = state["position_um"]
         except (RuntimeError, ValueError, OSError) as exc:
@@ -127,6 +136,8 @@ class Assistant:
                 raise
         self.last_turn = without_a_declined_challenge(result.new_messages())
         self.history = compact(without_a_declined_challenge(result.all_messages()))
+        usage = result.usage
+        requests.finish_turn(result.output, (usage.input_tokens or 0) + (usage.output_tokens or 0))
         return without_state_block(result.output)
 
     def use(self, endpoint: models.Endpoint, vision: models.Endpoint | None = None) -> None:
@@ -151,4 +162,8 @@ class Assistant:
         self.microscope.planned_in.clear()
         self.microscope.go_ahead_asked.clear()
         self.microscope.scheduler.clear()
+        self.microscope.requests.end("cleared")
+        self.microscope.requests = Requests(self.microscope.scheduler.clock)
+        if not self.microscope.run_in_progress():  # a run under way is not forgotten
+            self.microscope.run = None
         self.microscope.eyes.reset()

@@ -120,6 +120,16 @@ SCHEDULE_MIN_SECONDS = 5  # no schedule fires more often than this
 SCHEDULES_MAX = 10
 CLOCK_FORMAT = "%H:%M:%S"  # how the state, the eyes and the schedules write a time of day
 
+# -- requests that take longer than one turn ---------------------------------------------
+# An acquisition runs on its own thread. One that ends within RUN_HOLD_S is reported whole,
+# as a short Z-stack is; a longer one is reported as under way, so the turn can end and
+# the operator can type ("stop", a question) while it runs. The assistant then calls
+# wait, and the request continues when the run is done.
+RUN_HOLD_S = 5.0
+WAIT_MAX_S = 4 * 3600  # no single wait is longer than this
+CONTINUATIONS_MAX = 30  # how often one request may come back from a wait
+PLAN_STEPS_MAX = 12  # a checklist in a reply is kept as the request's plan, up to this
+
 # The conversation is made smaller now and then, between turns (see memory.compact()).
 HISTORY_COMPACT_AFTER = 15  # operator turns before the history is made smaller
 HISTORY_KEEP_TURNS = 10  # turns kept when it is; older ones are forgotten

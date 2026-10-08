@@ -279,6 +279,58 @@ def test_an_acquisition_runs_from_the_window_and_stop_ends_it(qtbot, open_window
     assert 3 <= fake.captures < 12
 
 
+def test_a_wait_that_is_over_continues_the_request_from_the_clock(
+    qtbot, open_window, fake, monkeypatch
+):
+    from nis_assistant import tools as tools_module
+
+    monkeypatch.setattr(tools_module, "RUN_HOLD_S", 0.2)
+    slow_capture = fake.capture
+
+    def capture():  # a slower camera, so the run outlasts the turn
+        time.sleep(0.15)
+        slow_capture()
+
+    fake.capture = capture
+    lapse = {**PLAN, "time_points": 6}
+    run = ("run_acquisition", {"plan_id": "run-1"})
+    window = open_window(
+        ("plan_acquisition", lapse),
+        "Start 6?",
+        run,
+        ("wait", {"until": "done"}),
+        "Under way; I will report.",
+        "All 6 images are saved.",
+    )
+    ask(qtbot, window, "run 6 time points and report")
+    transcript = ask(qtbot, window, "yes")
+    assert "Under way" in transcript and window.prompt.isEnabled()  # the line is free
+    assert window.assistant.microscope.run_in_progress()
+    qtbot.waitUntil(
+        lambda: "[continuation of request 2]" in window.transcript.toPlainText(), timeout=10000
+    )
+    qtbot.waitUntil(lambda: not window.busy, timeout=10000)
+    transcript = window.transcript.toPlainText()
+    assert "until done: met" in transcript and "All 6 images are saved." in transcript
+    assert fake.captures == 7  # the probe image for the file size, then 6 frames
+
+
+def test_cancel_prompt_ends_the_request(qtbot, open_window, fake):
+    slow_move = fake.move_xy
+
+    def move_xy(x, y):
+        time.sleep(0.3)
+        slow_move(x, y)
+
+    fake.move_xy = move_xy
+    window = open_window(("move_stage", {"x": 1100}), ("wait", {"until": 60}), "Waiting.")
+    start(window, "move, then wait")
+    qtbot.waitUntil(lambda: bool(fake.calls), timeout=10000)
+    window.cancel_button.click()
+    qtbot.waitUntil(lambda: not window.busy, timeout=10000)
+    assert window.assistant.microscope.requests.open() is None
+
+
 def test_while_nis_starts_the_window_waits_and_then_connects(qtbot, port, tmp_path):
     engine = NisEngine("127.0.0.1", port, timeout=5.0, connect=False)
     microscope = Microscope(engine, output_dir=tmp_path, vision=False)
@@ -318,6 +370,9 @@ def test_the_window_will_not_close_mid_action(qtbot, open_window, monkeypatch):
     window._set_busy(True)
     assert window.close() is False and told == ["Still working"]
     window._set_busy(False)
+    monkeypatch.setattr(window.assistant.microscope, "run_in_progress", lambda: True)
+    assert window.close() is False and len(told) == 2  # nor while an acquisition runs
+    monkeypatch.setattr(window.assistant.microscope, "run_in_progress", lambda: False)
     assert window.close() is True
 
 

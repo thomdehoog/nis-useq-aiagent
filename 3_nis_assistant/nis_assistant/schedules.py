@@ -51,11 +51,14 @@ class Scheduler:
         every_seconds: float | None = None,
         in_seconds: float | None = None,
         at: str | None = None,
+        request: int | None = None,
     ) -> dict[str, Any]:
         """Add or replace the schedule ``name``; returns it as the listing shows it.
 
         Exactly one of ``every_seconds``, ``in_seconds`` and ``at`` must be given.
-        A ValueError says what is wrong with the request.
+        ``request`` is the number of the request the schedule was set in, so a
+        firing counts as a turn of that request. A ValueError says what is
+        wrong with the request.
         """
         name, instruction = (name or "").strip(), (instruction or "").strip()
         if not name or not instruction:
@@ -75,7 +78,7 @@ class Scheduler:
             raise ValueError("give exactly one of every_seconds, in_seconds or at")
         key, value = given[0]
         now = self.clock()
-        item: dict[str, Any] = {"name": name, "instruction": instruction}
+        item: dict[str, Any] = {"name": name, "instruction": instruction, "request": request}
         if key == "at":
             item["at"] = _clock_time(value)
             item["next"] = _next_occurrence(item["at"], now)

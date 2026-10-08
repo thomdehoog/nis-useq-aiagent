@@ -991,6 +991,135 @@ def test_a_run_that_loses_the_connection_says_what_was_saved(microscope, fake):
     assert result["images"] == 2 and result["saved_to"]
 
 
+# -- a run that takes longer than one turn --------------------------------------------------
+
+LAPSE = {**PLAN, "z_stack": None, "channels": [{"config": "DAPI"}], "time_points": 6}
+RUN_LAPSE = ("run_acquisition", {"plan_id": "stack_test-1"})
+
+
+@pytest.fixture
+def slow_camera(fake):
+    """A camera that takes a while per image, so a run outlasts the turn's hold."""
+    import time as _time
+
+    real_capture = fake.capture
+
+    def capture():
+        _time.sleep(0.15)
+        real_capture()
+
+    fake.capture = capture
+    return fake
+
+
+def state_sent(script, call=-1):
+    """The <microscope_state> the model was sent with a message."""
+    prompt = script.requests[call][-1].parts[-1].content
+    return json.loads(prompt.split("<microscope_state>")[1][: -len("</microscope_state>")])
+
+
+def test_a_long_run_returns_while_under_way_and_the_request_continues(
+    microscope, slow_camera, monkeypatch
+):
+    from nis_assistant import tools as tools_module
+
+    monkeypatch.setattr(tools_module, "RUN_HOLD_S", 0.2)
+    microscope.vision_model, microscope.vision = Script("The last frame.").model(), True
+    steps = [
+        ("plan_acquisition", LAPSE),
+        "Start 6 time points?",
+        RUN_LAPSE,
+        ("move_stage", {"x": 1100}),  # the stage is the run's: refused
+        ("wait", {"until": "done"}),
+        ("look", {"question": "what?"}),  # after a wait: left alone
+        "- [x] start\n- [ ] report\nRunning; I will report when it is done.",
+        "Done: 6 images saved. The last frame shows the same field.",
+    ]
+    assistant, script = talk(microscope, *steps)
+    assistant.send("run 6 time points and tell me what the last one shows")
+    assert assistant.send("yes").startswith("- [x] start")
+    started, refused, waiting, left_alone = tool_results(assistant)[-4:]
+    assert started["status"] == "running" and started["of"] == 6 and "wait" in started["advice"]
+    assert refused["error"]["code"] == "busy" and "is running" in refused["error"]["message"]
+    assert waiting["waiting"]["until"] == "done" and left_alone["error"]["code"] == "waiting"
+    assert slow_camera.calls.count("capture") < 6 and microscope.run_in_progress()
+    request = microscope.requests.current
+    assert request.plan == ["[x] start", "[ ] report"] and request.turns == 1
+    assert request.prompt == "yes"  # the go-ahead opened the request the run belongs to
+    assert microscope.requests.due(microscope.run_is_done) is None  # still running
+
+    microscope.run.finished.wait(10)
+    came_back, result = microscope.requests.due(microscope.run_is_done)
+    assert came_back is request and result.endswith("until done: met")
+    reply = assistant.send(f"[continuation of request 2] {result}", scheduled=True, request=2)
+    assert reply.startswith("Done: 6 images")
+    state = state_sent(script)
+    assert state["acquisition"]["status"] == "completed" and state["acquisition"]["images"] == 6
+    assert state["acquisition"]["last_image"]["description"] == "The last frame."
+    assert state["request"]["number"] == 2 and state["request"]["plan"] == request.plan
+    assert request.turns == 2 and request.continuations == 1
+    assert microscope.anchor["x"] == 100.0  # where the run left the stage
+
+
+def test_the_state_shows_a_running_acquisition(microscope, slow_camera, monkeypatch):
+    from nis_assistant import tools as tools_module
+
+    monkeypatch.setattr(tools_module, "RUN_HOLD_S", 0.2)
+    steps = [("plan_acquisition", LAPSE), "Start?", RUN_LAPSE, "Under way.", "Still going."]
+    assistant, script = talk(microscope, *steps)
+    assistant.send("6 time points")
+    assistant.send("yes")
+    assistant.send("how far is it?")
+    running = state_sent(script)["acquisition"]
+    assert running["status"] == "running" and running["images"] < 6 and running["of"] == 6
+    microscope.stop()  # Stop microscope ends it after the current image
+    microscope.run.finished.wait(10)
+    assert microscope.run.report()["status"] == "canceled" and microscope.requests.open() is None
+
+
+def test_wait_with_nothing_running_and_waiting_twice(microscope):
+    steps = [("wait", {"until": "done"}), ("wait", {"until": "60"}), ("wait", {"until": 60}), "OK."]
+    assistant, _ = talk(microscope, *steps)
+    assistant.send("wait for it")
+    nothing, waiting, again = tool_results(assistant)
+    assert nothing["done"] is True and "no acquisition" in nothing["note"]
+    assert waiting["waiting"] == {"until": 60.0, "max_s": 60}
+    assert again["error"]["code"] == "refused" and "already waits" in again["error"]["message"]
+    assert microscope.warnings == []  # a model's slip, not the microscope's fault
+
+
+def test_a_scheduled_turn_belongs_to_the_request_that_set_it(microscope):
+    steps = [
+        ("schedule", {"name": "watch", "instruction": "look", "every_seconds": 60}),
+        "Every minute.",
+        "Looked.",
+    ]
+    assistant, script = talk(microscope, *steps)
+    assistant.send("look every minute")
+    item = dict(microscope.scheduler._items["watch"])
+    assert item["request"] == 1
+    assistant.send("[scheduled 'watch'] look", scheduled=True, request=item["request"])
+    assert microscope.requests.current.number == 1 and microscope.requests.current.turns == 2
+    assert state_sent(script)["request"]["prompt"] == "look every minute"
+
+
+def test_clear_forgets_the_requests_but_not_a_running_acquisition(
+    microscope, slow_camera, monkeypatch
+):
+    from nis_assistant import tools as tools_module
+
+    monkeypatch.setattr(tools_module, "RUN_HOLD_S", 0.2)
+    steps = [("plan_acquisition", LAPSE), "Start?", RUN_LAPSE, ("wait", {"until": "done"}), "Ok."]
+    assistant, _ = talk(microscope, *steps)
+    assistant.send("6 time points")
+    assistant.send("yes")
+    assistant.clear()
+    assert microscope.requests.open() is None and microscope.run_in_progress()
+    microscope.run.finished.wait(10)
+    Assistant(microscope).clear()
+    assert microscope.run is None
+
+
 def test_a_closed_connection_is_opened_again_with_the_next_message(microscope):
     assistant, _ = talk(microscope, "Hello again.")
     microscope.engine.client.close()

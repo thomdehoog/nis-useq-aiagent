@@ -54,7 +54,7 @@ from PySide6.QtWidgets import (
 from . import models
 from .agent import Assistant
 from .images import as_png
-from .instructions import SCHEDULED_TURN
+from .instructions import CONTINUATION_TURN, SCHEDULED_TURN
 from .local import CONTEXT_TOO_SMALL_HELP, CONTEXT_TOO_SMALL_SIGNS
 from .panel import AxesBox, ModelPanel, PreferencesBox
 from .settings import DEFAULT_PROVIDER, FONT_POINTS, OUTPUT_FOLDER
@@ -273,12 +273,12 @@ class AssistantWindow(QMainWindow):
 
     def closeEvent(self, event: QCloseEvent) -> None:
         """Do not close in the middle of an action: the microscope would be left mid-way."""
-        if self.busy:
+        if self.busy or self.assistant.microscope.run_in_progress():
             QMessageBox.information(
                 self,
                 "Still working",
-                "The assistant is still working on the microscope. Wait until it is done, "
-                "or press Stop microscope, then close.",
+                "The assistant is still working on the microscope, or an acquisition is "
+                "running. Wait until it is done, or press Stop microscope, then close.",
             )
             event.ignore()
             return
@@ -297,19 +297,34 @@ class AssistantWindow(QMainWindow):
         self._in_background(lambda: self.assistant.send(text))
 
     def fire_due_schedule(self) -> None:
-        """The window's clock calls this every second. When no turn is running and a
-        schedule is due, its instruction runs as a turn of its own, marked as
-        scheduled in the transcript; while a turn runs it waits for the next tick.
+        """The window's clock calls this every second. When no turn is running, a wait
+        that is over continues its request as a turn of its own, else a schedule that
+        is due runs as one; both are marked in the transcript as written by the
+        machine. While a turn runs they wait for the next tick.
         """
         if self.busy:
             return
-        item = self.assistant.microscope.scheduler.pop_due()
+        microscope = self.assistant.microscope
+        due = microscope.requests.due(microscope.run_is_done)
+        if due is not None:
+            request, result = due
+            text = CONTINUATION_TURN.format(number=request.number, result=result)
+            self.warning.hide()
+            self._say("scheduled", text)
+            self._in_background(
+                lambda: self.assistant.send(text, scheduled=True, request=request.number)
+            )
+            return
+        item = microscope.scheduler.pop_due()
         if item is None:
             return
         text = SCHEDULED_TURN.format(name=item["name"], instruction=item["instruction"])
         self.warning.hide()
         self._say("scheduled", text)
-        self._in_background(lambda: self.assistant.send(text, scheduled=True), item["name"])
+        self._in_background(
+            lambda: self.assistant.send(text, scheduled=True, request=item.get("request")),
+            item["name"],
+        )
 
     @property
     def busy(self) -> bool:
@@ -355,6 +370,7 @@ class AssistantWindow(QMainWindow):
         if not self.busy:
             return
         self.assistant.microscope.cancel.set()
+        self.assistant.microscope.requests.end("cancelled by the operator")
         self._say("system", "Cancelled. The assistant stops after its current step.")
 
     def stop_microscope(self) -> None:

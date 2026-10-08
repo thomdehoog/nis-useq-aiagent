@@ -55,6 +55,7 @@ from .images import image_statistics, snap
 from .instructions import (
     BRIDGE_MACRO_MISSING,
     BRIDGE_STEPS,
+    BUSY_ADVICE,
     CALLED_NOTHING_CHALLENGE,
     CANCELLED_ADVICE,
     EMPTY_REPLY_CHALLENGE,
@@ -65,10 +66,14 @@ from .instructions import (
     LIMIT_ADVICE,
     OPTCONF_STEPS,
     OPTIONS_ADVICE,
+    RUNNING_ADVICE,
     START_ADVICE,
+    WAIT_ADVICE,
+    WAITING_ADVICE,
 )
 from .memory import _is_operator_turn
 from .plans import AcquisitionPlan, PositionSpec, count_images, describe, plan_to_sequence
+from .requests import Requests
 from .schedules import Scheduler
 from .settings import (
     CLOCK_FORMAT,
@@ -78,6 +83,7 @@ from .settings import (
     MAX_EXPOSURE_MS,
     MAX_SWEEP_UM,
     MODEL,
+    RUN_HOLD_S,
     SOURCE_LINES,
     SOURCE_MATCHES,
 )
@@ -112,7 +118,11 @@ class Microscope:
     challenge_no_tool: bool = False
     plans: dict[str, useq.MDASequence] = field(default_factory=dict)  # plan id -> sequence
     planned_in: dict[str, int] = field(default_factory=dict)  # plan id -> turn it was last shown
-    runner: MDARunner | None = None  # set while an acquisition runs, so it can be stopped
+    # The acquisition running on its own thread, or the last one that ran (see Run).
+    run: Run | None = None
+    # What each message from the operator set going, over the turns it takes (requests.py).
+    # Made in __post_init__, on the scheduler's clock, unless one is given.
+    requests: Requests | None = None
     # Set by Cancel: every further tool call in this turn does nothing.
     cancel: threading.Event = field(default_factory=threading.Event)
     # Where the stage was when the operator last wrote, or where they last agreed
@@ -122,6 +132,10 @@ class Microscope:
     turn: int = 0  # the operator's messages so far
     # Long moves the assistant asked the operator about, and in which turn.
     go_ahead_asked: dict[str, int] = field(default_factory=dict)
+
+    def __post_init__(self) -> None:
+        if self.requests is None:
+            self.requests = Requests(self.scheduler.clock)
 
     @property
     def client(self):
@@ -136,15 +150,50 @@ class Microscope:
             "objective": {"slot": current, "name": objectives["objectives"].get(str(current))},
         }
 
-    def state(self) -> dict[str, Any]:
-        """A compact picture of the microscope, sent with every message from the operator."""
-        return {
+    def state(self, machine_turn: bool = False) -> dict[str, Any]:
+        """A compact picture of the microscope, sent with every message to the model.
+
+        Besides the instrument it carries the clock, the schedules, the
+        acquisition under way or just ended, and, for a turn the machine wrote
+        or a request with a plan or a wait, the request the turn belongs to.
+        """
+        state = {
             **self.where(),
             "stage_limits_um": self.engine.limits(),
             "pfs": self.client.request("get_pfs")["meaning"],
-            "clock": time.strftime(CLOCK_FORMAT),
+            "clock": time.strftime(CLOCK_FORMAT, time.localtime(self.scheduler.clock())),
             "schedules": self.scheduler.listing(),
         }
+        if self.run is not None:
+            state["acquisition"] = self.run.report()
+        request = self.requests.current if self.requests is not None else None
+        if request is not None and (machine_turn or request.plan or request.wait):
+            state["request"] = request.brief(self.scheduler.clock())
+        return state
+
+    def run_in_progress(self) -> bool:
+        """True while an acquisition runs on its own thread."""
+        return self.run is not None and not self.run.finished.is_set()
+
+    def run_is_done(self) -> bool:
+        """What a wait for "done" asks: no acquisition is running."""
+        return not self.run_in_progress()
+
+    def settle_run(self) -> None:
+        """Finish the report of a run that ended on its own thread: describe its last image.
+
+        Called between turns, on the turn's thread, so the eyes are never asked
+        from two threads at once. A run reported whole in the turn it started
+        is already described.
+        """
+        run = self.run
+        if run is None or not run.finished.is_set() or run.described:
+            return
+        run.described = True
+        if run.frames.last is not None:
+            run.result["last_image"] = _run_now(
+                describe_image(self, run.frames.last, LAST_IMAGE_QUESTION)
+            )
 
     @property
     def eyes(self) -> Eyes:
@@ -171,8 +220,10 @@ class Microscope:
         """
         self.cancel.set()
         self.scheduler.clear()
-        if self.runner is not None:
-            self.runner.cancel()
+        if self.requests is not None:
+            self.requests.end("stopped")
+        if self.run_in_progress():
+            self.run.runner.cancel()
 
 
 def refusal(
@@ -222,6 +273,20 @@ def guarded_tool(fn: Callable) -> Callable:
             if v is not None
         }
         ctx.deps.on_tool(fn.__name__, args)
+        if fn.__name__ in INSTRUMENT_TOOLS:
+            # A turn that has asked to wait leaves the microscope alone; and while an
+            # acquisition runs on its own thread, the camera and the stage are its.
+            if ctx.deps.requests is not None and ctx.deps.requests.is_waiting():
+                return refusal(ctx, "waiting", "this turn has asked to wait", WAITING_ADVICE)
+            if ctx.deps.run_in_progress():
+                report = ctx.deps.run.report()
+                return refusal(
+                    ctx,
+                    "busy",
+                    f"acquisition {report['plan_id']!r} is running ({report['images']} of "
+                    f"{report['of']} images so far); the microscope is busy until it ends",
+                    BUSY_ADVICE,
+                )
         return None
 
     def failed(exc: Exception) -> dict:
@@ -653,48 +718,123 @@ async def run_acquisition(ctx: RunContext[Microscope], plan_id: str) -> dict[str
         summary = f"start acquisition {plan_id!r}: {describe(sequence, events, here)}"
         return {"status": "needs_go_ahead", "not_done_yet": summary, "advice": START_ADVICE}
 
+    if ctx.deps.run_in_progress():  # checked in before() too; a run may have started since
+        return refusal(ctx, "busy", "an acquisition is already running", BUSY_ADVICE)
     stem = f"{datetime.now():%Y%m%d_%H%M%S}_{plan_id}"
     ctx.deps.output_dir.mkdir(parents=True, exist_ok=True)
     output = ctx.deps.output_dir / f"{stem}.ome.tiff"
     saved = sequence.model_dump_json(exclude_defaults=True, indent=2)
     (ctx.deps.output_dir / f"{stem}.useq.json").write_text(saved, encoding="utf-8")
 
-    # The runner lives on the assistant's thread. Without this, pymmcore-plus
-    # would pick Qt signals whenever the chat window is open, which needs qtpy.
-    os.environ.setdefault("PYMM_SIGNALS_BACKEND", "psygnal")
-    frames = _FrameCounter(ctx.deps.on_image)
-    runner = ctx.deps.runner = MDARunner()
-    runner.set_engine(ctx.deps.engine)
     if ctx.deps.cancel.is_set():  # Stop was pressed while the run was being prepared
-        ctx.deps.runner = None
         return {"status": "cancelled", "advice": CANCELLED_ADVICE}
-    started, error = time.perf_counter(), None
-    try:
-        # The run blocks for as long as the acquisition takes; a thread keeps the
-        # assistant's own event loop free, which the vision request below needs.
-        await asyncio.to_thread(runner.run, sequence, output=[frames, output])
-    except Exception as exc:
-        error = f"{type(exc).__name__}: {exc}"
-    finally:
-        ctx.deps.runner = None
-    with contextlib.suppress(Exception):  # the connection may be gone after an error
-        ctx.deps.anchor = ctx.deps.client.request("get_position")
-    # With several positions (tiles count too) the writer makes a folder of the
-    # same name, with one OME-TIFF per position, instead of one file.
-    saved_to = output if output.exists() else ctx.deps.output_dir / stem
-    result = {
-        "images": frames.count,
-        "finished": "failed" if error else str(runner.status.finish_reason),
-        "duration_s": round(time.perf_counter() - started, 1),
-        "saved_to": str(saved_to),
-    }
-    if error:
-        result["error"] = {"code": "failed", "message": error, "advice": FAILURE_ADVICE}
-    if frames.last is not None:
+    run = ctx.deps.run = Run(ctx.deps, plan_id, sequence, count_images(events), output, stem)
+    run.start()
+    # A short run (a Z-stack of a few planes) ends within RUN_HOLD_S and is reported
+    # whole. A longer one (a time lapse) is reported as under way: the turn can end, the
+    # operator can type, and the request continues through wait when the run is done.
+    if not await asyncio.to_thread(run.finished.wait, RUN_HOLD_S):
+        return {**run.report(), "advice": RUNNING_ADVICE}
+    run.described = True
+    result = dict(run.result)
+    if run.frames.last is not None:
         # The image the operator sees on the right: a few numbers, and a short
         # description from the vision model, so the reply can say what was imaged.
-        result["last_image"] = await describe_image(ctx.deps, frames.last, LAST_IMAGE_QUESTION)
+        result["last_image"] = await describe_image(ctx.deps, run.frames.last, LAST_IMAGE_QUESTION)
     return result
+
+
+class Run:
+    """One acquisition, run by the pymmcore-plus runner on a thread of its own.
+
+    The thread lets the turn that started the run end while the run goes on,
+    so the operator can keep talking to the assistant (and type "stop") during
+    a time lapse of an hour. ``finished`` is set when the run has ended, however
+    it ended; ``result`` then holds what the assistant reports (images, how it
+    finished, where the files are), and ``report()`` is the entry the microscope
+    state carries while it runs and afterwards.
+    """
+
+    def __init__(
+        self,
+        microscope: Microscope,
+        plan_id: str,
+        sequence: useq.MDASequence,
+        planned: int,
+        output: Path,
+        stem: str,
+    ) -> None:
+        self.microscope = microscope
+        self.plan_id = plan_id
+        self.sequence = sequence
+        self.planned = planned
+        self.output = output
+        self.stem = stem
+        self.frames = _FrameCounter(microscope.on_image)
+        # The runner lives on the assistant's side. Without this, pymmcore-plus
+        # would pick Qt signals whenever the chat window is open, which needs qtpy.
+        os.environ.setdefault("PYMM_SIGNALS_BACKEND", "psygnal")
+        self.runner = MDARunner()
+        self.runner.set_engine(microscope.engine)
+        self.finished = threading.Event()
+        self.started = microscope.scheduler.clock()
+        self.ended: float | None = None
+        self.result: dict[str, Any] = {}
+        self.described = False  # whether the last image has been described (settle_run)
+
+    def start(self) -> None:
+        threading.Thread(target=self._work, name=f"run {self.plan_id}", daemon=True).start()
+
+    def _work(self) -> None:
+        error = None
+        try:
+            # The run blocks for as long as the acquisition takes: that is why it has
+            # a thread of its own.
+            self.runner.run(self.sequence, output=[self.frames, self.output])
+        except Exception as exc:
+            error = f"{type(exc).__name__}: {exc}"
+        with contextlib.suppress(Exception):  # the connection may be gone after an error
+            self.microscope.anchor = self.microscope.client.request("get_position")
+        self.ended = self.microscope.scheduler.clock()
+        # With several positions (tiles count too) the writer makes a folder of the
+        # same name, with one OME-TIFF per position, instead of one file.
+        saved_to = self.output if self.output.exists() else self.output.parent / self.stem
+        self.result = {
+            "plan_id": self.plan_id,
+            "images": self.frames.count,
+            "finished": "failed" if error else str(self.runner.status.finish_reason),
+            "duration_s": round(self.ended - self.started, 1),
+            "saved_to": str(saved_to),
+        }
+        if error:
+            self.result["error"] = {"code": "failed", "message": error, "advice": FAILURE_ADVICE}
+        self.finished.set()
+
+    def report(self) -> dict[str, Any]:
+        """The acquisition as the microscope state shows it: under way, or how it ended."""
+        if not self.finished.is_set():
+            return {
+                "status": "running",
+                "plan_id": self.plan_id,
+                "images": self.frames.count,
+                "of": self.planned,
+                "running_for_s": int(self.microscope.scheduler.clock() - self.started),
+            }
+        return {"status": self.result["finished"], **self.result}
+
+
+def _run_now(coroutine: Any) -> Any:
+    """Run a coroutine to its end on this thread's event loop, between turns.
+
+    The eyes are asked on the same loop the turns use, as Pydantic AI's
+    ``run_sync`` does: the thread's loop, made when the thread has none yet.
+    """
+    try:
+        loop = asyncio.get_event_loop()
+    except RuntimeError:
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+    return loop.run_until_complete(coroutine)
 
 
 async def describe_image(
@@ -715,6 +855,36 @@ async def describe_image(
     except Exception as exc:
         return {"statistics": stats, "vision_error": f"{type(exc).__name__}: {exc}"}
     return {"statistics": stats, "description": answer}
+
+
+# -- waiting, for a request that takes longer than one turn ----------------------------------
+
+
+@guarded_tool
+def wait(
+    ctx: RunContext[Microscope], until: str | float = "done", max_s: float | None = None
+) -> dict[str, Any]:
+    """End this turn and continue the request later: when the running acquisition is
+    done (until "done"), or after a number of seconds (until "300"). The request then
+    comes back as a new turn that starts with [continuation of request N] and says what
+    was waited for; the state block carries the acquisition's result. After calling
+    this, end the turn with one short sentence.
+
+    Args:
+        until: "done" for the end of the acquisition under way, or seconds as a number.
+        max_s: give up waiting after this many seconds; at most four hours.
+    """
+    requests = ctx.deps.requests
+    if str(until).strip().lower() in ("done", "idle", "finished") and ctx.deps.run_is_done():
+        return {"done": True, "note": "no acquisition is running; go on now"}
+    try:
+        pending = requests.wait(until, max_s)
+    except ValueError as exc:  # a model's slip, not a fault at the microscope: no banner
+        return refusal(ctx, "refused", str(exc), FAILURE_ADVICE)
+    return {
+        "waiting": {"until": pending["until"], "max_s": int(pending["max_s"])},
+        "advice": WAIT_ADVICE,
+    }
 
 
 # -- schedules ---------------------------------------------------------------------------
@@ -742,8 +912,16 @@ def schedule(
         in_seconds: once, this long from now; in ten minutes is 600.
         at: once, at this clock time, 24-hour "HH:MM".
     """
+    current = ctx.deps.requests.current
     try:
-        added = ctx.deps.scheduler.add(name, instruction, every_seconds, in_seconds, at)
+        added = ctx.deps.scheduler.add(
+            name,
+            instruction,
+            every_seconds,
+            in_seconds,
+            at,
+            request=current.number if current is not None else None,
+        )
     except ValueError as exc:
         return refusal(ctx, "invalid", str(exc), FAILURE_ADVICE)
     return {"scheduled": added, "schedules": ctx.deps.scheduler.listing()}
@@ -852,10 +1030,17 @@ TOOLS = (
     plan_acquisition,
     plan_useq_sequence,
     run_acquisition,
+    wait,
     schedule,
     cancel_schedule,
     search_source,
     read_source,
+)
+# The tools that move, set or image: left alone while an acquisition runs on its own
+# thread, and in a turn that has asked to wait.
+INSTRUMENT_TOOLS = frozenset(
+    {"move_stage", "set_microscope", "focus", "look", "plan_acquisition", "plan_useq_sequence"}
+    | {"run_acquisition"}
 )
 
 
