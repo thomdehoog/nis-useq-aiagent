@@ -162,7 +162,10 @@ or the NIS image-based focus sweep (*focus with an image sweep over 40
 um*). The sweep is limited to 100 um and must stay inside the Z limits.
 
 **Looking.** *What do you see?*, *Is it in focus?*, *Are the cells
-confluent?* Each takes one image.
+confluent?* Each takes one image. Every image is numbered and kept, with its
+position and a few measured numbers; *look and call this "before"* gives it
+a name, and *has it drifted since "before"?* shows both images to the eyes
+and measures the shift between them in micrometres (see *The eyes* below).
 
 **Acquisitions.** A plan has positions (empty means here), channels with
 their exposures, a Z-stack, a grid of tiles, time points with an interval,
@@ -197,11 +200,36 @@ v2 with examples.
 **Schedules.** *Look every three minutes and tell me whether the sample
 drifts.* *In ten minutes switch the PFS off.* *At 15:00 start the plan.* The
 assistant sets a named schedule, and the window sends the instruction as a
-message of its own when due, marked `[scheduled 'name']` in the chat. A
+message of its own when due, shown as a muted line in the chat (⏱ *Scheduled
+'watch': look*). Each schedule gets a row above the input line with a
+countdown to its next firing and its own *Cancel schedule* button. A
 scheduled turn goes through the same tools and checks as anything you type;
 an acquisition or long move in it still asks in the chat and waits for you.
 *Stop microscope* cancels every schedule. At most ten schedules, none more
 often than every five seconds.
+
+**Requests that take longer than one turn.** *Run the time lapse and tell me
+what the last image shows.* A time lapse can take an hour, and the assistant
+does not hold the conversation that long. A run that takes more than a few
+seconds goes on by itself: the assistant tells you it is under way, the input
+line stays free (ask something, or type *stop*), and the stage and camera
+belong to the run until it ends. The assistant then *waits*: it ends its turn,
+and when the run is done the window starts the next turn of the same request
+on its own, shown as a muted line (↻ *Request 2 continues: waited 212 s until
+done: met*), and the assistant reports the result and what the last image
+shows. Above the input line you see the open request: how many turns and
+tokens it has taken, what it waits for, and its plan, a checklist the
+assistant writes and ticks as it goes. *Cancel request* ends it without
+stopping the microscope. A turn the window started this way is not you
+speaking: it can never stand in for your *yes* to an acquisition or a long
+move.
+
+**Remembering.** After fifteen of your messages the assistant forgets the
+oldest, to stay quick. Everything stays in a session store in memory, which
+it can recall and search: *what was the focus before I moved it?*, *which
+well did I say this is?* get their answer from there. Every answer from a
+tool that moves, sets or images also tells it what changed at the microscope
+since it last looked, so a nudge of the joystick is noticed.
 
 ## The eyes
 
@@ -217,13 +245,21 @@ it can compare:
 - *Which of the images so far was best exposed?* (`ask_eyes`: a question to
   the images already seen, without taking a new one)
 
-The comparison is qualitative: reliable for *the cells have moved left*,
-*it is less sharp than a minute ago*, *the right half is saturated*; it is
-not a measurement. Whether an
-image is well exposed comes from the numbers, not from the picture, because
-each picture is contrast-stretched before the model sees it. The last eight
-images stay attached; older turns keep their words only. *Clear context*
-makes the eyes forget with everything else.
+What the eyes say about the picture is qualitative: reliable for *the cells
+have moved left*, *it is less sharp than a minute ago*, *the right half is
+saturated*. The measurement comes from the code: every image is kept as a
+small copy with its position and numbers (brightness, saturation, sharpness,
+where the signal sits, and the stage move that would centre it), and when a
+look shows earlier images with the new one (*compare with image 1*, *the last
+three*), the shift between them is measured in micrometres and given to both
+the eyes and the assistant. So *has it drifted?* is answered with a number.
+Whether an image is well exposed comes from the numbers, not from the
+picture, because each picture is contrast-stretched before the model sees
+it. The last eight images stay attached to the eyes' conversation; older
+turns keep their words only. The state the assistant reads lists the last
+images and a map: where the images put the sample, the sharpest z seen
+there, and the labelled places. *Clear context* makes the eyes forget with
+everything else.
 
 ## The coordinate system
 
@@ -251,11 +287,15 @@ it can plan within them.
 ## The buttons
 
 - **Cancel prompt** stops the assistant in the middle of a turn: every
-  further tool call in that turn does nothing.
+  further tool call in that turn does nothing, and the request ends.
 - **Stop microscope** also ends a running acquisition after the image being
-  taken, and cancels every schedule. A single stage move that NIS has
-  already started runs to its end; the joystick or NIS stops it sooner.
-- **Clear context** forgets the conversation (and the eyes' images).
+  taken, and cancels every schedule and request. A single stage move that NIS
+  has already started runs to its end; the joystick or NIS stops it sooner.
+- **Cancel request** (beside the request line) ends the open request without
+  stopping the microscope; **Cancel schedule** (in a schedule's row) ends
+  that schedule alone.
+- **Clear context** forgets the conversation (the eyes' images, the images
+  kept, and the session store).
 - **Show tool calls** lists each tool call in the chat as it happens: which
   tool, with which arguments, and what came back. Switch it on for your
   first sessions; it shows exactly what the assistant did, as opposed to
@@ -268,8 +308,9 @@ detail:
 
 1. You type a message. The window appends the current *microscope state* to
    it: position, objective, configuration, PFS, the limits in force, the
-   clock, the schedules. The model always reasons from a fresh reading, not
-   from memory.
+   clock, the schedules, an acquisition under way, the last images and the
+   map, and the request the turn belongs to. The model always reasons from a
+   fresh reading, not from memory.
 2. The model reads its instructions (the same every time), the conversation
    so far, and your message, and decides: answer in words, ask you a
    question, or call a tool. Tool calls happen one at a time, so each result
@@ -287,7 +328,8 @@ detail:
    acts, or its original reply is shown.
 
 After 15 of your messages, the assistant forgets the oldest ones and keeps
-the newest 10, so long sessions stay quick.
+the newest 10, so long sessions stay quick; the session store keeps them all
+for its recall and search tools.
 
 ## Good habits
 

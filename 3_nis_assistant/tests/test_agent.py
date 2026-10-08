@@ -13,6 +13,7 @@ Acknowledgement: if you use this code or build on its ideas, please acknowledge 
 """
 
 import json
+import time
 from pathlib import Path
 
 import numpy as np
@@ -1105,9 +1106,14 @@ def slow_camera(fake):
 
 
 def state_sent(script, call=-1):
-    """The <microscope_state> the model was sent with a message."""
-    prompt = script.requests[call][-1].parts[-1].content
-    return json.loads(prompt.split("<microscope_state>")[1][: -len("</microscope_state>")])
+    """The <microscope_state> the model was sent with the latest message of a call."""
+    prompts = [
+        part.content
+        for message in script.requests[call]
+        for part in message.parts
+        if isinstance(part, UserPromptPart) and isinstance(part.content, str)
+    ]
+    return json.loads(prompts[-1].split("<microscope_state>")[1][: -len("</microscope_state>")])
 
 
 def test_a_long_run_returns_while_under_way_and_the_request_continues(
@@ -1236,6 +1242,29 @@ def test_a_malformed_plan_goes_back_to_the_model(microscope):
     retry = script.requests[1][-1].parts[-1]
     assert retry.part_kind == "retry-prompt"  # Pydantic caught it before our code ran
     assert tool_results(assistant)[0]["plan_id"] == "stack_test-1"
+
+
+# -- one clock ---------------------------------------------------------------------------------
+
+
+def test_one_clock_drives_the_state_the_run_the_images_and_the_requests(microscope, fake):
+    from test_schedules import Clock
+
+    clock = Clock(time.mktime((2026, 10, 8, 9, 0, 0, 0, 0, -1)))
+    microscope.scheduler.clock = clock
+    microscope.requests.clock = microscope.frames.clock = microscope.store.clock = clock
+    microscope.vision = False
+    steps = [("look", {"question": "?"}), ("plan_acquisition", PLAN), "Start?", RUN, "Saved."]
+    assistant, script = talk(microscope, *steps)
+    assistant.send("look, then plan")
+    assert state_sent(script)["clock"] == "09:00:00"
+    clock.now += 90
+    assistant.send("yes")
+    state = state_sent(script)
+    assert state["clock"] == "09:01:30" and state["frames"]["last"][0]["time"] == "09:00:00"
+    assert microscope.requests.current.brief(clock.now)["minutes"] == 0.0
+    assert microscope.run.result["duration_s"] == 0.0  # the clock did not move during the run
+    assert microscope.store.turns[-1]["time"] == "09:01:30"
 
 
 # -- the state-change trail and the session store ---------------------------------------------

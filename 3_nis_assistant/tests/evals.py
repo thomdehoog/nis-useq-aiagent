@@ -28,7 +28,9 @@ A case:
     {"id": ..., "category": ..., "prompt": "..." or "prompts": [...],
      "setup": {...}, "expect": {...}}
 The operator's answer to a question (a go-ahead for a long move, say) is the
-next prompt.
+next prompt. When the assistant has asked to wait (a long run), the harness
+does what the window does: it waits for the run to end, then sends the
+continuation as a turn of its own; its tool calls count as a turn too.
 
 Setup (all optional):
     position        {"x": ..., "y": ..., "z": ...}, the stage at the start
@@ -38,6 +40,7 @@ Setup (all optional):
     configurations  the NIS optical configurations
     pfs_on          whether the PFS is on at the start
     frame           the picture the camera takes (see synthetic_frame)
+    frame_then      the picture it takes from the second prompt on (a drift)
     axes            the coordinate system, e.g. {"x": "left"} (settings.AXIS_CHOICES)
     autofocus_result  what the NIS image sweep reports (0 means it failed)
     camera_fails    the camera does not answer
@@ -98,6 +101,7 @@ from nis_engine import NisEngine
 from pydantic_ai.messages import ToolCallPart, ToolReturnPart
 
 from nis_assistant.agent import Assistant
+from nis_assistant.instructions import CONTINUATION_TURN
 from nis_assistant.settings import MODEL
 from nis_assistant.tools import Microscope
 
@@ -112,6 +116,9 @@ READING_TOOLS = {
     "plan_useq_sequence",
     "schedule",
     "cancel_schedule",
+    "wait",
+    "recall_turn",
+    "search_history",
     "search_source",
     "read_source",
 }  # they change nothing at the microscope
@@ -125,6 +132,8 @@ EXPECTATIONS = {
 GUARD_WORD = re.compile(r"\s*SAME\b|.*No tool was called in this turn", re.DOTALL)
 ASKING = ("?", "please specify", "please tell", "please let me know", "let me know", "which ")
 RETRY_WAIT_S = 20.0  # a provider error is mostly a rate limit: wait it out, then try again
+CONTINUATIONS = 3  # how often a case's request may come back from a wait
+RUN_WAIT_S = 120.0  # how long the harness waits for a run to end
 
 
 def load_cases(path: Path = CASES) -> list[dict]:
@@ -161,14 +170,16 @@ def synthetic_frame(name: str) -> np.ndarray:
             spot = sum(padded[i : i + 256, j : j + 384] for i in range(9) for j in range(9)) / 81
         return spot
 
-    if name in ("spots3", "spots2"):
+    if name in ("spots3", "spots2", "spots3-right"):
         centres = (
-            [(60, 80), (130, 250), (200, 150)] if name == "spots3" else [(90, 100), (170, 290)]
+            [(90, 100), (170, 290)] if name == "spots2" else [(60, 80), (130, 250), (200, 150)]
         )
+        across = 20 if name == "spots3-right" else 0  # the same spots, drifted 20 px right
         for r, c in centres:
-            disc(r, c, 14, 4000)
-    elif name == "ring":
-        d2 = (rows - 128) ** 2 + (cols - 192) ** 2
+            disc(r, c + across, 14, 4000)
+    elif name in ("ring", "ring-up"):
+        up = 15 if name == "ring-up" else 0  # the same ring, drifted 15 px up
+        d2 = (rows - 128 + up) ** 2 + (cols - 192) ** 2
         frame[(d2 <= 70**2) & (d2 >= 50**2)] = 4000
     elif name == "disc":
         disc(128, 192, 70, 4000)
@@ -253,12 +264,36 @@ def _run_once(case: dict, model, vision_model, challenge_no_tool: bool) -> dict:
             )
             microscope.axes.update(setup.get("axes", {}))  # the coordinate system, if set
             assistant = Assistant(microscope, model=model)
+            turn = 0
             for turn, prompt in enumerate(prompts_of(case), start=1):
+                if turn == 2 and "frame_then" in setup:
+                    fake.frame = synthetic_frame(setup["frame_then"])
                 try:
                     replies.append(assistant.send(prompt.replace("{useq_file}", str(useq_file))))
                 finally:  # also the tools of a turn that failed half-way
                     tools += [{**call, "turn": turn} for call in tool_calls(assistant.last_turn)]
                     assistant.last_turn = []
+            # A request that waits (a long run) comes back as the window would bring it
+            # back: once the run is done, as a turn the machine wrote.
+            for _ in range(CONTINUATIONS):
+                if microscope.requests.waiting is None:
+                    break
+                if microscope.run is not None:
+                    microscope.run.finished.wait(RUN_WAIT_S)
+                due = microscope.requests.due(microscope.run_is_done)
+                if due is None:
+                    time.sleep(1.0)
+                    continue
+                request, result = due
+                text = CONTINUATION_TURN.format(number=request.number, result=result)
+                turn += 1
+                try:
+                    replies.append(assistant.send(text, scheduled=True, request=request.number))
+                finally:
+                    tools += [{**call, "turn": turn} for call in tool_calls(assistant.last_turn)]
+                    assistant.last_turn = []
+            if microscope.run_in_progress():  # a run nobody waited for: let it end first
+                microscope.run.finished.wait(RUN_WAIT_S)
         except Exception as exc:
             error = f"{type(exc).__name__}: {exc}"
         finally:

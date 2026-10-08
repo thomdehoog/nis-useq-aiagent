@@ -41,7 +41,18 @@ adding it:
 10. *Look again: has anything changed since the first image?* (the eyes compare with
     what they saw in step 5)
 11. *Look every three minutes and tell me whether the sample drifts.* (a scheduled
-    turn appears in the chat when it is due; *Stop microscope* cancels it)
+    turn appears in the chat when it is due, and a row above the input line counts
+    down to the next one; *Cancel schedule* in that row, or *Stop microscope*,
+    cancels it)
+12. *Look and call this "before".* Nudge the stage a little with the joystick, then
+    *Has it drifted since "before"?* (the answer gives the shift in um, measured from
+    the two images; it needs a pixel calibration for the objective)
+13. *Take 10 time points 30 s apart here in* a configuration, *and tell me what the
+    last image shows.* Answer *yes*. (the assistant says the run is under way and
+    ends its turn; the request line above the input shows it waiting; type a
+    question meanwhile; when the run ends, the chat shows "Request N continues" and
+    the assistant reports the result and the last image)
+14. *What was the focus before I moved it?* (answered from the session store)
 
 ## Let a coding assistant do it
 

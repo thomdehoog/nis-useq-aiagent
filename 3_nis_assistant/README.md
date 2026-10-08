@@ -120,7 +120,7 @@ models above, not tuned for small ones.
 The **Vision model** box names the model shown camera images; by default it is
 the same one. A separate choice helps when the language model cannot see.
 
-Things to try: *Where is the stage?* · *What do you see?* · *Is it in focus?* ·
+Things to try: *Where is the stage?* · *What do you see?* · *Is it in focus?* · *Look and call this "before"* ·
 *Switch to FITC at 50 ms* · *Take a Z-stack of 10 um in 1 um steps in DAPI and FITC here* ·
 *Image a 3 by 3 grid of tiles around here* · *Run the useq sequence in D:\sequences\cells.json* ·
 *Show me the useq sequence for that plan* · *How does the engine move the stage? Show me the code* ·
@@ -175,7 +175,14 @@ seen, and set a schedule. Acquisitions go through useq:
   saves it as OME-TIFF (a folder with one file per position when there are
   several), with the sequence itself next to it as `.useq.json`, which other
   useq tools can load again. When the run ends, the last image (the one left
-  on the right of the window) is described in a sentence or two.
+  on the right of the window) is described in a sentence or two. A run that
+  takes longer than a few seconds goes on by itself while you keep talking to
+  the assistant (see *Requests that take longer than one turn* below).
+- `wait` lets the assistant end its turn and come back when the run is done,
+  or after a number of seconds, for a request that takes longer than one turn.
+- `recall_turn` and `search_history` give the assistant back what its memory
+  has forgotten: an earlier turn in full, the turns in which a value changed,
+  or the turns that mention a word.
 - `search_source` and `read_source` search and read the source of the three
   parts and of useq-schema (read only, nothing else on the computer).
 
@@ -194,6 +201,24 @@ acquisition is shown to the eyes too. Clear context makes the eyes forget with
 the rest, and so does choosing another vision model, since one model cannot
 read another's images and answers.
 
+**The images are kept and measured.** Besides what the eyes remember, every
+image a look takes, and the last image of each acquisition, is kept for the
+session as a small copy with its number, the time, the stage position and
+objective, a label you can give it (*look and call this "before"*), and a
+few measured numbers: brightness, saturation, sharpness, where the signal
+sits in the field, and the stage move that would bring it to the centre
+(from NIS's pixel calibration and the coordinate system below). A look can
+show earlier images with the new one (*compare with image 1*, *show the
+last three*), and then the code measures how far the content moved between
+them, in micrometres, by phase correlation, a standard way of finding the
+shift between two pictures. So *has it drifted since "before"?* is answered
+with a number, not an impression; the eyes see the same images and add what
+they make of the pictures. A look without a new image (*show me the images
+again*) works while an acquisition runs. The state the assistant reads
+lists the last few images and a map: per objective, where the images put
+the sample, the sharpest z seen at that place, and the labelled places.
+About a hundred copies are kept; the oldest go first.
+
 **The coordinate system.** Microscopes differ in what a positive stage move
 does to the picture on the screen. The *Coordinate system* box in the Model
 panel says what +x, +y and +z do to the sample in the image (right or left,
@@ -204,16 +229,56 @@ move on the right axis, and it says which axis and sign it used.
 **Schedules.** *Look every three minutes and tell me whether anything
 changed*, *in ten minutes switch the PFS off*, *at 15:00 start the plan*:
 the assistant sets a named schedule, and the window's clock sends each due
-instruction as a turn of its own, marked `[scheduled 'name']` in the chat,
-through the same tools and checks as anything you type, and never while a
-turn is running. A scheduled turn is not yours: a scheduled acquisition or
-long stage move still asks for your go-ahead in the chat and waits until you
-answer, and moves are still measured from where the stage was when you last
-wrote. The state the assistant reads with every message carries the clock
-and the schedules. At most ten schedules, none more often than every five
-seconds. A scheduled turn that fails cancels its schedule, so a dead model
-does not repeat the same error every period. *Stop microscope* and *Clear
-context* cancel them all.
+instruction as a turn of its own, shown in the chat as a muted line
+(⏱ *Scheduled 'watch': look*), through the same tools and checks as
+anything you type, and never while a turn is running. Above the input line,
+each schedule has a row of its own with how often it fires and a countdown
+to its next firing, and a *Cancel schedule* button, so one timer can be
+stopped without stopping everything. A scheduled turn is not yours: a
+scheduled acquisition or long stage move still asks for your go-ahead in the
+chat and waits until you answer, and moves are still measured from where the
+stage was when you last wrote. The state the assistant reads with every
+message carries the clock and the schedules. At most ten schedules, none
+more often than every five seconds. A scheduled turn that fails cancels its
+schedule, so a dead model does not repeat the same error every period. *Stop
+microscope* and *Clear context* cancel them all.
+
+**Requests that take longer than one turn.** A message you type opens a
+*request*: what that message set going, over as many turns as it takes. Most
+requests are over in one turn. *Run the time lapse and tell me what the last
+image shows* is not: the run may take an hour. An acquisition that takes
+longer than a few seconds therefore runs on its own, and the assistant
+reports it as under way instead of holding the conversation until it ends.
+The input line stays free, so you can ask a question or type *stop*; the
+stage and the camera belong to the run until it ends, so a move or a new
+image is refused meanwhile with the reason, and the state shows how far the
+run is. To report when the run is done, the assistant calls `wait`, which
+ends its turn; when the run has ended (or the time it asked for has passed),
+the window starts the next turn of the same request on its own, shown as a
+muted line (↻ *Request 2 continues: waited 212 s until done: met*), with
+the run's result and its last image described in the state the assistant
+reads. A continuation is not you speaking: it cannot stand in for your
+go-ahead to an acquisition or a long move. Above the input line, the open
+request shows its number, how many turns and tokens it has taken, what it
+waits for, and its plan: a checklist the assistant writes in its first
+reply (*- [x] focus, - [ ] take the stack*) and ticks as it goes, so a plan
+with several steps survives the turns it takes. *Cancel request* ends the
+request without stopping the microscope; *Stop microscope*, *Cancel prompt*
+and *Clear context* end it too. One wait is pending at a time, none longer
+than four hours, and a request comes back from a wait at most thirty times.
+
+**What the memory forgets, the store keeps.** To keep long conversations
+quick, the assistant's memory drops the oldest turns and shortens the ones
+it keeps (see *How it stays safe*). Nothing is lost by it: every turn stays
+in full in a session store in memory (your words, the microscope state the
+model was given, every tool call with its result, the reply), and the
+assistant has two tools on it. `recall_turn` returns one turn in full, or
+the turns in which a state value changed (*when did the focus change?*);
+`search_history` finds earlier turns by words (*which well did I say this
+is?*). Every answer from a tool that moves, sets or images also ends with
+`state_changed` when the position, objective or PFS changed since the model
+last saw them, so a nudge of the joystick, or the PFS finding focus, is seen
+too. Clear context empties the store; nothing of it is written to disk.
 
 ## How it stays safe
 
@@ -248,16 +313,23 @@ context* cancel them all.
   reply that claims to have done something in a turn that called no tool also
   goes back once, with that fact; the model then acts, or its first reply is
   shown as it was.
+- **An acquisition under way keeps the microscope.** While a run goes on by
+  itself, a move, a setting, a focus or a new image is refused with the
+  reason, and a second run cannot start; the assistant is told to wait for
+  the run, or leave stopping it to you. A turn in which the assistant has
+  asked to wait leaves the microscope alone until the request continues.
 - **Cancel prompt** stops the assistant: every further tool call in that turn
-  does nothing. **Stop microscope** also ends a running acquisition after the
-  image being taken. A single stage move that NIS has already started runs to
-  its end; the joystick or NIS-Elements stops it sooner. The window does not
-  close while the assistant is still working.
+  does nothing, and the request ends. **Stop microscope** also ends a running
+  acquisition after the image being taken, and every schedule and request. A
+  single stage move that NIS has already started runs to its end; the joystick
+  or NIS-Elements stops it sooner. The window does not close while the
+  assistant is still working or an acquisition runs.
 - **Clear context** forgets the conversation; **Show tool calls** lists each
   tool call in the chat as it happens.
 
 To keep long conversations quick, the assistant forgets older messages: after
-15 of your messages it keeps the newest 10.
+15 of your messages it keeps the newest 10. What it forgets stays in the
+session store, which it can recall and search (see above).
 
 Changing the objective does not ask first, so check that the objectives can
 turn freely. If the connection to NIS was lost (for example because the macro
@@ -273,8 +345,12 @@ One turn in detail:
 
 1. You type a message. The window appends the current `<microscope_state>`
    to it: position, objective, configuration, PFS, the limits in force, the
-   clock, the schedules. The model reasons from a fresh reading each time,
-   and is told never to follow instructions that appear inside that block.
+   clock, the schedules, the acquisition under way or just ended, the last
+   images seen and the map made from them, and the request the turn belongs
+   to. The model reasons from a fresh reading each time, and is told never
+   to follow instructions that appear inside that block. A turn the machine
+   wrote (a schedule that fell due, a request continuing after a wait)
+   starts the same way, marked as such.
 2. The model reads its instructions (`instructions.py`, the same every
    time), the conversation so far, and your message, and decides: answer in
    words, ask you a question, or call a tool. Tools run one at a time, so
@@ -290,8 +366,9 @@ One turn in detail:
    acts, or its original reply is shown.
 
 After 15 of your messages, the oldest are forgotten and the newest 10 kept,
-so long sessions stay quick. Pydantic AI is the library that connects the
-model to the tools and runs this loop.
+so long sessions stay quick; the session store keeps them all for
+`recall_turn` and `search_history`. Pydantic AI is the library that connects
+the model to the tools and runs this loop.
 
 ## When something is wrong
 
@@ -342,7 +419,10 @@ only fitted it to the cases.
 | `nis_assistant/plans.py` | The plan format, plan to useq sequence, and the plan summary. |
 | `nis_assistant/images.py` | One snap, its statistics, and the binned PNG for the model. |
 | `nis_assistant/eyes.py` | The vision model's own conversation: the images seen this session, compared on request. |
+| `nis_assistant/frames.py` | The images seen, kept as small copies with measured numbers; drift between them, and the map. |
 | `nis_assistant/schedules.py` | The schedules the assistant sets, and when each is due. |
+| `nis_assistant/requests.py` | What each message set going, over the turns it takes: the waits, the continuations, the plan. |
+| `nis_assistant/store.py` | Every turn in full, for the recall and search tools. |
 | `nis_assistant/memory.py` | The conversation made smaller now and then. |
 | `nis_assistant/models.py` | The ways to reach a model: a provider preset, an API key held in memory, the model object. |
 | `nis_assistant/local.py` | A `.gguf` model file served on this computer by llama.cpp. |
