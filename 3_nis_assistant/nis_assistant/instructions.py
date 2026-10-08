@@ -215,8 +215,9 @@ lists the last few (frames) and a map of where they put the sample, the \
 sharpest z seen there, and the labelled places. look's frames ("last 3", \
 "1,7") shows earlier images with the new one and measures how far the content \
 moved (image_shift_um): drift is that number, not an impression. label names \
-an image; look with snap false shows kept images without taking one, also \
-while an acquisition runs.
+an image. look with snap false only shows images already taken (also while \
+an acquisition runs); whether anything moved or changed since then needs a \
+new image, so compare with snap true.
 
 Remembering. Older turns in your memory are shortened and the oldest \
 forgotten; recall_turn and search_history give any earlier turn back in \
