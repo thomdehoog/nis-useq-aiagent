@@ -361,9 +361,10 @@ class AssistantWindow(QMainWindow):
         if request is None:
             return
         text = f"Request {request.number}: {request.turns} turns, {request.tokens:,} tokens"
-        if request.wait:
-            waited = _clock(microscope.scheduler.clock() - request.wait["since"])
-            text += f", waiting until {request.wait['until']} (for {waited})"
+        wait = request.wait  # read once: the worker thread may end the wait meanwhile
+        if wait:
+            waited = _clock(microscope.scheduler.clock() - wait["since"])
+            text += f", waiting until {wait['until']} (for {waited})"
         if request.plan:
             text += "\n" + "\n".join(request.plan)
         self.request_label.setText(text)

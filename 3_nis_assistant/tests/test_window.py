@@ -47,6 +47,8 @@ def open_window(qtbot, port, tmp_path):
     def settle(window):
         window.stop_microscope()
         qtbot.waitUntil(lambda: not window.busy, timeout=10000)
+        microscope = window.assistant.microscope
+        qtbot.waitUntil(lambda: not microscope.run_in_progress(), timeout=10000)
 
     yield make
     for engine in engines:
