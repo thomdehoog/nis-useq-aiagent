@@ -116,6 +116,13 @@ class Assistant:
             self.microscope.anchor = None
         if not scheduled:
             self.microscope.turn += 1
+        store = self.microscope.store
+        store.begin(
+            text,
+            state,
+            "machine" if scheduled else "operator",
+            requests.current.number if requests.current is not None else None,
+        )
         prompt = f"{text}\n\n<microscope_state>{json.dumps(state)}</microscope_state>"
         with capture_run_messages() as messages:
             try:
@@ -130,10 +137,12 @@ class Assistant:
                 # When the model call fails after tools already ran (for example an
                 # overloaded API), keep what happened: the next message then carries
                 # those tool results, and the conversation can go on.
+                store.finish(list(messages[len(self.history) :]), None)
                 if messages and isinstance(messages[-1], ModelRequest):
                     self.last_turn = list(messages[len(self.history) :])
                     self.history = list(messages)
                 raise
+        store.finish(result.new_messages(), result.output)
         self.last_turn = without_a_declined_challenge(result.new_messages())
         self.history = compact(without_a_declined_challenge(result.all_messages()))
         usage = result.usage
@@ -167,4 +176,6 @@ class Assistant:
         if not self.microscope.run_in_progress():  # a run under way is not forgotten
             self.microscope.run = None
         self.microscope.frames.clear()
+        self.microscope.store.clear()
+        self.microscope.seen = None
         self.microscope.eyes.reset()

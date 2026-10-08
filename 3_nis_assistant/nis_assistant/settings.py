@@ -152,6 +152,15 @@ HISTORY_COMPACT_AFTER = 15  # operator turns before the history is made smaller
 HISTORY_KEEP_TURNS = 10  # turns kept when it is; older ones are forgotten
 HISTORY_FULL_TURNS = 3  # the newest turns keep their state readout and tool results in full
 HISTORY_RESULT_CHARS = 300  # an older tool result is cut to this many characters
+# What the memory forgets stays in the session store (store.py), in memory, for the two
+# tools that hand it back: a tool result kept there is cut to this many characters, and
+# a search returns at most this many turns.
+RECALL_RESULT_CHARS = 2000
+SEARCH_MATCHES = 5
+# Every instrument tool's answer ends with the state values among these that changed since
+# the model last saw them, as state_changed: a change made at the microscope itself (the
+# joystick, the PFS dropping out) is then seen too.
+TRAIL_KEYS = ("position_um", "objective", "pfs")
 
 # -- the window --------------------------------------------------------------------------
 OUTPUT_FOLDER = "nis_assistant_runs"  # in the home folder, when --output is not given

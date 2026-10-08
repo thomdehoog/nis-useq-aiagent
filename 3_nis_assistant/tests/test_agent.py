@@ -1238,6 +1238,97 @@ def test_a_malformed_plan_goes_back_to_the_model(microscope):
     assert tool_results(assistant)[0]["plan_id"] == "stack_test-1"
 
 
+# -- the state-change trail and the session store ---------------------------------------------
+
+
+def test_a_tool_answer_ends_with_what_changed_at_the_microscope(microscope, fake):
+    on = ("set_microscope", {"pfs_on": True})
+    assistant, _ = talk(microscope, on, ("focus", {"method": "pfs"}), "Done.")
+    assistant.send("PFS on, then focus")
+    pfs, focused = tool_results(assistant)
+    # the answer carries the PFS itself; the focus move the PFS made is what changed besides
+    assert pfs == {
+        "pfs": "on, focused",
+        "state_changed": {"position_um": {"x": 1000.0, "y": -500.0, "z": 502.0}},
+    }
+    assert "state_changed" not in focused  # z is in its own answer, the PFS as the model saw it
+    # a move made with the joystick between two tool calls shows in the next answer
+    assistant, _ = talk(microscope, ("look", {"question": "?"}), ("look", {"question": "?"}), "Ok.")
+    microscope.vision = False
+    real_capture = fake.capture
+
+    def capture():
+        real_capture()
+        fake.position["x"] = 1234.0  # the operator nudges the joystick during the look
+
+    fake.capture = capture
+    assistant.send("look twice")
+    first, second = tool_results(assistant)
+    assert first["state_changed"]["position_um"]["x"] == 1234.0
+    assert "state_changed" not in second  # nothing changed since the model saw it
+    # a move's own answer is the position: no repeat under state_changed
+    assistant, _ = talk(microscope, ("move_stage", {"x": 1300}), "Moved.")
+    assistant.send("move")
+    assert tool_results(assistant)[0] == {"x": 1300.0, "y": -500.0, "z": 502.0}  # z: the PFS
+
+
+def test_the_session_store_recalls_and_searches_earlier_turns(microscope, fake):
+    steps = [
+        ("set_microscope", {"exposure_ms": 30}),
+        "This is well A1 at 30 ms.",
+        ("move_stage", {"z": 540}),
+        "Focus moved to 540.",
+        ("recall_turn", {"changed": "position_um.z"}),
+        ("search_history", {"query": "well a1"}),
+        ("recall_turn", {"turn": 1}),
+        ("recall_turn", {"turn": 9}),
+        "The focus was at 500 before; this is well A1.",
+    ]
+    assistant, _ = talk(microscope, *steps)
+    assistant.send("30 ms, and remember this is well A1")
+    assistant.send("focus to 540")
+    assistant.send("what was the focus before, and which well is this?")
+    changes, found, first, missing = tool_results(assistant)[2:]
+    assert changes["changes"] == [
+        {
+            "turn": 3,
+            "time": changes["changes"][0]["time"],
+            "from": 500.0,
+            "to": 540.0,
+            "prompt": "what was the focus before, and which well is this?",
+        },
+    ]
+    assert found["matches"][0]["turn"] == 1 and "well A1" in found["matches"][0]["reply"]
+    assert (
+        first["prompt"] == "30 ms, and remember this is well A1" and first["origin"]
+        if "origin" in first
+        else True
+    )
+    assert (
+        first["tools"][0]["tool"] == "set_microscope"
+        and first["state"]["position_um"]["z"] == 500.0
+    )
+    assert first["tools"][0]["result"] == '{"exposure_ms": 30}'
+    assert (
+        missing["error"]["code"] == "not_found"
+        and "the session has 3" in missing["error"]["message"]
+    )
+    store = microscope.store
+    assert [t["origin"] for t in store.turns] == ["operator"] * 3 and store.turns[-1][
+        "request"
+    ] == 3
+    assistant.clear()
+    assert store.turns == []
+
+
+def test_a_failed_turn_is_still_in_the_store(microscope):
+    assistant, _ = talk(microscope, ("move_stage", {"x": 1500}), RuntimeError("API overloaded"))
+    with pytest.raises(RuntimeError):
+        assistant.send("go to 1.5 mm")
+    (turn,) = microscope.store.turns
+    assert turn["tools"][0]["tool"] == "move_stage" and turn["reply"] is None
+
+
 # -- reading the source ----------------------------------------------------------------------
 
 

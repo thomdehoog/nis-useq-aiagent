@@ -86,9 +86,12 @@ from .settings import (
     MAX_SWEEP_UM,
     MODEL,
     RUN_HOLD_S,
+    SEARCH_MATCHES,
     SOURCE_LINES,
     SOURCE_MATCHES,
+    TRAIL_KEYS,
 )
+from .store import SessionStore
 
 # The source code the assistant may read to explain how things work: the three
 # parts and useq-schema as installed, nothing else on the computer.
@@ -127,6 +130,9 @@ class Microscope:
     # scheduler's clock, unless given.
     requests: Requests | None = None
     frames: FrameHistory | None = None
+    store: SessionStore | None = None  # every turn in full (store.py), on the same clock
+    # The position, objective and PFS as the model last saw them (see trail_changes).
+    seen: dict[str, Any] | None = field(default=None, repr=False)
     # Set by Cancel: every further tool call in this turn does nothing.
     cancel: threading.Event = field(default_factory=threading.Event)
     # Where the stage was when the operator last wrote, or where they last agreed
@@ -142,6 +148,8 @@ class Microscope:
             self.requests = Requests(self.scheduler.clock)
         if self.frames is None:
             self.frames = FrameHistory(self.scheduler.clock)
+        if self.store is None:
+            self.store = SessionStore(self.scheduler.clock)
 
     @property
     def client(self):
@@ -170,6 +178,7 @@ class Microscope:
             "clock": time.strftime(CLOCK_FORMAT, time.localtime(self.scheduler.clock())),
             "schedules": self.scheduler.listing(),
         }
+        self.seen = {key: state[key] for key in TRAIL_KEYS}
         if self.run is not None:
             state["acquisition"] = self.run.report()
         if self.frames.frames:
@@ -179,6 +188,19 @@ class Microscope:
         if request is not None and (machine_turn or request.plan or request.wait):
             state["request"] = request.brief(self.scheduler.clock())
         return state
+
+    def trail_changes(self) -> dict[str, Any]:
+        """The position, objective and PFS that changed since the model last saw them,
+        and the new reading as what it has seen now. Empty when nothing changed, or when
+        the microscope does not answer."""
+        try:
+            now = {**self.where(), "pfs": self.client.request("get_pfs")["meaning"]}
+        except (RuntimeError, OSError, ValueError, KeyError):
+            return {}
+        seen, self.seen = self.seen, now
+        if seen is None:
+            return {}
+        return {key: value for key, value in now.items() if seen.get(key) != value}
 
     def run_in_progress(self) -> bool:
         """True while an acquisition runs on its own thread."""
@@ -309,6 +331,24 @@ def guarded_tool(fn: Callable) -> Callable:
             }
         }
 
+    def after(ctx: RunContext[Microscope], outcome: Any) -> Any:
+        """An instrument tool's answer, ending with the state values that changed since
+        the model last saw them (a move's new position, the PFS dropping out, a change
+        made with the joystick), except those the answer already carries."""
+        if fn.__name__ not in INSTRUMENT_TOOLS or not isinstance(outcome, dict):
+            return outcome
+        if "error" in outcome or outcome.get("status") in ("cancelled", "needs_go_ahead"):
+            return outcome
+        changes = ctx.deps.trail_changes()
+        moved = {
+            key: value
+            for key, value in changes.items()
+            if not any(carried in outcome for carried in REPORTED_AS.get(key, ()))
+        }
+        if moved:
+            outcome["state_changed"] = moved
+        return outcome
+
     if inspect.iscoroutinefunction(fn):
 
         @functools.wraps(fn)
@@ -316,7 +356,7 @@ def guarded_tool(fn: Callable) -> Callable:
             if (stopped := before(ctx, kwargs)) is not None:
                 return stopped
             try:
-                return await fn(ctx, *args, **kwargs)
+                return after(ctx, await fn(ctx, *args, **kwargs))
             except ModelRetry:
                 raise
             except Exception as exc:
@@ -329,13 +369,23 @@ def guarded_tool(fn: Callable) -> Callable:
         if (stopped := before(ctx, kwargs)) is not None:
             return stopped
         try:
-            return fn(ctx, *args, **kwargs)
+            return after(ctx, fn(ctx, *args, **kwargs))
         except ModelRetry:
             raise
         except Exception as exc:
             return failed(exc)
 
     return wrapper
+
+
+# A state value is left out of state_changed when the tool's answer already carries it
+# under these keys: a move answers with the new position, focus with z, set_microscope
+# with the objective slot and the PFS.
+REPORTED_AS = {
+    "position_um": ("x", "y", "z", "z_after_um"),
+    "objective": ("objective_slot",),
+    "pfs": ("pfs",),
+}
 
 
 def bridge_steps() -> list[str]:
@@ -1037,6 +1087,39 @@ def cancel_schedule(ctx: RunContext[Microscope], name: str) -> dict[str, Any]:
     return {"cancelled": cancelled, "schedules": ctx.deps.scheduler.listing()}
 
 
+# -- the session store: what the memory forgot ----------------------------------------------
+
+
+@guarded_tool
+def recall_turn(
+    ctx: RunContext[Microscope], turn: int | None = None, changed: str | None = None
+) -> dict[str, Any]:
+    """An earlier turn of this session in full (the operator's words, the microscope
+    state then, the tool calls and their results, the reply), or the turns in which a
+    state value changed. Older turns in your memory keep only a one-line reading of
+    the microscope; this has the rest.
+
+    Args:
+        turn: 1 is the first turn of the session, -1 the newest; leave out for the newest.
+        changed: a state value such as "position_um.z" or "pfs": the turns in which it
+            changed, with its value before and after, instead of one turn.
+    """
+    return ctx.deps.store.recall(turn=turn, changed=changed)
+
+
+@guarded_tool
+def search_history(ctx: RunContext[Microscope], query: str, limit: int = SEARCH_MATCHES) -> dict:
+    """Earlier turns of this session whose operator message, reply or tool results
+    contain these words, best matches first. For anything the operator said or asked
+    earlier that your memory no longer shows.
+
+    Args:
+        query: the words to look for, e.g. "well A1" or "exposure".
+        limit: how many turns to return at most.
+    """
+    return ctx.deps.store.search(query, max(1, min(limit, 20)))
+
+
 @guarded_tool
 def search_source(ctx: RunContext[Microscope], text: str) -> dict[str, Any]:
     """Search the source code of the three parts and of useq-schema (v2 included)
@@ -1129,6 +1212,8 @@ TOOLS = (
     wait,
     schedule,
     cancel_schedule,
+    recall_turn,
+    search_history,
     search_source,
     read_source,
 )
