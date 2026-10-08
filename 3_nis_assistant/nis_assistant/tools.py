@@ -622,10 +622,17 @@ async def look(
             "is it sharper than the image before?".
         snap: take a new image (the default); false shows kept images only, which
             also works while an acquisition runs.
-        frames: kept images to show as well and compare with: "last 3", "1,7", "3-10".
+        frames: kept images to show as well and compare the new one with: "last 3" (the
+            three taken before it), "1,7", "3-10", or a labelled image's number.
         label: a name for the new image, to find it again: "before".
     """
     history = ctx.deps.frames
+    # The earlier images are chosen before the new one is kept, so "last 3" means the
+    # three taken before it, and the new image is always compared with them.
+    try:
+        shown = history.pick(frames) if frames else []
+    except ValueError as exc:
+        return refusal(ctx, "refused", str(exc), FAILURE_ADVICE)
     fresh = stats = None
     if snap:
         image, pixel_size_um = await asyncio.to_thread(snap_frame, ctx.deps.client)
@@ -634,11 +641,6 @@ async def look(
         fresh = history.add(
             image, "look", _image_context(ctx.deps), pixel_size_um, ctx.deps.axes, label
         )
-    try:
-        shown = history.pick(frames) if frames else []
-    except ValueError as exc:
-        return refusal(ctx, "refused", str(exc), FAILURE_ADVICE)
-    if fresh is not None and all(f is not fresh for f in shown):
         shown.append(fresh)
     if not shown:
         if not history.frames:

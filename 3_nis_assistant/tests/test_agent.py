@@ -421,6 +421,11 @@ def test_a_look_without_a_new_image_shows_the_kept_ones(microscope, fake):
     fresh, kept = tool_results(assistant)
     assert fresh["image"]["n"] == 1 and kept["image"]["n"] == 1 and "statistics" not in kept
     assert fake.captures == 1  # the second look took no image
+    # "last 1" with a new image means the one taken before it, compared with the new one
+    assistant, _ = talk(microscope, ("look", {"question": "?", "frames": "last 1"}), "Ok.")
+    assistant.send("look again and compare")
+    compared = tool_results(assistant)[0]
+    assert [i["n"] for i in compared["images"]] == [1, 2] and compared["changes"][0]["n"] == 2
     assistant, _ = talk(microscope, ("look", {"question": "what?", "frames": "7"}), "No.")
     assistant.send("show image 7")
     assert "no image 7" in tool_results(assistant)[0]["error"]["message"]
