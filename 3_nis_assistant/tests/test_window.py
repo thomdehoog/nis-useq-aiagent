@@ -208,10 +208,11 @@ def test_a_due_schedule_waits_for_a_running_turn(qtbot, open_window, fake):
     scheduler.clock = lambda: time.time() + 61
     start(window, "status")  # a turn is running; the due schedule must wait
     qtbot.wait(1200)
-    assert "[scheduled" not in window.transcript.toPlainText() and window.busy
+    assert "Scheduled" not in window.transcript.toPlainText() and window.busy
+    assert "due, after this turn" in window.schedule_rows["watch"][1].text()
     qtbot.waitUntil(lambda: "Fired." in window.transcript.toPlainText(), timeout=20000)
     transcript = window.transcript.toPlainText()
-    assert transcript.index("Slow status.") < transcript.index("[scheduled")
+    assert transcript.index("Slow status.") < transcript.index("Scheduled 'watch'")
 
 
 def test_a_failing_scheduled_turn_cancels_its_schedule(qtbot, open_window):
@@ -229,17 +230,35 @@ def test_a_due_schedule_runs_as_its_own_turn_and_stop_drops_it(qtbot, open_windo
     ask(qtbot, window, "status every minute")
     scheduler = window.assistant.microscope.scheduler
     assert [s["name"] for s in scheduler.listing()] == ["watch"]
+    qtbot.wait(1100)  # a tick: the schedule has its row, counting down
+    (row_text,) = [label.text() for _, label in window.schedule_rows.values()]
+    assert row_text.startswith("\u23f1 watch \u00b7 every 1 min \u00b7 next in 0:")
     scheduler.clock = lambda: time.time() + 61  # a minute passes
     qtbot.waitUntil(
-        lambda: "[scheduled 'watch'] status" in window.transcript.toPlainText(), timeout=5000
+        lambda: "Scheduled 'watch': status" in window.transcript.toPlainText(), timeout=5000
     )
     qtbot.waitUntil(lambda: not window.busy, timeout=10000)
-    assert "Here is the status." in window.transcript.toPlainText()
+    transcript = window.transcript.toPlainText()
+    assert "Here is the status." in transcript and "[scheduled" not in transcript
     window.stop_microscope()
-    assert (
-        scheduler.listing() == []
-        and "every schedule is cancelled" in window.transcript.toPlainText()
-    )
+    assert scheduler.listing() == []
+    assert "every schedule and request is cancelled" in window.transcript.toPlainText()
+    qtbot.wait(1100)
+    assert window.schedule_rows == {}
+
+
+def test_a_schedule_row_cancels_that_schedule_alone(qtbot, open_window):
+    window = open_window()
+    scheduler = window.assistant.microscope.scheduler
+    scheduler.add("watch", "look", every_seconds=180)
+    scheduler.add("later", "switch the PFS off", at="23:59")
+    window.fire_due_schedule()  # a tick
+    assert list(window.schedule_rows) == ["watch", "later"]
+    assert "once at 23:59" in window.schedule_rows["later"][1].text()
+    window.cancel_schedule("watch")
+    assert [s["name"] for s in scheduler.listing()] == ["later"]
+    assert list(window.schedule_rows) == ["later"]
+    assert "The schedule 'watch' is cancelled." in window.transcript.toPlainText()
 
 
 def test_the_halves_sit_in_a_splitter(qtbot, open_window):
@@ -306,12 +325,17 @@ def test_a_wait_that_is_over_continues_the_request_from_the_clock(
     transcript = ask(qtbot, window, "yes")
     assert "Under way" in transcript and window.prompt.isEnabled()  # the line is free
     assert window.assistant.microscope.run_in_progress()
+    assert window.request_label.isVisibleTo(window)
+    assert window.request_label.text().startswith("Request 2: 1 turns")
+    assert ", waiting until done (for 0:0" in window.request_label.text()
     qtbot.waitUntil(
-        lambda: "[continuation of request 2]" in window.transcript.toPlainText(), timeout=10000
+        lambda: "Request 2 continues: waited" in window.transcript.toPlainText(), timeout=10000
     )
     qtbot.waitUntil(lambda: not window.busy, timeout=10000)
     transcript = window.transcript.toPlainText()
     assert "until done: met" in transcript and "All 6 images are saved." in transcript
+    assert "[continuation" not in transcript
+    assert window.request_label.text().startswith("Request 2: 2 turns")
     assert fake.captures == 7  # the probe image for the file size, then 6 frames
 
 
@@ -329,6 +353,14 @@ def test_cancel_prompt_ends_the_request(qtbot, open_window, fake):
     window.cancel_button.click()
     qtbot.waitUntil(lambda: not window.busy, timeout=10000)
     assert window.assistant.microscope.requests.open() is None
+    # the request line's own Cancel ends a request that waits, without stopping anything
+    window = open_window(("wait", {"until": 60}), "- [ ] look later\nI will look in a minute.")
+    ask(qtbot, window, "look in a minute")
+    assert "[ ] look later" in window.request_label.text()
+    window.request_cancel.click()
+    assert window.assistant.microscope.requests.open() is None
+    assert not window.request_label.isVisibleTo(window)
+    assert "will not continue" in window.transcript.toPlainText()
 
 
 def test_while_nis_starts_the_window_waits_and_then_connects(qtbot, port, tmp_path):

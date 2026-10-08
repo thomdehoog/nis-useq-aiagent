@@ -60,8 +60,13 @@ from .panel import AxesBox, ModelPanel, PreferencesBox
 from .settings import DEFAULT_PROVIDER, FONT_POINTS, OUTPUT_FOLDER
 from .tools import Microscope, bridge_steps
 
-# The colour of each voice in the transcript.
+# The colour of each voice in the transcript. A "scheduled" line is one the machine wrote:
+# a schedule that fell due, or a request continuing after a wait.
 COLOURS = {"you": "#1a5fb4", "assistant": "#26a269", "system": "#b00020", "scheduled": "#8a5a00"}
+# How a turn the machine wrote is shown in the transcript: the model reads the bracketed
+# text from instructions.py; the operator sees a muted line that does not look typed.
+SCHEDULED_SHOWN = "\u23f1 Scheduled '{name}': {instruction}"
+CONTINUATION_SHOWN = "\u21bb Request {number} continues: {result}"
 
 WELCOME = (
     "Hello. I can move the stage, change the optical settings, focus, look at the "
@@ -127,6 +132,20 @@ class AssistantWindow(QMainWindow):
         buttons_row.addWidget(self.clear_button)
         buttons_row.addWidget(self.show_tools)
         buttons_row.addStretch(1)
+        # The open request: its turns, tokens, wait and plan, with a Cancel of its own.
+        # Hidden while there is none.
+        self.request_label = QLabel(wordWrap=True)
+        self.request_label.setStyleSheet("color:#555")
+        self.request_cancel = QPushButton("Cancel request", clicked=self.cancel_request)
+        request_row = QHBoxLayout()
+        request_row.addWidget(self.request_label, 1)
+        request_row.addWidget(self.request_cancel, alignment=Qt.AlignmentFlag.AlignTop)
+        self.request_label.hide()
+        self.request_cancel.hide()
+        # What is scheduled: one row per schedule, with a countdown to its next firing
+        # and a Cancel of its own. Rows come and go with the schedules.
+        self.schedule_rows_layout = QVBoxLayout()
+        self.schedule_rows: dict[str, tuple[QWidget, QLabel]] = {}
         # below: the stage limits in force, one field per side; the operator can narrow them
         self.limit_fields = {
             (axis, side): QLineEdit(placeholderText="NIS") for axis in "xyz" for side in "-+"
@@ -163,6 +182,8 @@ class AssistantWindow(QMainWindow):
         left = QVBoxLayout()
         left.addWidget(self.panel)
         left.addWidget(self.transcript, 1)
+        left.addLayout(request_row)
+        left.addLayout(self.schedule_rows_layout)
         left.addLayout(input_row)
         left.addLayout(buttons_row)
         left.addLayout(limits_row)
@@ -302,6 +323,8 @@ class AssistantWindow(QMainWindow):
         is due runs as one; both are marked in the transcript as written by the
         machine. While a turn runs they wait for the next tick.
         """
+        self._show_request()
+        self._show_schedules()
         if self.busy:
             return
         microscope = self.assistant.microscope
@@ -310,7 +333,7 @@ class AssistantWindow(QMainWindow):
             request, result = due
             text = CONTINUATION_TURN.format(number=request.number, result=result)
             self.warning.hide()
-            self._say("scheduled", text)
+            self._say("scheduled", CONTINUATION_SHOWN.format(number=request.number, result=result))
             self._in_background(
                 lambda: self.assistant.send(text, scheduled=True, request=request.number)
             )
@@ -320,11 +343,72 @@ class AssistantWindow(QMainWindow):
             return
         text = SCHEDULED_TURN.format(name=item["name"], instruction=item["instruction"])
         self.warning.hide()
-        self._say("scheduled", text)
+        self._say(
+            "scheduled", SCHEDULED_SHOWN.format(name=item["name"], instruction=item["instruction"])
+        )
         self._in_background(
             lambda: self.assistant.send(text, scheduled=True, request=item.get("request")),
             item["name"],
         )
+        self._show_schedules()  # the one that fired: its next time, or gone
+
+    def _show_request(self) -> None:
+        """The request line: the open request's number, turns, tokens, wait and plan."""
+        microscope = self.assistant.microscope
+        request = microscope.requests.open()
+        self.request_label.setVisible(request is not None)
+        self.request_cancel.setVisible(request is not None)
+        if request is None:
+            return
+        text = f"Request {request.number}: {request.turns} turns, {request.tokens:,} tokens"
+        if request.wait:
+            waited = _clock(microscope.scheduler.clock() - request.wait["since"])
+            text += f", waiting until {request.wait['until']} (for {waited})"
+        if request.plan:
+            text += "\n" + "\n".join(request.plan)
+        self.request_label.setText(text)
+
+    def _show_schedules(self) -> None:
+        """One row per schedule, in the order they fire: its name, how often, and a
+        countdown to its next firing, with a Cancel of its own."""
+        listing = self.assistant.microscope.scheduler.listing()
+        names = [item["name"] for item in listing]
+        if names != list(self.schedule_rows):  # one came, went, or the order changed
+            for row, _ in self.schedule_rows.values():
+                self.schedule_rows_layout.removeWidget(row)
+                row.hide()
+                row.deleteLater()
+            self.schedule_rows = {name: self._schedule_row(name) for name in names}
+            for row, _ in self.schedule_rows.values():
+                self.schedule_rows_layout.addWidget(row)
+        for item in listing:
+            self.schedule_rows[item["name"]][1].setText(_schedule_text(item, self.busy))
+
+    def _schedule_row(self, name: str) -> tuple[QWidget, QLabel]:
+        row = QWidget()
+        line = QHBoxLayout(row)
+        line.setContentsMargins(0, 0, 0, 0)
+        label = QLabel()
+        label.setStyleSheet("color:#555")
+        cancel = QPushButton("Cancel schedule", clicked=lambda: self.cancel_schedule(name))
+        line.addWidget(label, 1)
+        line.addWidget(cancel)
+        return row, label
+
+    def cancel_schedule(self, name: str) -> None:
+        """A schedule row's Cancel: that schedule only. A turn it already started runs on."""
+        if self.assistant.microscope.scheduler.cancel(name):
+            self._say("system", f"The schedule '{name}' is cancelled.")
+        self._show_schedules()
+
+    def cancel_request(self) -> None:
+        """The request line's Cancel: the request ends, its wait with it, and a turn of it
+        that is running is cancelled as Cancel prompt does. The microscope is not stopped."""
+        if self.busy:
+            self.cancel_prompt()
+        self.assistant.microscope.requests.end("cancelled by the operator")
+        self._say("system", "The request is cancelled; it will not continue.")
+        self._show_request()
 
     @property
     def busy(self) -> bool:
@@ -354,10 +438,14 @@ class AssistantWindow(QMainWindow):
         self._say("assistant", text)
         self._set_busy(False)
         self._refresh_status()
+        self._show_request()
+        self._show_schedules()
 
     def _show_error(self, text: str) -> None:
         self._say("system", text)
         self._set_busy(False)
+        self._show_request()
+        self._show_schedules()
 
     # -- the operator's say: Cancel prompt, Stop, Clear ---------------------------------
 
@@ -380,9 +468,12 @@ class AssistantWindow(QMainWindow):
         self._say(
             "system",
             "Stop: the assistant is cancelled, a running acquisition ends after the "
-            "current image, and every schedule is cancelled. A single stage move already "
-            "under way finishes; use the joystick or NIS-Elements to stop it sooner.",
+            "current image, and every schedule and request is cancelled. A single stage "
+            "move already under way finishes; use the joystick or NIS-Elements to stop it "
+            "sooner.",
         )
+        self._show_request()
+        self._show_schedules()
 
     def clear_context(self) -> None:
         """Forget the conversation, in the window and in the assistant's memory."""
@@ -391,6 +482,8 @@ class AssistantWindow(QMainWindow):
         self.assistant.clear()
         self.transcript.clear()
         self._say("assistant", WELCOME, escape=False)
+        self._show_request()
+        self._show_schedules()
 
     # -- stage limits -------------------------------------------------------------------
 
@@ -500,6 +593,38 @@ class AssistantWindow(QMainWindow):
         self.clear_button.setEnabled(not busy)
         self.cancel_button.setEnabled(busy)
         self.send_button.setText("Working ..." if busy else "Send")
+
+
+def _clock(seconds: float) -> str:
+    """A length of time as m:ss, or h:mm:ss from an hour."""
+    minutes, secs = divmod(int(max(0.0, seconds)), 60)
+    hours, minutes = divmod(minutes, 60)
+    return f"{hours}:{minutes:02d}:{secs:02d}" if hours else f"{minutes}:{secs:02d}"
+
+
+def _period(seconds: float) -> str:
+    seconds = int(seconds)
+    if seconds % 3600 == 0:
+        return f"{seconds // 3600} h"
+    if seconds % 60 == 0:
+        return f"{seconds // 60} min"
+    return f"{seconds} s"
+
+
+def _schedule_text(item: dict, running: bool) -> str:
+    """One schedule row: its name, how often it fires, and how long until it does. A due
+    schedule waits for the turn that is running, since schedules fire only between turns."""
+    if "every_seconds" in item:
+        how = f"every {_period(item['every_seconds'])}"
+    elif "at" in item:
+        how = f"once at {item['at']}"
+    else:
+        how = "once"
+    if running and item["due_in_s"] == 0:
+        when = "due, after this turn"
+    else:
+        when = f"next in {_clock(item['due_in_s'])}"
+    return f"\u23f1 {item['name']} \u00b7 {how} \u00b7 {when}"
 
 
 def _explain(exc: Exception, endpoint: models.Endpoint | None) -> str:
