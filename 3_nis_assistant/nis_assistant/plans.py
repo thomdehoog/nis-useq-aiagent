@@ -28,6 +28,9 @@ from .settings import (
     SECONDS_PER_IMAGE,
 )
 
+# A plan's name goes into file names, so only letters, digits, - and _ are allowed.
+PLAN_NAME = r"^[A-Za-z0-9_-]{1,40}$"
+
 
 class PositionSpec(BaseModel):
     x: float = Field(description="stage x in um")
@@ -73,7 +76,7 @@ class AcquisitionPlan(BaseModel):
     """One acquisition: positions (optionally tiled) x channels x Z planes, optionally
     repeated in time."""
 
-    name: str = Field(pattern=r"^[A-Za-z0-9_-]{1,40}$", description="short name for the file")
+    name: str = Field(pattern=PLAN_NAME, description="short name for the file")
     positions: list[PositionSpec] = Field(
         default_factory=list, description="leave empty to image at the current position"
     )

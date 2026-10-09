@@ -59,7 +59,14 @@ from .instructions import (
     START_ADVICE,
 )
 from .microscope import Microscope
-from .plans import AcquisitionPlan, PositionSpec, count_images, describe, plan_to_sequence
+from .plans import (
+    PLAN_NAME,
+    AcquisitionPlan,
+    PositionSpec,
+    count_images,
+    describe,
+    plan_to_sequence,
+)
 from .settings import (
     CONFIRM_XY_UM,
     CONFIRM_Z_UM,
@@ -92,6 +99,26 @@ def refusal(
     return {"error": {"code": code, "message": message, **details, "advice": advice}}
 
 
+def failure(message: str) -> dict[str, Any]:
+    """A step that went wrong at the microscope (not a refusal), as data the model reads."""
+    return {"error": {"code": "failed", "message": message, "advice": FAILURE_ADVICE}}
+
+
+def cancelled() -> dict[str, Any]:
+    """The answer of a tool that did nothing because the operator pressed Cancel."""
+    return {"status": "cancelled", "advice": CANCELLED_ADVICE}
+
+
+def ask_first(summary: str, advice: str = GO_AHEAD_ADVICE) -> dict[str, Any]:
+    """The answer that tells the assistant to ask the operator before this is done.
+
+    ``summary`` says what would happen, for the assistant to put to the operator;
+    ``advice`` says how to ask: for a long stage move, or for an acquisition
+    (``START_ADVICE``).
+    """
+    return {"status": "needs_go_ahead", "not_done_yet": summary, "advice": advice}
+
+
 def needs_go_ahead(ctx: RunContext[Microscope], key: str, summary: str) -> dict | None:
     """None if the operator has had the chance to agree to this action; else the
     answer that tells the assistant to ask first.
@@ -104,7 +131,7 @@ def needs_go_ahead(ctx: RunContext[Microscope], key: str, summary: str) -> dict 
     if ctx.deps.go_ahead_asked.pop(key, None) == ctx.deps.turn - 1:
         return None
     ctx.deps.go_ahead_asked[key] = ctx.deps.turn
-    return {"status": "needs_go_ahead", "not_done_yet": summary, "advice": GO_AHEAD_ADVICE}
+    return ask_first(summary)
 
 
 def guarded_tool(fn: Callable) -> Callable:
@@ -119,7 +146,7 @@ def guarded_tool(fn: Callable) -> Callable:
 
     def before(ctx: RunContext[Microscope], kwargs: dict) -> dict | None:
         if ctx.deps.cancel.is_set():
-            return {"status": "cancelled", "advice": CANCELLED_ADVICE}
+            return cancelled()
         args = {  # what the model asked for, without the arguments it left out
             k: v.model_dump(exclude_none=True) if isinstance(v, BaseModel) else v
             for k, v in kwargs.items()
@@ -127,15 +154,6 @@ def guarded_tool(fn: Callable) -> Callable:
         }
         ctx.deps.on_tool(fn.__name__, args)
         return None
-
-    def failed(exc: Exception) -> dict:
-        return {
-            "error": {
-                "code": "failed",
-                "message": f"{type(exc).__name__}: {exc}",
-                "advice": FAILURE_ADVICE,
-            }
-        }
 
     if inspect.iscoroutinefunction(fn):
 
@@ -148,7 +166,7 @@ def guarded_tool(fn: Callable) -> Callable:
             except ModelRetry:
                 raise
             except Exception as exc:
-                return failed(exc)
+                return failure(f"{type(exc).__name__}: {exc}")
 
         return async_wrapper
 
@@ -161,7 +179,7 @@ def guarded_tool(fn: Callable) -> Callable:
         except ModelRetry:
             raise
         except Exception as exc:
-            return failed(exc)
+            return failure(f"{type(exc).__name__}: {exc}")
 
     return wrapper
 
@@ -471,7 +489,7 @@ def plan_useq_sequence(
         path: a .json or .yaml file that holds a classic useq MDASequence.
         sequence: the MDASequence itself, as the JSON object useq writes.
     """
-    if not re.fullmatch(r"[A-Za-z0-9_-]{1,40}", name):
+    if not re.fullmatch(PLAN_NAME, name):
         raise ModelRetry("name may hold only letters, digits, - and _ (at most 40).")
     if (path is None) == (sequence is None):
         raise ModelRetry("Give either path or sequence, not both.")
@@ -554,23 +572,48 @@ async def run_acquisition(ctx: RunContext[Microscope], plan_id: str) -> dict[str
         ctx.deps.planned_in[plan_id] = ctx.deps.turn
         here = ctx.deps.client.request("get_position")
         summary = f"start acquisition {plan_id!r}: {describe(sequence, events, here)}"
-        return {"status": "needs_go_ahead", "not_done_yet": summary, "advice": START_ADVICE}
+        return ask_first(summary, START_ADVICE)
+    files = save_sequence(ctx.deps.output_dir, plan_id, sequence)
+    return await run_sequence(ctx.deps, sequence, files)
 
+
+def save_sequence(output_dir: Path, plan_id: str, sequence: useq.MDASequence) -> Path:
+    """Write the sequence to the output folder as .useq.json, which other useq
+    tools can load again, and return where the run's files go.
+
+    The path returned has no extension: the images go to ``<path>.ome.tiff``,
+    or, with several positions, to a folder ``<path>`` with one file per
+    position. Its name carries the time and the plan id, so the files of one
+    run sit together and sort by time.
+    """
     stem = f"{datetime.now():%Y%m%d_%H%M%S}_{plan_id}"
-    ctx.deps.output_dir.mkdir(parents=True, exist_ok=True)
-    output = ctx.deps.output_dir / f"{stem}.ome.tiff"
+    output_dir.mkdir(parents=True, exist_ok=True)
     saved = sequence.model_dump_json(exclude_defaults=True, indent=2)
-    (ctx.deps.output_dir / f"{stem}.useq.json").write_text(saved, encoding="utf-8")
+    (output_dir / f"{stem}.useq.json").write_text(saved, encoding="utf-8")
+    return output_dir / stem
 
+
+async def run_sequence(
+    microscope: Microscope, sequence: useq.MDASequence, files: Path
+) -> dict[str, Any]:
+    """Run a checked sequence with the pymmcore-plus runner and report on it.
+
+    ``files`` is where the images go (see ``save_sequence``). The answer says how
+    many images were taken, how the run ended, how long it took and where the
+    files are, with the measured numbers and a short description of the last
+    image, so the reply can say what was imaged. A run that fails half-way
+    still reports what was saved; the failure travels in the answer's "error".
+    """
+    output = files.with_name(f"{files.name}.ome.tiff")
     # The runner lives on the assistant's thread. Without this, pymmcore-plus
     # would pick Qt signals whenever the chat window is open, which needs qtpy.
     os.environ.setdefault("PYMM_SIGNALS_BACKEND", "psygnal")
-    frames = _FrameCounter(ctx.deps.on_image)
-    runner = ctx.deps.runner = MDARunner()
-    runner.set_engine(ctx.deps.engine)
-    if ctx.deps.cancel.is_set():  # Stop was pressed while the run was being prepared
-        ctx.deps.runner = None
-        return {"status": "cancelled", "advice": CANCELLED_ADVICE}
+    frames = _FrameCounter(microscope.on_image)
+    runner = microscope.runner = MDARunner()
+    runner.set_engine(microscope.engine)
+    if microscope.cancel.is_set():  # Stop was pressed while the run was being prepared
+        microscope.runner = None
+        return cancelled()
     started, error = time.perf_counter(), None
     try:
         # The run blocks for as long as the acquisition takes; a thread keeps the
@@ -579,24 +622,23 @@ async def run_acquisition(ctx: RunContext[Microscope], plan_id: str) -> dict[str
     except Exception as exc:
         error = f"{type(exc).__name__}: {exc}"
     finally:
-        ctx.deps.runner = None
+        microscope.runner = None
     with contextlib.suppress(Exception):  # the connection may be gone after an error
-        ctx.deps.anchor = ctx.deps.client.request("get_position")
+        microscope.anchor = microscope.client.request("get_position")
     # With several positions (tiles count too) the writer makes a folder of the
     # same name, with one OME-TIFF per position, instead of one file.
-    saved_to = output if output.exists() else ctx.deps.output_dir / stem
     result = {
         "images": frames.count,
         "finished": "failed" if error else str(runner.status.finish_reason),
         "duration_s": round(time.perf_counter() - started, 1),
-        "saved_to": str(saved_to),
+        "saved_to": str(output if output.exists() else files),
     }
     if error:
-        result["error"] = {"code": "failed", "message": error, "advice": FAILURE_ADVICE}
+        result.update(failure(error))
     if frames.last is not None:
         # The image the operator sees on the right: a few numbers, and a short
         # description from the vision model, so the reply can say what was imaged.
-        result["last_image"] = await describe_image(ctx.deps, frames.last, LAST_IMAGE_QUESTION)
+        result["last_image"] = await describe_image(microscope, frames.last, LAST_IMAGE_QUESTION)
     return result
 
 
