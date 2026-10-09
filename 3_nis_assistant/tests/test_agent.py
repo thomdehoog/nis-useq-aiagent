@@ -46,9 +46,9 @@ from nis_assistant.instructions import (
     LIMIT_ADVICE,
     OPTIONS_ADVICE,
 )
+from nis_assistant.microscope import Microscope
 from nis_assistant.models import Endpoint
 from nis_assistant.settings import DEFAULT_MODEL_SETTINGS, HISTORY_KEEP_TURNS
-from nis_assistant.tools import Microscope
 
 
 class Script:

@@ -30,10 +30,8 @@ import functools
 import inspect
 import os
 import re
-import threading
 import time
 from collections.abc import Callable
-from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Literal
@@ -44,13 +42,11 @@ import numpy as np
 import useq
 from nis_bridge.install_macros import MACRO
 from nis_bridge.settings import FOCUS_TIMEOUT_S
-from nis_engine import NisEngine
 from pydantic import BaseModel
 from pydantic_ai import ModelRetry, RunContext
 from pydantic_ai.messages import ToolCallPart
 from pymmcore_plus.mda import MDARunner
 
-from .eyes import Eyes
 from .images import image_statistics, snap
 from .instructions import (
     BRIDGE_MACRO_MISSING,
@@ -68,16 +64,13 @@ from .instructions import (
     START_ADVICE,
 )
 from .memory import _is_operator_turn
+from .microscope import Microscope
 from .plans import AcquisitionPlan, PositionSpec, count_images, describe, plan_to_sequence
-from .schedules import Scheduler
 from .settings import (
-    CLOCK_FORMAT,
     CONFIRM_XY_UM,
     CONFIRM_Z_UM,
-    DEFAULT_AXES,
     MAX_EXPOSURE_MS,
     MAX_SWEEP_UM,
-    MODEL,
     SOURCE_LINES,
     SOURCE_MATCHES,
 )
@@ -90,89 +83,6 @@ SOURCE_ROOTS = {
     "nis_assistant": Path(__file__).parent,
     "useq": Path(useq.__file__).parent,
 }
-
-
-@dataclass
-class Microscope:
-    """The engine plus the window's side of the conversation."""
-
-    engine: NisEngine
-    output_dir: Path
-    on_image: Callable[[np.ndarray, str], None] = lambda image, caption: None
-    on_warning: Callable[[str], None] = lambda text: None
-    on_tool: Callable[[str, dict], None] = lambda name, args: None  # each tool call, as it starts
-    vision_model: Any = MODEL  # a model name, a model object, or a test model
-    vision: bool = True  # False when the vision model cannot be shown images
-    _eyes: Eyes | None = field(default=None, repr=False)  # see the ``eyes`` property
-    # What a positive move on each axis does to the sample in the image (settings.AXIS_CHOICES).
-    axes: dict[str, str] = field(default_factory=lambda: dict(DEFAULT_AXES))
-    scheduler: Scheduler = field(default_factory=Scheduler)  # what is to happen later
-    # Whether a reply that called no tool is challenged once (see the guards below).
-    # Off for scripted tests, on in the window.
-    challenge_no_tool: bool = False
-    plans: dict[str, useq.MDASequence] = field(default_factory=dict)  # plan id -> sequence
-    planned_in: dict[str, int] = field(default_factory=dict)  # plan id -> turn it was last shown
-    runner: MDARunner | None = None  # set while an acquisition runs, so it can be stopped
-    # Set by Cancel: every further tool call in this turn does nothing.
-    cancel: threading.Event = field(default_factory=threading.Event)
-    # Where the stage was when the operator last wrote, or where they last agreed
-    # to go. Moves are measured from here, so small steps cannot add up to a long
-    # move unasked.
-    anchor: dict[str, float] | None = None
-    turn: int = 0  # the operator's messages so far
-    # Long moves the assistant asked the operator about, and in which turn.
-    go_ahead_asked: dict[str, int] = field(default_factory=dict)
-
-    @property
-    def client(self):
-        return self.engine.client
-
-    def where(self) -> dict[str, Any]:
-        """The stage position and the objective in use: what a picture depends on."""
-        objectives = self.client.request("get_objectives")
-        current = objectives["current"]
-        return {
-            "position_um": self.client.request("get_position"),
-            "objective": {"slot": current, "name": objectives["objectives"].get(str(current))},
-        }
-
-    def state(self) -> dict[str, Any]:
-        """A compact picture of the microscope, sent with every message from the operator."""
-        return {
-            **self.where(),
-            "stage_limits_um": self.engine.limits(),
-            "pfs": self.client.request("get_pfs")["meaning"],
-            "clock": time.strftime(CLOCK_FORMAT),
-            "schedules": self.scheduler.listing(),
-        }
-
-    @property
-    def eyes(self) -> Eyes:
-        """The vision model's own conversation, built from ``vision_model`` on first use.
-
-        When ``vision_model`` is changed, the next look gets new eyes, so the
-        model in use is always the one the eyes talk to; the images seen with
-        the old one are forgotten, since another model cannot read its turns.
-        """
-        if self._eyes is None or self._eyes.model is not self.vision_model:
-            self._eyes = Eyes(self.vision_model)
-        return self._eyes
-
-    @eyes.setter
-    def eyes(self, eyes: Eyes) -> None:
-        self._eyes, self.vision_model = eyes, eyes.model
-
-    def stop(self) -> None:
-        """Cancel the assistant's turn, end a running acquisition, and drop every schedule.
-
-        A single stage move that NIS has already started runs to its end; the
-        joystick or NIS-Elements itself stops it sooner. The schedules go too,
-        or one could start the microscope again a moment after Stop was pressed.
-        """
-        self.cancel.set()
-        self.scheduler.clear()
-        if self.runner is not None:
-            self.runner.cancel()
 
 
 def refusal(
@@ -279,8 +189,7 @@ def check_setup(ctx: RunContext[Microscope]) -> dict[str, Any]:
     """
     engine = ctx.deps.engine
     try:
-        if engine.client.closed:
-            engine.reconnect()
+        ctx.deps.ensure_connected()
         info = engine.client.request("ping")
     except Exception as exc:  # the bridge is not there, or NIS is closed
         return {

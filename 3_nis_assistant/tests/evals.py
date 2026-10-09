@@ -98,8 +98,8 @@ from nis_engine import NisEngine
 from pydantic_ai.messages import ToolCallPart, ToolReturnPart
 
 from nis_assistant.agent import Assistant
+from nis_assistant.microscope import Microscope
 from nis_assistant.settings import MODEL
-from nis_assistant.tools import Microscope
 
 HERE = Path(__file__).resolve().parent
 CASES = HERE / "eval_cases.json"
@@ -203,7 +203,7 @@ def run_case(
 
     ``model`` answers the operator, ``vision_model`` (the same when left out)
     looks at the pictures. Either is a Pydantic AI model name or model.
-    ``challenge_no_tool`` is the window's reply guard (tools.Microscope); a
+    ``challenge_no_tool`` is the window's reply guard (microscope.Microscope); a
     scripted model that does not expect the challenge runs with it off.
 
     A provider error (a rate limit, an outage) is tried again after a wait: the

@@ -56,9 +56,10 @@ from .agent import Assistant
 from .images import as_png
 from .instructions import SCHEDULED_TURN
 from .local import CONTEXT_TOO_SMALL_HELP, CONTEXT_TOO_SMALL_SIGNS
+from .microscope import Microscope
 from .panel import AxesBox, ModelPanel, PreferencesBox
 from .settings import DEFAULT_PROVIDER, FONT_POINTS, OUTPUT_FOLDER
-from .tools import Microscope, bridge_steps
+from .tools import bridge_steps
 
 # The colour of each voice in the transcript.
 COLOURS = {"you": "#1a5fb4", "assistant": "#26a269", "system": "#b00020", "scheduled": "#8a5a00"}
@@ -402,11 +403,10 @@ class AssistantWindow(QMainWindow):
 
     def _set_limits(self, **limits) -> bool:
         """Apply limits on the engine; True if they were applied, else a warning."""
-        engine = self.assistant.microscope.engine
+        microscope = self.assistant.microscope
         try:
-            if engine.client.closed:
-                engine.reconnect()
-            engine.set_limits(**limits)
+            microscope.ensure_connected()
+            microscope.engine.set_limits(**limits)
         except ValueError as exc:
             self._show_warning(f"limits not applied: {exc}")
             return False
@@ -455,11 +455,10 @@ class AssistantWindow(QMainWindow):
         self.warning.show()
 
     def _refresh_status(self) -> None:
-        engine = self.assistant.microscope.engine
+        microscope = self.assistant.microscope
         try:
-            if engine.client.closed:
-                engine.reconnect()
-            state = self.assistant.microscope.state()
+            microscope.ensure_connected()
+            state = microscope.state()
         except (RuntimeError, ValueError, OSError) as exc:
             self.status.setText(f"Microscope not reachable: {exc}")
             return

@@ -29,8 +29,9 @@ from pydantic_ai.messages import ModelMessage, ModelRequest
 from . import models
 from .instructions import COORDINATES, INSTRUCTIONS
 from .memory import compact, without_a_declined_challenge, without_state_block
+from .microscope import Microscope
 from .settings import AXIS_CHOICES, DEFAULT_AXES, DEFAULT_MODEL_SETTINGS, MODEL, TOOL_CALL_RETRIES
-from .tools import REPLY_GUARDS, TOOLS, Microscope
+from .tools import REPLY_GUARDS, TOOLS
 
 agent = Agent(
     deps_type=Microscope,
@@ -95,8 +96,7 @@ class Assistant:
         """
         self.microscope.cancel.clear()
         try:
-            if self.microscope.engine.client.closed:  # after a timeout, or a restarted bridge
-                self.microscope.engine.reconnect()
+            self.microscope.ensure_connected()  # after a timeout, or a restarted bridge
             state = self.microscope.state()
             if not scheduled:
                 self.microscope.anchor = state["position_um"]
@@ -147,8 +147,4 @@ class Assistant:
         The eyes forget their images and the schedules are cancelled.
         """
         self.history, self.last_turn = [], []
-        self.microscope.plans.clear()
-        self.microscope.planned_in.clear()
-        self.microscope.go_ahead_asked.clear()
-        self.microscope.scheduler.clear()
-        self.microscope.eyes.reset()
+        self.microscope.forget()
