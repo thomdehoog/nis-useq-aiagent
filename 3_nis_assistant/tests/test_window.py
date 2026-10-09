@@ -18,7 +18,7 @@ pytest.importorskip("pydantic_ai")
 from nis_bridge.client import NisConnectionError
 from nis_engine import NisEngine
 from PySide6.QtWidgets import QMessageBox
-from test_agent import Script, moves
+from scripted import Script, moves
 
 from nis_assistant.agent import Assistant
 from nis_assistant.microscope import Microscope

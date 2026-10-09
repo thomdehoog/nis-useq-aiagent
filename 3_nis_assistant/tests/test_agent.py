@@ -1,8 +1,9 @@
 """The assistant's tools and approvals, with a scripted model in place of the real one.
 
-``Script`` plays the model: it makes the tool calls it is given, in order, so
-each test controls exactly what "the model" asks for and checks what the
-microscope (the real bridge over a fake NIS) and the operator see.
+``Script`` (in ``scripted.py``) plays the model: it makes the tool calls it is
+given, in order, so each test controls exactly what "the model" asks for and
+checks what the microscope (the real bridge over a fake NIS) and the operator
+see.
 
 Author: Thom de Hoog, Center for Microscopy and Image Analysis (ZMB), University of Zurich
         thom.dehoog@zmb.uzh.ch . thomdehoog@gmail.com
@@ -31,11 +32,9 @@ from pydantic_ai.messages import (
     RetryPromptPart,
     TextPart,
     ThinkingPart,
-    ToolCallPart,
-    ToolReturnPart,
     UserPromptPart,
 )
-from pydantic_ai.models.function import FunctionModel
+from scripted import Script, moves, tool_results
 
 from nis_assistant.agent import Assistant, axes_section
 from nis_assistant.eyes import Eyes, last_turns
@@ -49,34 +48,6 @@ from nis_assistant.instructions import (
 from nis_assistant.microscope import Microscope
 from nis_assistant.models import Endpoint
 from nis_assistant.settings import DEFAULT_MODEL_SETTINGS, HISTORY_KEEP_TURNS
-
-
-class Script:
-    """A stand-in for the model: each call returns the next step.
-
-    A step is text (the answer), a (tool name, arguments) pair (a tool call), a
-    whole ModelResponse, or an exception (the model call fails, as when the API
-    is overloaded).
-    """
-
-    def __init__(self, *steps):
-        self.steps = list(steps)
-        self.requests = []  # what the model was sent, per call
-
-    def __call__(self, messages, info):
-        self.requests.append(messages)
-        step = self.steps.pop(0)
-        if isinstance(step, Exception):
-            raise step
-        if isinstance(step, ModelResponse):
-            return step
-        if isinstance(step, str):
-            return ModelResponse(parts=[TextPart(step)])
-        name, args = step
-        return ModelResponse(parts=[ToolCallPart(name, args)])
-
-    def model(self):
-        return FunctionModel(self)
 
 
 @pytest.fixture
@@ -95,19 +66,6 @@ def microscope(port, tmp_path):
 def talk(microscope, *steps):
     script = Script(*steps)
     return Assistant(microscope, model=script.model()), script
-
-
-def tool_results(assistant):
-    return [
-        part.content
-        for message in assistant.history
-        for part in message.parts
-        if isinstance(part, ToolReturnPart)
-    ]
-
-
-def moves(fake):
-    return [call for call in fake.calls if call.startswith("move")]
 
 
 # -- reading and small actions -----------------------------------------------------

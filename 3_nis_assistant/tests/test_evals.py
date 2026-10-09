@@ -15,7 +15,7 @@ import pytest
 pytest.importorskip("pydantic_ai")
 
 import evals
-from test_agent import Script
+from scripted import Script
 
 from nis_assistant.images import image_statistics
 
