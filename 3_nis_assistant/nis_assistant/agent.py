@@ -1,10 +1,11 @@
 """The assistant, assembled: the Agent with its tools, and one conversation.
 
-Built on Pydantic AI. The tools (``tools.py``) are what the model
-can ask the microscope to do; the instructions (``instructions.py``) are what
-it is told; the memory (``memory.py``) keeps a long conversation small; the
-models (``models.py``) are the ways to reach a model. ``Assistant`` is one
-conversation: a message in, the answer out.
+Built on Pydantic AI. The microscope (``microscope.py``) is what the tools
+are handed; the tools (``tools.py``) are what the model can ask the microscope
+to do; the guards (``guards.py``) look at its reply; the instructions
+(``instructions.py``) are what it is told; the memory (``memory.py``) keeps a
+long conversation small; the models (``models.py``) are the ways to reach a
+model. ``Assistant`` is one conversation: a message in, the answer out.
 
     microscope = Microscope(NisEngine(), output_dir=Path("runs"))
     assistant = Assistant(microscope)
@@ -27,11 +28,12 @@ from pydantic_ai import Agent, RunContext, capture_run_messages
 from pydantic_ai.messages import ModelMessage, ModelRequest
 
 from . import models
+from .guards import REPLY_GUARDS
 from .instructions import COORDINATES, INSTRUCTIONS
 from .memory import compact, without_a_declined_challenge, without_state_block
 from .microscope import Microscope
 from .settings import AXIS_CHOICES, DEFAULT_AXES, DEFAULT_MODEL_SETTINGS, MODEL, TOOL_CALL_RETRIES
-from .tools import REPLY_GUARDS, TOOLS
+from .tools import TOOLS
 
 agent = Agent(
     deps_type=Microscope,

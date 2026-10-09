@@ -66,6 +66,11 @@ class Microscope:
     turn: int = 0  # the operator's messages so far
     # Long moves the assistant asked the operator about, and in which turn.
     go_ahead_asked: dict[str, int] = field(default_factory=dict)
+    # The reply guards' bookkeeping (guards.py), by Pydantic AI run id: the runs in
+    # which an empty reply was already handed back once, and the first reply of a
+    # turn that called no tool, kept while the model is challenged about it.
+    empty_reply_asked: set[str] = field(default_factory=set, repr=False)
+    first_reply: dict[str, str] = field(default_factory=dict, repr=False)
 
     # -- the connection to NIS-Elements -----------------------------------------------------
 

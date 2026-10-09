@@ -73,7 +73,7 @@ COORDINATES = (
 EMPTY_REPLY_CHALLENGE = "Your reply is empty: tell the operator in a sentence what happened."
 EMPTY_REPLY_FALLBACK = "(The assistant gave no answer in words.)"
 # A reply at the end of a turn that called no tool goes back to the model once with
-# this text (see tools.challenge_a_reply_that_called_nothing).
+# this text (see guards.challenge_a_reply_that_called_nothing).
 CALLED_NOTHING_CHALLENGE = (
     "No tool was called in this turn, so nothing at the microscope has changed. If your "
     "reply says or implies that you moved, set, focused, imaged or stopped anything, that "

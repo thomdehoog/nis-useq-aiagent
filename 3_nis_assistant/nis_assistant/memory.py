@@ -55,7 +55,7 @@ def without_state_block(reply: str) -> str:
 def without_a_declined_challenge(messages: list[ModelMessage]) -> list[ModelMessage]:
     """The turn without the reply guard's challenge, when the model only confirmed.
 
-    When a turn that called no tool is challenged (tools.challenge_a_reply_that_called_nothing)
+    When a turn that called no tool is challenged (guards.challenge_a_reply_that_called_nothing)
     and the model still calls nothing, the operator gets the first reply, and the
     challenge and the model's "SAME" are of no further use. Left in the history,
     they teach the model to open its next replies with "SAME", or to echo the
@@ -73,7 +73,7 @@ def without_a_declined_challenge(messages: list[ModelMessage]) -> list[ModelMess
                 isinstance(part, ToolCallPart) for m in messages[index:] for part in m.parts
             )
             return messages if acted else messages[:index]
-        if _is_operator_turn(message):
+        if is_operator_turn(message):
             break
     return messages
 
@@ -94,7 +94,7 @@ def compact(messages: list[ModelMessage]) -> list[ModelMessage]:
     compaction points, and there the old reasoning is left out altogether,
     which the check allows.
     """
-    starts = [i for i, m in enumerate(messages) if _is_operator_turn(m)]
+    starts = [i for i, m in enumerate(messages) if is_operator_turn(m)]
     if len(starts) <= HISTORY_COMPACT_AFTER:
         return messages
     kept = messages[starts[-HISTORY_KEEP_TURNS] :]
@@ -110,7 +110,8 @@ def compact(messages: list[ModelMessage]) -> list[ModelMessage]:
     return out
 
 
-def _is_operator_turn(message: ModelMessage) -> bool:
+def is_operator_turn(message: ModelMessage) -> bool:
+    """True for the message that opens a turn: what the operator (or the window's clock) sent."""
     return isinstance(message, ModelRequest) and isinstance(message.parts[0], UserPromptPart)
 
 
