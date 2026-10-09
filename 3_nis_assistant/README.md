@@ -337,7 +337,9 @@ only fitted it to the cases.
 
 | File | What it is |
 |---|---|
-| `nis_assistant/tools.py` | The tools: everything the model can ask for, one function each, with the go-ahead rule, the refusals and the two guards on a reply. The place to look up or add a tool. |
+| `nis_assistant/microscope.py` | The microscope as the assistant holds it: the engine, the state reading sent with every message, and what the conversation remembers between tool calls (the checked plans, the schedules, where the stage was when you last wrote). |
+| `nis_assistant/tools.py` | The tools: everything the model can ask for, one function each, with the go-ahead rule and the refusals. The place to look up or add a tool. |
+| `nis_assistant/guards.py` | The two guards on a reply: an empty reply, and a reply that claims to have acted in a turn that called no tool, each go back to the model once. |
 | `nis_assistant/instructions.py` | The prose the model reads: its instructions, the advice given with a refusal, and the setup steps it passes on. |
 | `nis_assistant/plans.py` | The plan format, plan to useq sequence, and the plan summary. |
 | `nis_assistant/images.py` | One snap, its statistics, and the binned PNG for the model. |
@@ -350,6 +352,7 @@ only fitted it to the cases.
 | `nis_assistant/settings.py` | Every constant: the provider presets, the coordinate choices, go-ahead distances, memory sizes, window defaults. |
 | `nis_assistant/window.py` | The chat window (`nis-assistant`), with the Model panel from `panel.py`. |
 | `tests/evals.py` | The evaluation with a real model; `eval_cases.json` and `eval_cases_holdout.json`. |
+| `tests/scripted.py` | The scripted model the offline tests drive the assistant with, in place of a real one. |
 | `docs/tutorial.md` | The walk-through of a first session. |
 
 MIT license. Thom de Hoog, Center for Microscopy and Image Analysis (ZMB),

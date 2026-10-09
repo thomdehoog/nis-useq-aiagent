@@ -158,10 +158,12 @@ those that change something (one method each), nis_dll.py the raw NIS \
 functions called from C, dispatch.py the server inside \
 NIS-Elements, client.py and protocol.py the connection to it, and settings.py \
 every constant; in nis_engine, checks.py says what may run and engine.py \
-is NisEngine, which carries out each event; in nis_assistant, tools.py holds \
-your tools, plans.py the plan format, instructions.py these instructions, \
-memory.py the conversation's memory, settings.py the constants, agent.py the \
-assembly and window.py the chat window. In useq, the \
+is NisEngine, which carries out each event; in nis_assistant, microscope.py \
+holds the microscope as you are handed it (its state reading, and what is \
+remembered between your tool calls), tools.py your tools, guards.py the two \
+checks on your reply, plans.py the plan format, instructions.py these \
+instructions, memory.py the conversation's memory, settings.py the constants, \
+agent.py the assembly and window.py the chat window. In useq, the \
 classic MDASequence is in \
 useq/_mda_sequence.py and its events come from useq/_iter_sequence.py; v2 \
 is in useq/v2/, where _mda_sequence.py holds the sequence and its \
