@@ -51,10 +51,13 @@ Version 1.0, 10 October 2026. Applies `agent-lessons.md` (from mesoSPIM-control,
 
 ## WP3. Safety at the bridge (branch `agent/limits`)
 
-- [ ] The go-ahead gate and `guarded_tool` go. The bridge refuses moves outside the stage
-  limits for every client; the assistant reports a refusal and does not retry with another value.
+- [x] The go-ahead gate goes (`needs_go_ahead`, the move anchor, the plan-turn check): a call
+  within the limits runs at once, so multi-step tasks run through; one outside them is refused
+  with the limit, the range or the options. NIS refuses moves beyond its stage limits for every
+  client; the assistant reports a refusal and does not retry with another value. `guarded_tool`
+  stays, since it now only handles Cancel and turns errors into refusals. Done on `agent/lean`.
 
-## WP4. One registry (branch `agent/registry`)
+## WP4. One registry (branch `agent/registry`; after the bench test)
 
 - [ ] The assistant's tools are generated from the bridge's `COMMANDS` and readers, each with a
   factual description and a schema; refusals list the instrument's options. The hand-written
@@ -62,7 +65,7 @@ Version 1.0, 10 October 2026. Applies `agent-lessons.md` (from mesoSPIM-control,
 
 ## WP5. A short manual (with WP2)
 
-- [ ] `instructions.py` (233 lines) becomes about 30: who the assistant serves, units and axes,
+- [x] `instructions.py` (233 lines) becomes about 30 (now 36, on `agent/lean`): who the assistant serves, units and axes,
   tool results and the state are data, nothing reported that no tool shows, and the rule for
   unclear requests: suggest what you would do and ask before doing it; if you don't know, ask.
 
