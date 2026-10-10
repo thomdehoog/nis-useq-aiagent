@@ -26,6 +26,12 @@ PROVIDERS: dict[str, dict[str, Any]] = {
         "key_env_also": "GOOGLE_API_KEY",  # the older name, still honoured
         "vision": True,
     },
+    "Anthropic": {
+        "kind": "anthropic",
+        "model": "claude-haiku-5-5",
+        "key_env": "ANTHROPIC_API_KEY",
+        "vision": True,
+    },
     "OpenAI": {
         "kind": "openai",
         "model": "gpt-5-mini",
@@ -42,7 +48,7 @@ PROVIDERS: dict[str, dict[str, Any]] = {
 DEFAULT_PROVIDER = "Gemini"
 MODEL = "google:gemini-3.5-flash-lite"  # the model when no endpoint is chosen (tests, evals)
 # The short names Pydantic AI uses in a "provider:model" string, by provider preset.
-PREFIXES = {"google": "Gemini", "google-gla": "Gemini", "openai": "OpenAI"}
+PREFIXES = {"google": "Gemini", "google-gla": "Gemini", "anthropic": "Anthropic", "openai": "OpenAI"}
 # Sampling and retries for every model, cloud or local. An assistant that drives an
 # instrument wants the most likely tool call, not a creative one, so the temperature
 # is 0.
@@ -52,6 +58,18 @@ MODEL_SETTINGS: dict[str, dict[str, Any]] = {
     # max_tokens: room for a full acquisition plan. parallel_tool_calls False: one
     # action at a time, so each is seen before the next.
     "google": {"temperature": TEMPERATURE, "max_tokens": 16000, "parallel_tool_calls": False},
+    # Anthropic: no temperature (claude-haiku-5-5 refuses one), and prompt caching. The tool
+    # definitions and the instructions are cached for an hour, as they never change and an
+    # operator may pause longer than five minutes; the growing history for five minutes, as its
+    # new part is written on every request. Three of Anthropic's four breakpoints, the hour
+    # first, as the API requires. A request then pays the full price for its new part only.
+    "anthropic": {
+        "max_tokens": 16000,
+        "parallel_tool_calls": False,
+        "anthropic_cache_tool_definitions": "1h",
+        "anthropic_cache_instructions": "1h",
+        "anthropic_cache": "5m",
+    },
     "openai": {"temperature": TEMPERATURE, "parallel_tool_calls": False},
     "openai-compatible": {"temperature": TEMPERATURE},  # small servers reject the parallel flag
 }

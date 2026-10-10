@@ -95,14 +95,20 @@ amount; the provider's pricing page says how much.
 | Provider | Default model | Key from |
 |---|---|---|
 | Gemini | `gemini-3.5-flash-lite` (generous free tier) | [aistudio.google.com](https://aistudio.google.com) |
+| Anthropic | `claude-haiku-5-5` | [console.anthropic.com](https://console.anthropic.com) |
 | OpenAI | `gpt-5-mini` | [platform.openai.com](https://platform.openai.com) |
 | OpenAI-style server | `gemma4:31b` at `http://localhost:11434/v1` | none, unless the server asks |
 
 Press *Use this model*; the conversation so far is kept. A key can also come
-from the environment (`GEMINI_API_KEY`, `OPENAI_API_KEY`): the panel then says
-so, and the field can stay empty. `--model openai:gpt-5-mini` on the command
-line starts with that choice. OpenAI (and an OpenAI-style server) needs its
-library: `pip install -e ".[openai]"`.
+from the environment (`GEMINI_API_KEY`, `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`):
+the panel then says so, and the field can stay empty. `--model openai:gpt-5-mini`
+on the command line starts with that choice. Anthropic and OpenAI (and an
+OpenAI-style server) need their library: `pip install -e ".[anthropic]"` or
+`pip install -e ".[openai]"`.
+
+On Anthropic the requests use prompt caching: the instructions and the tool
+definitions are cached for an hour, the conversation for five minutes, so each
+request pays the full price only for what is new.
 
 An **OpenAI-style server** is anything that speaks the OpenAI chat API: Ollama,
 vLLM, LM Studio, or a gateway at your institute. Tick *Can see images* when its

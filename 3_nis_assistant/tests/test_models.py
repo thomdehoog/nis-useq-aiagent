@@ -128,3 +128,55 @@ def test_a_server_child_is_started_and_stopped(tmp_path):
     finally:
         server.stop()
     assert server.ready() is False
+
+
+def test_an_anthropic_request_is_cached_and_carries_no_temperature():
+    """On Anthropic the tool definitions and the instructions are cached for an hour and the
+    history for five minutes: three of the four breakpoints, the hour first, as the API asks.
+    claude-haiku-5-5 refuses a temperature. The request pydantic-ai sends is read off the wire."""
+    import json
+
+    import httpx2 as httpx  # the Anthropic SDK takes its own fork of httpx
+    from anthropic import AsyncAnthropic
+    from pydantic_ai import Agent, Tool
+    from pydantic_ai.models.anthropic import AnthropicModel
+    from pydantic_ai.providers.anthropic import AnthropicProvider
+
+    bodies = []
+
+    def answer(request):
+        bodies.append(json.loads(request.content))
+        return httpx.Response(200, json={
+            "id": "m", "type": "message", "role": "assistant", "model": "claude-haiku-5-5",
+            "content": [{"type": "text", "text": "ok"}], "stop_reason": "end_turn",
+            "stop_sequence": None, "usage": {"input_tokens": 10, "output_tokens": 1}})
+
+    endpoint = Endpoint.from_preset("Anthropic", api_key="k")
+    client = AsyncAnthropic(api_key="k", http_client=httpx.AsyncClient(transport=httpx.MockTransport(answer)))
+    model = AnthropicModel(endpoint.model, provider=AnthropicProvider(anthropic_client=client))
+
+    def first(a: int) -> str:
+        return "1"
+
+    def second(b: int) -> str:
+        return "2"
+
+    agent = Agent(model, instructions="the instructions", tools=[Tool(first), Tool(second)],
+                  model_settings=endpoint.settings)
+    agent.run_sync("turn two", message_history=agent.run_sync("turn one").all_messages())
+    assert len(bodies) == 2
+    for body in bodies:
+        assert body["cache_control"] == {"type": "ephemeral", "ttl": "5m"}
+        assert [t.get("cache_control") for t in body["tools"]] == [None, {"type": "ephemeral", "ttl": "1h"}]
+        assert body["system"][-1]["cache_control"] == {"type": "ephemeral", "ttl": "1h"}
+        assert "temperature" not in body
+    for provider in ("Gemini", "OpenAI", "OpenAI-style server"):
+        assert not any(key.startswith("anthropic_") for key in Endpoint.from_preset(provider, api_key="k").settings)
+
+
+def test_the_anthropic_preset_and_its_prefix(monkeypatch):
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "from-env")
+    endpoint = Endpoint.from_name("anthropic:claude-haiku-5-5")
+    assert (endpoint.provider, endpoint.kind, endpoint.model) == ("Anthropic", "anthropic", "claude-haiku-5-5")
+    assert endpoint.api_key == "from-env" and endpoint.vision
+    assert type(models.build_model(endpoint)).__name__ == "AnthropicModel"

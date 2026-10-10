@@ -116,6 +116,11 @@ def build_model(endpoint: Endpoint) -> Any:
         from pydantic_ai.providers.google import GoogleProvider
 
         return GoogleModel(endpoint.model, provider=GoogleProvider(api_key=endpoint.api_key))
+    if endpoint.kind == "anthropic":
+        from pydantic_ai.models.anthropic import AnthropicModel
+        from pydantic_ai.providers.anthropic import AnthropicProvider
+
+        return AnthropicModel(endpoint.model, provider=AnthropicProvider(api_key=endpoint.api_key))
     # OpenAI itself, and any OpenAI-compatible server; a local server needs no key.
     from pydantic_ai.models.openai import OpenAIChatModel
     from pydantic_ai.providers.openai import OpenAIProvider

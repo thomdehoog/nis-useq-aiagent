@@ -21,9 +21,10 @@ requires-python = ">=3.10"
 dependencies = ["nis-engine", "pydantic-ai-slim[google]>=2.50", "PySide6>=6.7", "pillow", "pyyaml"]
 
 [project.optional-dependencies]
+anthropic = ["pydantic-ai-slim[anthropic]>=2.50"]  # Claude, with prompt caching
 openai = ["pydantic-ai-slim[openai]>=2.50"]  # OpenAI, and any OpenAI-style server
 local = ["llama-cpp-python[server]"]  # serve a .gguf model file from this computer
-test = ["pytest", "pytest-qt", "ruff", "pydantic-ai-slim[openai]>=2.50"]  # the tests build an OpenAI model too
+test = ["pytest", "pytest-qt", "ruff", "pydantic-ai-slim[openai,anthropic]>=2.50"]  # the tests build an OpenAI model too
 
 [project.scripts]
 nis-assistant = "nis_assistant.window:main"
