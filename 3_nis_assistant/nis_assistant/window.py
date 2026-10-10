@@ -7,8 +7,8 @@ at the top of the window chooses one (a cloud model with its API key, a server y
 run yourself, or a model file on this computer). Left: the conversation, the buttons,
 and the stage limits in force, which the operator can narrow. Right: the latest
 image, the microscope status, and a red banner for anything refused. The divider
-between the two halves can be dragged. A clock in the window fires the schedules
-the assistant sets ("look every three minutes") as turns of their own.
+between the two halves can be dragged. The status line shows the session's size;
+past the model's ceiling no message is sent until Clear.
 
 Author: Thom de Hoog, Center for Microscopy and Image Analysis (ZMB), University of Zurich
         thom.dehoog@zmb.uzh.ch . thomdehoog@gmail.com
@@ -54,14 +54,19 @@ from PySide6.QtWidgets import (
 from . import models
 from .agent import Assistant
 from .images import as_png
-from .instructions import SCHEDULED_TURN
-from .local import CONTEXT_TOO_SMALL_HELP, CONTEXT_TOO_SMALL_SIGNS
 from .panel import AxesBox, ModelPanel, PreferencesBox
-from .settings import DEFAULT_PROVIDER, FONT_POINTS, OUTPUT_FOLDER
+from .settings import (
+    CONTEXT_FULL,
+    CONTEXT_TOO_SMALL_HELP,
+    CONTEXT_TOO_SMALL_SIGNS,
+    DEFAULT_PROVIDER,
+    FONT_POINTS,
+    OUTPUT_FOLDER,
+)
 from .tools import Microscope, bridge_steps
 
 # The colour of each voice in the transcript.
-COLOURS = {"you": "#1a5fb4", "assistant": "#26a269", "system": "#b00020", "scheduled": "#8a5a00"}
+COLOURS = {"you": "#1a5fb4", "assistant": "#26a269", "system": "#b00020"}
 
 WELCOME = (
     "Hello. I can move the stage, change the optical settings, focus, look at the "
@@ -155,10 +160,6 @@ class AssistantWindow(QMainWindow):
             self.preferences,
             axes=self.axes_box,
         )
-        # The window's clock: every second, a schedule that fell due runs as a turn.
-        self._tick = QTimer(self)
-        self._tick.timeout.connect(self.fire_due_schedule)
-        self._tick.start(1000)
 
         left = QVBoxLayout()
         left.addWidget(self.panel)
@@ -282,7 +283,6 @@ class AssistantWindow(QMainWindow):
             )
             event.ignore()
             return
-        self.panel.stop_servers()  # a model file served by this window ends with it
         event.accept()
 
     # -- one turn of the conversation ----------------------------------------------
@@ -291,36 +291,22 @@ class AssistantWindow(QMainWindow):
         text = self.prompt.text().strip()
         if not text or self.busy:
             return
+        if self.assistant.size_note() == CONTEXT_FULL:
+            self._say("system", CONTEXT_FULL)
+            return
         self.prompt.clear()
         self.warning.hide()
         self._say("you", text)
         self._in_background(lambda: self.assistant.send(text))
 
-    def fire_due_schedule(self) -> None:
-        """The window's clock calls this every second. When no turn is running and a
-        schedule is due, its instruction runs as a turn of its own, marked as
-        scheduled in the transcript; while a turn runs it waits for the next tick.
-        """
-        if self.busy:
-            return
-        item = self.assistant.microscope.scheduler.pop_due()
-        if item is None:
-            return
-        text = SCHEDULED_TURN.format(name=item["name"], instruction=item["instruction"])
-        self.warning.hide()
-        self._say("scheduled", text)
-        self._in_background(lambda: self.assistant.send(text, scheduled=True), item["name"])
-
     @property
     def busy(self) -> bool:
         return not self.send_button.isEnabled()
 
-    def _in_background(self, turn: Callable[[], str], schedule: str | None = None) -> None:
+    def _in_background(self, turn: Callable[[], str]) -> None:
         """Run one assistant turn off the window's thread, so the window stays responsive.
 
-        A turn that fails ends with its error in the transcript. When it was a
-        scheduled turn, that schedule is cancelled too, or a schedule with a
-        dead model would repeat the same error every period.
+        A turn that fails ends with its error in the transcript.
         """
         self._set_busy(True)
 
@@ -328,15 +314,14 @@ class AssistantWindow(QMainWindow):
             try:
                 self.signals.reply.emit(turn())
             except Exception as exc:
-                text = _explain(exc, self.assistant.endpoint)
-                if schedule and self.assistant.microscope.scheduler.cancel(schedule):
-                    text += f" The schedule '{schedule}' is cancelled."
-                self.signals.error.emit(text)
+                self.signals.error.emit(_explain(exc, self.assistant.endpoint))
 
         threading.Thread(target=work, daemon=True).start()
 
     def _show_reply(self, text: str) -> None:
         self._say("assistant", text)
+        if note := self.assistant.size_note():
+            self._say("system", note)
         self._set_busy(False)
         self._refresh_status()
 
@@ -358,13 +343,12 @@ class AssistantWindow(QMainWindow):
         self._say("system", "Cancelled. The assistant stops after its current step.")
 
     def stop_microscope(self) -> None:
-        """Cancel the assistant, end a running acquisition after the current image, and
-        drop every schedule."""
+        """Cancel the assistant and end a running acquisition after the current image."""
         self.assistant.microscope.stop()
         self._say(
             "system",
             "Stop: the assistant is cancelled, a running acquisition ends after the "
-            "current image, and every schedule is cancelled. A single stage move already "
+            "current image. A single stage move already "
             "under way finishes; use the joystick or NIS-Elements to stop it sooner.",
         )
 
@@ -466,7 +450,8 @@ class AssistantWindow(QMainWindow):
         p = state["position_um"]
         self.status.setText(
             f"Stage x {p['x']:.1f}, y {p['y']:.1f}, z {p['z']:.1f} um  ·  "
-            f"objective {state['objective']['name']}  ·  PFS {state['pfs']}"
+            f"objective {state['objective']['name']}  ·  PFS {state['pfs']}  ·  "
+            f"session {self.assistant.tokens:,} tokens"
         )
 
     # -- small helpers ------------------------------------------------------------------
@@ -556,7 +541,7 @@ def main(argv: list[str] | None = None) -> int:
         # with the first message once the bridge is running.
         engine = NisEngine(HOST, args.port, connect=False)
         nis_starting = args.start_nis and _start_nis()
-    microscope = Microscope(engine, output_dir=Path(args.output), challenge_no_tool=True)
+    microscope = Microscope(engine, output_dir=Path(args.output))
     endpoint = (
         models.Endpoint.from_name(args.model)
         if args.model

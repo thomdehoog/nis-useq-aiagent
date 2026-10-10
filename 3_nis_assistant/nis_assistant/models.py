@@ -8,14 +8,14 @@ log, or the conversation. An empty key field falls back to the environment
 variable named in the preset, so `set GEMINI_API_KEY=...` before starting
 still works.
 
-Three kinds of connection exist:
+Four kinds of connection exist:
 
 - ``google``: Gemini, through Google's API.
+- ``anthropic``: Claude, through Anthropic's API, with prompt caching.
 - ``openai``: OpenAI's own API.
 - ``openai-compatible``: any server that speaks the OpenAI chat API. That is
-  Ollama, vLLM, LM Studio, a company gateway, or a model file this window serves
-  itself (see ``local.py``). Such a server needs a base URL, and a key only if
-  it asks for one.
+  Ollama, vLLM, LM Studio or a company gateway. Such a server needs a base URL,
+  and a key only if it asks for one.
 
 Author: Thom de Hoog, Center for Microscopy and Image Analysis (ZMB), University of Zurich
         thom.dehoog@zmb.uzh.ch . thomdehoog@gmail.com

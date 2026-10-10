@@ -70,15 +70,15 @@ which. The **Model** line at the top of the window folds open.
 The simplest start is Gemini: get a free API key at
 [aistudio.google.com](https://aistudio.google.com), paste it into the panel,
 and press *Use this model*. The key stays in memory for this session and is
-never written to disk. OpenAI works the same way with a key from
+never written to disk. Claude and OpenAI work the same way, with a key from
+[console.anthropic.com](https://console.anthropic.com) or
 [platform.openai.com](https://platform.openai.com). Each message costs a
 fraction of a cent; the provider's pricing page says how much.
 
 If your institute does not allow cloud models, or you want no internet at
-all, the README describes two other choices: a server you run yourself
-(Ollama and the like), and a model file on this computer. Small models make
-more mistakes with the tools, so start with a cloud model to learn what good
-behaviour looks like.
+all, the README describes a server you run yourself (Ollama and the like).
+Small models make more mistakes with the tools, so start with a cloud model to
+learn what good behaviour looks like.
 
 ## Step 3: a first conversation
 
@@ -194,14 +194,9 @@ get an answer from the source, with the file and line. For your own
 reading, [docs/useq.md](../../docs/useq.md) documents the classic API and
 v2 with examples.
 
-**Schedules.** *Look every three minutes and tell me whether the sample
-drifts.* *In ten minutes switch the PFS off.* *At 15:00 start the plan.* The
-assistant sets a named schedule, and the window sends the instruction as a
-message of its own when due, marked `[scheduled 'name']` in the chat. A
-scheduled turn goes through the same tools and checks as anything you type;
-an acquisition or long move in it still asks in the chat and waits for you.
-*Stop microscope* cancels every schedule. At most ten schedules, none more
-often than every five seconds.
+**Time courses.** *Take 10 time points, one every 3 minutes, here* is an
+acquisition with time points: the acquisition keeps the time. The assistant
+has no clock or timer of its own.
 
 ## The eyes
 
@@ -253,8 +248,7 @@ it can plan within them.
 - **Cancel prompt** stops the assistant in the middle of a turn: every
   further tool call in that turn does nothing.
 - **Stop microscope** also ends a running acquisition after the image being
-  taken, and cancels every schedule. A single stage move that NIS has
-  already started runs to its end; the joystick or NIS stops it sooner.
+  taken. A single stage move that NIS has already started runs to its end; the joystick or NIS stops it sooner.
 - **Clear context** forgets the conversation (and the eyes' images).
 - **Show tool calls** lists each tool call in the chat as it happens: which
   tool, with which arguments, and what came back. Switch it on for your
@@ -268,7 +262,7 @@ detail:
 
 1. You type a message. The window appends the current *microscope state* to
    it: position, objective, configuration, PFS, the limits in force, the
-   clock, the schedules. The model always reasons from a fresh reading, not
+   clock. The model always reasons from a fresh reading, not
    from memory.
 2. The model reads its instructions (the same every time), the conversation
    so far, and your message, and decides: answer in words, ask you a
@@ -281,13 +275,10 @@ detail:
    with a summary of what it would do.
 4. The model reads the answer and either calls another tool, or writes its
    reply to you.
-5. Two guards look at the reply before you see it. An empty reply goes back
-   to the model once. A reply that claims to have done something in a turn
-   that called no tool also goes back once, with that fact: the model then
-   acts, or its original reply is shown.
+5. An empty reply goes back to the model once before you see it.
 
-After 15 of your messages, the assistant forgets the oldest ones and keeps
-the newest 10, so long sessions stay quick.
+The conversation is kept whole until *Clear context*. The status line shows
+its size; past the model's ceiling, clear it to go on.
 
 ## Good habits
 
@@ -322,8 +313,8 @@ cannot see without taking an image: the state it reads has no picture in it.
   invalid value. The assistant's reply says which; the banner is there so
   you see it even if the reply is unclear.
 - **The model's reply is empty or odd.** Press *Cancel prompt*, then try
-  again or switch model. Small local models in particular sometimes answer a
-  refusal with nothing; the guards above catch most of this.
+  again or switch model. A model sometimes answers a refusal with nothing; the
+  check above catches most of this.
 - **An API error.** The key is wrong, the quota is spent, or the internet is
   down. The message comes through in red; fix the key in the panel.
 

@@ -27,7 +27,7 @@ def case(case_id, path=evals.CASES):
 def run(case_id, *steps, vision="A plain grey field."):
     """Run a case with scripted models: one answers, the other looks at the picture."""
     model, eyes = Script(*steps).model(), Script(vision).model()
-    return evals.run_case(case(case_id), model, 0, eyes, challenge_no_tool=False)
+    return evals.run_case(case(case_id), model, 0, eyes)
 
 
 def test_the_case_files_are_sound_and_the_holdout_mirrors_the_cases():

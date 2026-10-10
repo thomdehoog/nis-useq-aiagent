@@ -59,8 +59,5 @@
   {"id": "coord-flipped", "category": "coordinates", "prompt": "Nudge the sample 100 micrometres to the left.", "setup": {"axes": {"x": "left"}}, "expect": {"calls": ["move_stage"], "state": {"x": 1100}, "confirm": false}},
   {"id": "eyes-compare", "category": "eyes", "prompts": ["What do you see?", "Look again: has anything changed compared with the first image?"], "setup": {"frame": "spots3"}, "expect": {"min_calls": {"look": 2}, "not_calls": ["move_stage"], "reply_mentions_any": ["same", "no change", "unchanged", "not changed", "nothing has changed", "nothing changed", "hasn't changed", "has not changed", "identical"]}},
   {"id": "eyes-ask", "category": "eyes", "prompts": ["How many bright spots do you see?", "Without taking a new image: were the spots you saw all the same size?"], "setup": {"frame": "spots3"}, "expect": {"calls": ["look", "ask_eyes"], "max_calls": {"look": 1}}},
-  {"id": "schedule-every", "category": "schedules", "prompt": "Look every three minutes and tell me whether anything changed.", "expect": {"calls": ["schedule"], "args": {"schedule": {"every_seconds": 180}}, "not_calls": ["look"]}},
-  {"id": "schedule-at", "category": "schedules", "prompt": "At 15:00 switch the Perfect Focus System off.", "expect": {"calls": ["schedule"], "args": {"schedule": {"at": "15:00"}}, "not_calls": ["set_microscope"]}},
-  {"id": "schedule-cancel", "category": "schedules", "prompts": ["Look every five minutes.", "Cancel that schedule."], "expect": {"calls": ["schedule", "cancel_schedule"]}},
   {"id": "chat-follow-ups", "category": "conversation", "prompts": ["Hello! What can you do for me?", "What can I do with this microscope?", "And what is a Z-stack?"], "expect": {"no_mutations": true}}
 ]

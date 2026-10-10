@@ -10,9 +10,8 @@ turn, after the operator has replied. That rule is in this code, not in the
 model's instructions.
 
 ``TOOLS`` lists them; ``agent.py`` registers them on the Agent. This is the
-place to look up or add a tool. At the end are two guards on the model's reply
-itself (``REPLY_GUARDS``): an empty reply, and a reply that claims to have done
-something in a turn that called no tool, each go back to the model once.
+place to look up or add a tool. At the end is a guard on the model's reply
+itself (``REPLY_GUARDS``): an empty reply goes back to the model once.
 
 Author: Thom de Hoog, Center for Microscopy and Image Analysis (ZMB), University of Zurich
         thom.dehoog@zmb.uzh.ch . thomdehoog@gmail.com
@@ -47,7 +46,6 @@ from nis_bridge.settings import FOCUS_TIMEOUT_S
 from nis_engine import NisEngine
 from pydantic import BaseModel
 from pydantic_ai import ModelRetry, RunContext
-from pydantic_ai.messages import ToolCallPart
 from pymmcore_plus.mda import MDARunner
 
 from .eyes import Eyes
@@ -55,7 +53,6 @@ from .images import image_statistics, snap
 from .instructions import (
     BRIDGE_MACRO_MISSING,
     BRIDGE_STEPS,
-    CALLED_NOTHING_CHALLENGE,
     CANCELLED_ADVICE,
     EMPTY_REPLY_CHALLENGE,
     EMPTY_REPLY_FALLBACK,
@@ -67,9 +64,7 @@ from .instructions import (
     OPTIONS_ADVICE,
     START_ADVICE,
 )
-from .memory import _is_operator_turn
 from .plans import AcquisitionPlan, PositionSpec, count_images, describe, plan_to_sequence
-from .schedules import Scheduler
 from .settings import (
     CLOCK_FORMAT,
     CONFIRM_XY_UM,
@@ -106,10 +101,6 @@ class Microscope:
     _eyes: Eyes | None = field(default=None, repr=False)  # see the ``eyes`` property
     # What a positive move on each axis does to the sample in the image (settings.AXIS_CHOICES).
     axes: dict[str, str] = field(default_factory=lambda: dict(DEFAULT_AXES))
-    scheduler: Scheduler = field(default_factory=Scheduler)  # what is to happen later
-    # Whether a reply that called no tool is challenged once (see the guards below).
-    # Off for scripted tests, on in the window.
-    challenge_no_tool: bool = False
     plans: dict[str, useq.MDASequence] = field(default_factory=dict)  # plan id -> sequence
     planned_in: dict[str, int] = field(default_factory=dict)  # plan id -> turn it was last shown
     runner: MDARunner | None = None  # set while an acquisition runs, so it can be stopped
@@ -143,7 +134,6 @@ class Microscope:
             "stage_limits_um": self.engine.limits(),
             "pfs": self.client.request("get_pfs")["meaning"],
             "clock": time.strftime(CLOCK_FORMAT),
-            "schedules": self.scheduler.listing(),
         }
 
     @property
@@ -163,14 +153,12 @@ class Microscope:
         self._eyes, self.vision_model = eyes, eyes.model
 
     def stop(self) -> None:
-        """Cancel the assistant's turn, end a running acquisition, and drop every schedule.
+        """Cancel the assistant's turn and end a running acquisition.
 
         A single stage move that NIS has already started runs to its end; the
-        joystick or NIS-Elements itself stops it sooner. The schedules go too,
-        or one could start the microscope again a moment after Stop was pressed.
+        joystick or NIS-Elements itself stops it sooner.
         """
         self.cancel.set()
-        self.scheduler.clear()
         if self.runner is not None:
             self.runner.cancel()
 
@@ -717,53 +705,6 @@ async def describe_image(
     return {"statistics": stats, "description": answer}
 
 
-# -- schedules ---------------------------------------------------------------------------
-
-
-@guarded_tool
-def schedule(
-    ctx: RunContext[Microscope],
-    name: str,
-    instruction: str,
-    every_seconds: int | None = None,
-    in_seconds: int | None = None,
-    at: str | None = None,
-) -> dict[str, Any]:
-    """Have an instruction carried out later, as if the operator typed it then:
-    every_seconds repeats it, in_seconds does it once after a delay, at does it
-    once at a clock time. Exactly one of the three is given. Returns the
-    schedule as set and every schedule now in place.
-
-    Args:
-        name: a short name, to cancel it by.
-        instruction: what to do then, in the operator's words: "look and tell me
-            whether anything changed".
-        every_seconds: repeat this often; every three minutes is 180.
-        in_seconds: once, this long from now; in ten minutes is 600.
-        at: once, at this clock time, 24-hour "HH:MM".
-    """
-    try:
-        added = ctx.deps.scheduler.add(name, instruction, every_seconds, in_seconds, at)
-    except ValueError as exc:
-        return refusal(ctx, "invalid", str(exc), FAILURE_ADVICE)
-    return {"scheduled": added, "schedules": ctx.deps.scheduler.listing()}
-
-
-@guarded_tool
-def cancel_schedule(ctx: RunContext[Microscope], name: str) -> dict[str, Any]:
-    """Cancel a schedule by its name, or every one with "all".
-
-    Args:
-        name: the schedule's name, or "all".
-    """
-    cancelled = ctx.deps.scheduler.cancel(name)
-    if not cancelled:
-        names = [item["name"] for item in ctx.deps.scheduler.listing()]
-        message = f"no schedule named {name!r}"
-        return refusal(ctx, "invalid", message, OPTIONS_ADVICE, configured_options=names)
-    return {"cancelled": cancelled, "schedules": ctx.deps.scheduler.listing()}
-
-
 @guarded_tool
 def search_source(ctx: RunContext[Microscope], text: str) -> dict[str, Any]:
     """Search the source code of the three parts and of useq-schema (v2 included)
@@ -852,8 +793,6 @@ TOOLS = (
     plan_acquisition,
     plan_useq_sequence,
     run_acquisition,
-    schedule,
-    cancel_schedule,
     search_source,
     read_source,
 )
@@ -879,38 +818,4 @@ def hand_back_an_empty_reply(ctx: RunContext[Microscope], output: str) -> str:
     raise ModelRetry(EMPTY_REPLY_CHALLENGE)
 
 
-GUARD_WORD = re.compile(r"^\s*SAME\b[\s.:!-]*")  # the one word CALLED_NOTHING_CHALLENGE asks for
-
-
-def challenge_a_reply_that_called_nothing(ctx: RunContext[Microscope], output: str) -> str:
-    """A small model answers "stop" with "I have stopped the microscope." and no call.
-
-    The one thing known without reading the reply is that the turn called nothing,
-    so such a reply goes back to the model once with that fact. If it then calls
-    a tool, the turn goes on and its new reply reports what happened. If it does
-    not, the operator gets the first reply word for word: asked to repeat itself
-    a small model writes something shorter and worse, so it is asked for one word
-    instead. Costs one short request on a turn that sends no command. Off unless
-    the microscope's ``challenge_no_tool`` is set (the window sets it).
-    """
-    if not ctx.deps.challenge_no_tool or ctx.deps.cancel.is_set():
-        return output
-    first = ctx.deps.__dict__.setdefault("_first_reply", {})
-    starts = [i for i, m in enumerate(ctx.messages) if _is_operator_turn(m)]
-    turn = ctx.messages[starts[-1] :] if starts else ctx.messages
-    called = any(isinstance(part, ToolCallPart) for m in turn for part in getattr(m, "parts", []))
-    if not called and ctx.run_id in first:
-        return first.pop(ctx.run_id)  # challenged, and still nothing called: as it was
-    first.pop(ctx.run_id, None)
-    # "SAME" and the challenge are for this guard, never for the operator: a reply
-    # that opens with them, or holds nothing else, is asked for again.
-    reply = GUARD_WORD.sub("", output, count=1).strip()
-    if not reply or CALLED_NOTHING_CHALLENGE[:40] in reply:
-        raise ModelRetry(EMPTY_REPLY_CHALLENGE)
-    if called:
-        return reply
-    first[ctx.run_id] = reply
-    raise ModelRetry(CALLED_NOTHING_CHALLENGE)
-
-
-REPLY_GUARDS = (hand_back_an_empty_reply, challenge_a_reply_that_called_nothing)
+REPLY_GUARDS = (hand_back_an_empty_reply,)

@@ -12,7 +12,7 @@ import pytest
 
 pytest.importorskip("pydantic_ai")
 
-from nis_assistant import local, models
+from nis_assistant import models
 from nis_assistant.models import Endpoint
 
 
@@ -72,62 +72,6 @@ def test_the_advice_names_the_variable():
 
 
 # -- model files on this computer -----------------------------------------------------------
-
-
-def test_model_files_are_listed_without_their_projectors(tmp_path):
-    for name in (
-        "gemma-4-12b-it-Q4.gguf",
-        "mmproj-gemma-4-12b-F16.gguf",
-        "notes.txt",
-        "qwen3.5-8b.gguf",
-    ):
-        (tmp_path / name).write_bytes(b"")
-    assert local.list_models(tmp_path) == ["gemma-4-12b-it-Q4.gguf", "qwen3.5-8b.gguf"]
-    assert local.list_models(tmp_path / "missing") == []
-
-
-def test_a_projector_is_matched_by_family(tmp_path):
-    for name in ("gemma-4-12b-it-Q4.gguf", "mmproj-gemma-4-12b-F16.gguf", "mmproj-qwen3.5-8b.gguf"):
-        (tmp_path / name).write_bytes(b"")
-    assert local.projector_for(tmp_path, "gemma-4-12b-it-Q4.gguf").endswith(
-        "mmproj-gemma-4-12b-F16.gguf"
-    )
-    assert local.projector_for(tmp_path, "llama-3-8b.gguf") is None
-
-
-def test_the_server_command_names_the_file_and_the_context(monkeypatch):
-    import sys
-    import types
-
-    monkeypatch.setitem(sys.modules, "llama_cpp", types.ModuleType("llama_cpp"))
-    argv = local.server_command("C:/models/gemma-4.gguf", 5005, projector="C:/models/mmproj.gguf")
-    assert "--model" in argv and "C:/models/gemma-4.gguf" in argv and "5005" in argv
-    assert argv[argv.index("--n_ctx") + 1] == str(local.CONTEXT_TOKENS)
-    assert argv[argv.index("--clip_model_path") + 1] == "C:/models/mmproj.gguf"
-
-
-def test_a_missing_runtime_says_how_to_install_it(monkeypatch):
-    import sys
-
-    monkeypatch.setitem(sys.modules, "llama_cpp", None)  # makes the import fail
-    with pytest.raises(RuntimeError, match="llama-cpp-python"):
-        local.server_command("x.gguf", 1)
-
-
-def test_a_server_child_is_started_and_stopped(tmp_path):
-    import sys
-
-    def command(model_path, port, projector=None, context_tokens=None):
-        return [sys.executable, "-c", "import time; time.sleep(60)"]
-
-    server = local.LocalModelServer(str(tmp_path / "m.gguf"), command=command)
-    assert server.model == "m" and server.base_url.startswith("http://127.0.0.1:")
-    server.start()
-    try:
-        assert server.ready() is False  # the child sleeps; nothing listens on the port
-    finally:
-        server.stop()
-    assert server.ready() is False
 
 
 def test_an_anthropic_request_is_cached_and_carries_no_temperature():

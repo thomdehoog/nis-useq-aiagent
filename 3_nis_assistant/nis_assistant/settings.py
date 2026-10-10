@@ -80,19 +80,6 @@ MODEL_SETTINGS: dict[str, dict[str, Any]] = {
 }
 DEFAULT_MODEL_SETTINGS = MODEL_SETTINGS["google"]  # the settings that go with MODEL
 
-# -- a model file served on this computer (local.py) ------------------------------------
-MODELS_FOLDER = "nis_assistant_models"  # in the home folder, unless another is chosen
-MODEL_SUFFIXES = (".gguf",)
-# The context window the server is started with. llama-cpp-python's own default
-# is 2,048 tokens, less than one request here (the instructions, the tools and
-# the state reading are about 6,000 tokens). 32K holds a request, a good number
-# of turns, tool results and a margin.
-CONTEXT_TOKENS = 32768
-BATCH_TOKENS = 2048  # prompt batches: the long prefix is processed in fewer passes than at 512
-FLASH_ATTENTION = True  # smaller memory and faster attention where the build supports it
-SERVER_POLL_MS = 500  # how often the window asks whether the server is up
-SERVER_START_TIMEOUT_S = 300  # a large file can take minutes to load from a slow disk
-
 # -- the tools -------------------------------------------------------------------------
 # A stage move that travels further than this from where the stage was when the
 # operator last wrote (on any one axis, in um) needs their go-ahead in the chat.
@@ -137,17 +124,27 @@ VISION_FRAMES_KEPT = 8
 VISION_TURNS_KEPT = 40
 
 # -- schedules ---------------------------------------------------------------------------
-# "Look every three minutes", "in ten minutes start the plan": the assistant sets a
-# schedule and the window's clock fires each due instruction as a turn of its own.
-SCHEDULE_MIN_SECONDS = 5  # no schedule fires more often than this
-SCHEDULES_MAX = 10
-CLOCK_FORMAT = "%H:%M:%S"  # how the state, the eyes and the schedules write a time of day
+CLOCK_FORMAT = "%H:%M:%S"  # how the state and the eyes write a time of day
 
-# The conversation is made smaller now and then, between turns (see memory.compact()).
-HISTORY_COMPACT_AFTER = 15  # operator turns before the history is made smaller
-HISTORY_KEEP_TURNS = 10  # turns kept when it is; older ones are forgotten
-HISTORY_FULL_TURNS = 3  # the newest turns keep their state readout and tool results in full
-HISTORY_RESULT_CHARS = 300  # an older tool result is cut to this many characters
+# The conversation is kept whole until Clear, so each request carries the session. The
+# window shows the last request's input tokens, warns above the first number and sends no
+# message above the second. Gemini 3.5 and Haiku 5.5 take a million tokens; Haiku's price
+# per token rises on a request above 100,000, which is where its warning sits. An
+# OpenAI-style server has no known window.
+CONTEXT_TOKENS = {  # provider preset: (warn above, refuse above)
+    "Gemini": (500_000, 900_000),
+    "Anthropic": (100_000, 900_000),
+    "OpenAI": (200_000, 360_000),
+}
+CONTEXT_LARGE = "The session is large: each request costs more. Clear it when the work allows."
+CONTEXT_FULL = "The session is as large as this model takes: Clear it to continue."
+# A server whose context window is smaller than one request answers with one of these.
+CONTEXT_TOO_SMALL_SIGNS = ("exceed_context_size", "exceeds the available context size")
+CONTEXT_TOO_SMALL_HELP = (
+    "The model server's context window is smaller than one request (about 6,000 tokens). "
+    "Give it 16,384 or more: for Ollama, set OLLAMA_CONTEXT_LENGTH=16384 on the server, "
+    "or make a copy of the model with PARAMETER num_ctx 16384."
+)
 
 # -- the window --------------------------------------------------------------------------
 OUTPUT_FOLDER = "nis_assistant_runs"  # in the home folder, when --output is not given

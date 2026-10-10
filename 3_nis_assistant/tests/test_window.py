@@ -21,6 +21,7 @@ from PySide6.QtWidgets import QMessageBox
 from test_agent import Script, moves
 
 from nis_assistant.agent import Assistant
+from nis_assistant.settings import CONTEXT_FULL
 from nis_assistant.tools import Microscope
 from nis_assistant.window import AssistantWindow
 
@@ -70,6 +71,15 @@ def test_a_question_and_its_answer(qtbot, open_window):
 def start(window, text):
     window.prompt.setText(text)
     window.send()
+
+
+def test_a_full_session_sends_nothing_until_clear(qtbot, open_window):
+    window = open_window("Hello.")
+    window.assistant.tokens = 10**6
+    start(window, "hi")
+    assert CONTEXT_FULL in window.transcript.toPlainText() and window.prompt.text() == "hi"
+    window.clear_context()
+    assert window.assistant.tokens == 0
 
 
 def test_a_long_move_is_asked_about_in_the_chat(qtbot, open_window, fake):
@@ -155,22 +165,15 @@ def test_the_model_panel_folds_and_applies_a_choice(qtbot, open_window, monkeypa
     assert "secret" not in window.transcript.toPlainText()
 
 
-def test_a_server_picker_shows_its_address_and_a_file_picker_its_files(
-    qtbot, open_window, tmp_path
-):
+def test_a_server_picker_shows_its_address(qtbot, open_window):
     window = open_window()
     picker = window.panel.vision
-    assert picker.same
+    assert picker.same and window.panel.language.mode.isHidden()  # one type for the language box
     picker.mode.setCurrentText("Cloud")
     picker.provider.setCurrentText("OpenAI-style server")
     assert not picker.base_url.isHidden() and not picker.sees.isHidden()
     picker.sees.setChecked(True)
     assert picker.cloud_endpoint().vision and not picker.cloud_endpoint().needs_key
-    (tmp_path / "tiny-1b.gguf").write_bytes(b"")
-    picker.models_folder = tmp_path
-    picker.mode.setCurrentText("File on this computer")
-    assert picker.local_model.currentText() == "tiny-1b.gguf" and picker.key.isHidden()
-    assert picker.local_path() == tmp_path / "tiny-1b.gguf"
 
 
 def test_the_preferences_change_the_output_folder_and_the_letters(qtbot, open_window, tmp_path):
@@ -192,54 +195,6 @@ def test_the_coordinate_box_tells_the_assistant(qtbot, open_window):
     ask(qtbot, window, "hi")
     told = window.assistant.last_turn[0].instructions
     assert "left is +x and right is -x" in told
-
-
-def test_a_due_schedule_waits_for_a_running_turn(qtbot, open_window, fake):
-    slow = fake.get_position
-
-    def slow_position():  # a slow stage read, so the first turn takes a few seconds
-        time.sleep(2.0)
-        return slow()
-
-    fake.get_position = slow_position
-    window = open_window(("get_status", {}), "Slow status.", "Fired.")
-    scheduler = window.assistant.microscope.scheduler
-    scheduler.add("watch", "hello", every_seconds=60)
-    scheduler.clock = lambda: time.time() + 61
-    start(window, "status")  # a turn is running; the due schedule must wait
-    qtbot.wait(1200)
-    assert "[scheduled" not in window.transcript.toPlainText() and window.busy
-    qtbot.waitUntil(lambda: "Fired." in window.transcript.toPlainText(), timeout=20000)
-    transcript = window.transcript.toPlainText()
-    assert transcript.index("Slow status.") < transcript.index("[scheduled")
-
-
-def test_a_failing_scheduled_turn_cancels_its_schedule(qtbot, open_window):
-    window = open_window()  # an empty script: the model fails on the first call
-    scheduler = window.assistant.microscope.scheduler
-    scheduler.add("watch", "look", every_seconds=60)
-    scheduler.clock = lambda: time.time() + 61
-    qtbot.waitUntil(lambda: "is cancelled" in window.transcript.toPlainText(), timeout=10000)
-    assert scheduler.listing() == [] and "Something went wrong" in window.transcript.toPlainText()
-
-
-def test_a_due_schedule_runs_as_its_own_turn_and_stop_drops_it(qtbot, open_window):
-    set_it = ("schedule", {"name": "watch", "instruction": "status", "every_seconds": 60})
-    window = open_window(set_it, "Every minute.", ("get_status", {}), "Here is the status.")
-    ask(qtbot, window, "status every minute")
-    scheduler = window.assistant.microscope.scheduler
-    assert [s["name"] for s in scheduler.listing()] == ["watch"]
-    scheduler.clock = lambda: time.time() + 61  # a minute passes
-    qtbot.waitUntil(
-        lambda: "[scheduled 'watch'] status" in window.transcript.toPlainText(), timeout=5000
-    )
-    qtbot.waitUntil(lambda: not window.busy, timeout=10000)
-    assert "Here is the status." in window.transcript.toPlainText()
-    window.stop_microscope()
-    assert (
-        scheduler.listing() == []
-        and "every schedule is cancelled" in window.transcript.toPlainText()
-    )
 
 
 def test_the_halves_sit_in_a_splitter(qtbot, open_window):

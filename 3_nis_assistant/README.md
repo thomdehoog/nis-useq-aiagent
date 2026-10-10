@@ -1,8 +1,8 @@
 # nis-assistant
 
 A chat window where you ask for things at the Nikon microscope in your own
-words. A language model (Gemini by default; OpenAI, a server of your own or a
-model file on this computer also work) does them with the microscope and
+words. A language model (Gemini by default; Claude, OpenAI or a server of your
+own also work) does them with the microscope and
 explains what it did. The model never touches the
 microscope directly: it can only call a small set of tools written here, and
 every tool checks what it is asked before acting. Pydantic AI is the Python
@@ -115,14 +115,6 @@ vLLM, LM Studio, or a gateway at your institute. Tick *Can see images* when its
 model can look at pictures. Such a server must allow requests of about 6,000
 tokens; Ollama does not by default (set `OLLAMA_CONTEXT_LENGTH=16384`).
 
-A **file on this computer** (`.gguf`, from Hugging Face) is served by the window
-itself, with no internet at all: `pip install "llama-cpp-python[server]"`, put
-the file in `nis_assistant_models` in your home folder (or choose another folder
-in the panel), pick it and press *Use this model*. A model can see images when
-its projector file (`mmproj` in the name) sits next to it. Small models make
-more mistakes with the tools; the instructions are written for the cloud
-models above, not tuned for small ones.
-
 The **Vision model** box names the model shown camera images; by default it is
 the same one. A separate choice helps when the language model cannot see.
 
@@ -131,7 +123,7 @@ Things to try: *Where is the stage?* · *What do you see?* · *Is it in focus?* 
 *Image a 3 by 3 grid of tiles around here* · *Run the useq sequence in D:\sequences\cells.json* ·
 *Show me the useq sequence for that plan* · *How does the engine move the stage? Show me the code* ·
 *What is new in useq v2?* · *Move the sample a little to the left* · *Look again: has anything
-changed since the first image?* · *Look every three minutes and tell me whether it drifts*
+changed since the first image?* · *Take 10 time points, one every 3 minutes, here*
 
 ## A first conversation, step by step
 
@@ -164,7 +156,7 @@ the full path of `start_bridge.mac` and how to run it, or how to add an
 optical configuration in NIS), read the microscope, move the stage, change the
 optical configuration, exposure, objective and PFS, focus (PFS or the NIS
 image sweep), look at an image and describe it, ask about the images already
-seen, and set a schedule. Acquisitions go through useq:
+seen. Acquisitions go through useq:
 
 - `plan_acquisition` turns a plan into a `useq.MDASequence` and has the engine
   check every event without moving. A plan has positions, channels (each with
@@ -207,19 +199,15 @@ up or down, deeper into the sample or toward the coverslip). The assistant is
 told, so *move it a bit to the left* or *go 10 um deeper* becomes a signed
 move on the right axis, and it says which axis and sign it used.
 
-**Schedules.** *Look every three minutes and tell me whether anything
-changed*, *in ten minutes switch the PFS off*, *at 15:00 start the plan*:
-the assistant sets a named schedule, and the window's clock sends each due
-instruction as a turn of its own, marked `[scheduled 'name']` in the chat,
-through the same tools and checks as anything you type, and never while a
-turn is running. A scheduled turn is not yours: a scheduled acquisition or
-long stage move still asks for your go-ahead in the chat and waits until you
-answer, and moves are still measured from where the stage was when you last
-wrote. The state the assistant reads with every message carries the clock
-and the schedules. At most ten schedules, none more often than every five
-seconds. A scheduled turn that fails cancels its schedule, so a dead model
-does not repeat the same error every period. *Stop microscope* and *Clear
-context* cancel them all.
+**Time courses.** *Take 10 time points, one every 3 minutes* is an
+acquisition with time points: the acquisition keeps the time, not the
+assistant, which has no clock or timer of its own.
+
+**The session's size.** The conversation is kept whole until *Clear
+context*, so each message carries the session so far; nothing is cut or
+summarised. The status line shows the size of the last request in tokens.
+Past the model's warning a line in the chat says the session is large; past
+its ceiling no message is sent until you clear it.
 
 ## How it stays safe
 
@@ -250,10 +238,7 @@ context* cancel them all.
   request with a few measured numbers (brightness, saturation, sharpness),
   binned 2 x 2 so a 2048-pixel camera image arrives at 1024 pixels. A model
   that cannot see gets the numbers only.
-- **Two checks on the reply.** An empty reply goes back to the model once. A
-  reply that claims to have done something in a turn that called no tool also
-  goes back once, with that fact; the model then acts, or its first reply is
-  shown as it was.
+- **A check on the reply.** An empty reply goes back to the model once.
 - **Cancel prompt** stops the assistant: every further tool call in that turn
   does nothing. **Stop microscope** also ends a running acquisition after the
   image being taken. A single stage move that NIS has already started runs to
@@ -279,7 +264,7 @@ One turn in detail:
 
 1. You type a message. The window appends the current `<microscope_state>`
    to it: position, objective, configuration, PFS, the limits in force, the
-   clock, the schedules. The model reasons from a fresh reading each time,
+   clock. The model reasons from a fresh reading each time,
    and is told never to follow instructions that appear inside that block.
 2. The model reads its instructions (`instructions.py`, the same every
    time), the conversation so far, and your message, and decides: answer in
@@ -290,13 +275,9 @@ One turn in detail:
    line of advice for the model ("tell the operator the limit and stop"),
    or `needs_go_ahead` with a summary of what it would do.
 4. The model reads the answer and calls another tool, or writes its reply.
-5. Two guards look at the reply before you see it. An empty reply goes back
-   to the model once. A reply that claims to have done something in a turn
-   that called no tool also goes back once, with that fact; the model then
-   acts, or its original reply is shown.
+5. An empty reply goes back to the model once before you see it.
 
-After 15 of your messages, the oldest are forgotten and the newest 10 kept,
-so long sessions stay quick. Pydantic AI is the library that connects the
+The conversation is kept whole until *Clear context*. Pydantic AI is the library that connects the
 model to the tools and runs this loop.
 
 ## When something is wrong
@@ -306,9 +287,9 @@ model to the tools and runs this loop.
 | "The microscope does not answer." | The bridge is not running in NIS-Elements. | The assistant gives the steps (the path of `start_bridge.mac`, how to run it). Restart it, then send another message; the window reconnects. |
 | "NIS lists no optical configuration." | The assistant needs at least one channel to work with. | Make one in NIS (*Calibration > New Optical Configuration*); the assistant walks you through it. |
 | A red banner. | Something was refused: a limit, an unknown name, an invalid value. | The reply says which; the banner is there so you see it whatever the reply says. |
-| An empty or odd reply. | Usually a small or local model answering a refusal with nothing. | Press *Cancel prompt*, try again, or switch model. The two guards above catch most of this. |
+| An empty or odd reply. | Usually a model answering a refusal with nothing. | Press *Cancel prompt*, try again, or switch model. The check above catches most of this. |
 | An API error in red. | The key is wrong, the quota is spent, or the internet is down. | Fix the key in the Model panel. |
-| "Context too small" with a local server. | The server allows fewer tokens than a turn needs. | Raise it (Ollama: `OLLAMA_CONTEXT_LENGTH=16384`). |
+| "Context too small" with an OpenAI-style server. | The server allows fewer tokens than a turn needs. | Raise it (Ollama: `OLLAMA_CONTEXT_LENGTH=16384`). |
 
 ## Tests
 
@@ -343,17 +324,15 @@ only fitted it to the cases.
 
 | File | What it is |
 |---|---|
-| `nis_assistant/tools.py` | The tools: everything the model can ask for, one function each, with the go-ahead rule, the refusals and the two guards on a reply. The place to look up or add a tool. |
+| `nis_assistant/tools.py` | The tools: everything the model can ask for, one function each, with the go-ahead rule, the refusals and the check on a reply. The place to look up or add a tool. |
 | `nis_assistant/instructions.py` | The prose the model reads: its instructions, the advice given with a refusal, and the setup steps it passes on. |
 | `nis_assistant/plans.py` | The plan format, plan to useq sequence, and the plan summary. |
 | `nis_assistant/images.py` | One snap, its statistics, and the binned PNG for the model. |
 | `nis_assistant/eyes.py` | The vision model's own conversation: the images seen this session, compared on request. |
-| `nis_assistant/schedules.py` | The schedules the assistant sets, and when each is due. |
-| `nis_assistant/memory.py` | The conversation made smaller now and then. |
+| `nis_assistant/memory.py` | The conversation's size, and a quoted state block taken out of a reply. |
 | `nis_assistant/models.py` | The ways to reach a model: a provider preset, an API key held in memory, the model object. |
-| `nis_assistant/local.py` | A `.gguf` model file served on this computer by llama.cpp. |
-| `nis_assistant/agent.py` | The assembly: the Agent with the tools and guards, and `Assistant`, one conversation. |
-| `nis_assistant/settings.py` | Every constant: the provider presets, the coordinate choices, go-ahead distances, memory sizes, window defaults. |
+| `nis_assistant/agent.py` | The assembly: the Agent with the tools and the reply check, and `Assistant`, one conversation. |
+| `nis_assistant/settings.py` | Every constant: the provider presets, the coordinate choices, go-ahead distances, session sizes, window defaults. |
 | `nis_assistant/window.py` | The chat window (`nis-assistant`), with the Model panel from `panel.py`. |
 | `tests/evals.py` | The evaluation with a real model; `eval_cases.json` and `eval_cases_holdout.json`. |
 | `docs/tutorial.md` | The walk-through of a first session. |

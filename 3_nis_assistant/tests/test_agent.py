@@ -28,7 +28,6 @@ from nis_engine import NisEngine
 from pydantic_ai.messages import (
     BinaryContent,
     ModelResponse,
-    RetryPromptPart,
     TextPart,
     ThinkingPart,
     ToolCallPart,
@@ -37,17 +36,17 @@ from pydantic_ai.messages import (
 )
 from pydantic_ai.models.function import FunctionModel
 
+from nis_assistant import models
 from nis_assistant.agent import Assistant, axes_section
 from nis_assistant.eyes import Eyes, last_turns
 from nis_assistant.images import as_png, binned, image_statistics
 from nis_assistant.instructions import (
-    CALLED_NOTHING_CHALLENGE,
     GO_AHEAD_ADVICE,
     LIMIT_ADVICE,
     OPTIONS_ADVICE,
 )
 from nis_assistant.models import Endpoint
-from nis_assistant.settings import DEFAULT_MODEL_SETTINGS, HISTORY_KEEP_TURNS
+from nis_assistant.settings import CONTEXT_FULL, CONTEXT_LARGE, DEFAULT_MODEL_SETTINGS
 from nis_assistant.tools import Microscope
 
 
@@ -502,80 +501,43 @@ def test_a_missing_or_unknown_axis_choice_takes_the_default():
     assert "right is +x" in told and "down is +y" in told and "deeper into the sample is +z" in told
 
 
-# -- schedules ---------------------------------------------------------------------------
+# -- the conversation --------------------------------------------------------------------
 
 
-def test_a_schedule_is_set_and_shows_in_the_state(microscope):
-    steps = [
-        ("schedule", {"name": "watch", "instruction": "look", "every_seconds": 180}),
-        "Every three minutes.",
-        "Hello.",
+def test_the_conversation_is_kept_whole_and_its_size_measured(microscope):
+    """Append-only: every message stays in the history until Clear, nothing is cut or
+    rewritten, and the last request's input tokens are the session's size."""
+    assistant, _ = talk(microscope, *["ok"] * 20)
+    sizes = []
+    for n in range(20):
+        assistant.send(f"message {n}")
+        sizes.append(assistant.tokens)
+    prompts = [
+        part.content
+        for message in assistant.history
+        for part in message.parts
+        if isinstance(part, UserPromptPart)
     ]
-    assistant, script = talk(microscope, *steps)
-    assistant.send("look every three minutes")
-    result = tool_results(assistant)[0]
-    assert result["scheduled"]["name"] == "watch" and result["scheduled"]["every_seconds"] == 180
-    assert "watch" in [s["name"] for s in microscope.scheduler.listing()]
-    assistant.send("hi")
-    state = json.loads(
-        script.requests[-1][-1]
-        .parts[-1]
-        .content.split("<microscope_state>")[1][: -len("</microscope_state>")]
-    )
-    assert state["schedules"][0]["name"] == "watch" and len(state["clock"]) == 8
+    assert len(prompts) == 20 and prompts[0].startswith("message 0")
+    assert sizes == sorted(sizes) and sizes[0] > 0
+    assistant.clear()
+    assert assistant.history == [] and assistant.tokens == 0
 
 
-@pytest.mark.parametrize(
-    ("args", "message"),
-    [
-        ({"name": "x", "instruction": "look", "every_seconds": 1}, "at least"),
-        ({"name": "x", "instruction": "look"}, "exactly one of"),
-        ({"name": "x", "instruction": "look", "at": "25:99"}, "HH:MM"),
-    ],
-)
-def test_a_bad_schedule_is_refused_with_the_reason(microscope, args, message):
-    assistant, _ = talk(microscope, ("schedule", args), "Refused.")
-    assistant.send("later")
-    error = tool_results(assistant)[0]["error"]
-    assert error["code"] == "invalid" and message in error["message"]
-    assert microscope.scheduler.listing() == []
+def test_a_large_session_is_noted_and_a_full_one_is_refused(microscope):
+    assistant, _ = talk(microscope)
+    assert assistant.size_note() is None
+    assistant.tokens = 600_000  # Gemini, the default: warns above 500k, full above 900k
+    assert assistant.size_note() == CONTEXT_LARGE
+    assistant.tokens = 950_000
+    assert assistant.size_note() == CONTEXT_FULL
+    assistant.endpoint = models.Endpoint.from_preset("OpenAI-style server")
+    assert assistant.size_note() is None  # a server of unknown size is never refused
 
 
-def test_cancel_schedule_by_name_and_an_unknown_name_lists_the_known(microscope):
-    microscope.scheduler.add("watch", "look", every_seconds=60)
-    assistant, _ = talk(microscope, ("cancel_schedule", {"name": "nope"}), "Which one?")
-    assistant.send("cancel it")
-    error = tool_results(assistant)[0]["error"]
-    assert error["code"] == "invalid" and error["configured_options"] == ["watch"]
-    assistant, _ = talk(microscope, ("cancel_schedule", {"name": "watch"}), "Cancelled.")
-    assistant.send("cancel the watch")
-    assert (
-        tool_results(assistant)[0]["cancelled"] == ["watch"] and not microscope.scheduler.listing()
-    )
-
-
-def test_a_scheduled_turn_is_not_the_operators(microscope, fake):
-    # A scheduled move does not move the anchor, so repeated small steps still add up
-    # to a question; and it does not count as the reply to a pending question.
-    assistant, _ = talk(microscope, ("move_stage", {"x": 1600}), "Moved.")
-    assistant.send("move x to 1600")
-    step = ("move_stage", {"x": 2200})
-    assistant, _ = talk(microscope, step, "Shall I?", step, "Shall I?")
-    assistant.send("[scheduled 'creep'] move x 600 further", scheduled=True)
-    assert tool_results(assistant)[-1]["status"] == "needs_go_ahead"
-    assistant.send("[scheduled 'creep'] move x 600 further", scheduled=True)
-    assert tool_results(assistant)[-1]["status"] == "needs_go_ahead"
-    assert moves(fake) == ["move_xy(1600,-500)"]
-    assert microscope.turn == 1  # scheduled turns do not count as the operator's
-
-
-def test_stop_and_clear_drop_every_schedule(microscope):
-    microscope.scheduler.add("watch", "look", every_seconds=60)
-    microscope.stop()
-    assert microscope.scheduler.listing() == []
-    microscope.scheduler.add("watch", "look", every_seconds=60)
-    Assistant(microscope).clear()
-    assert microscope.scheduler.listing() == []
+def test_the_state_carries_the_clock(microscope):
+    state = microscope.state()
+    assert len(state["clock"]) == 8 and "schedules" not in state
 
 
 # -- checking the setup ---------------------------------------------------------------
@@ -651,43 +613,6 @@ def test_an_empty_reply_is_handed_back_once(microscope):
     assert "empty" in challenge
     assistant, _ = talk(microscope, "_", "...")  # empty twice: a plain fallback line
     assert "no answer in words" in assistant.send("where?")
-
-
-def test_a_reply_that_called_nothing_is_challenged_when_asked(microscope):
-    microscope.challenge_no_tool = True
-    # the model claims to have acted; challenged, it does act, and its new reply is the answer
-    assistant, script = talk(
-        microscope, "I moved the stage.", ("get_status", {}), "Here is the status."
-    )
-    assert assistant.send("status") == "Here is the status."
-    assert "No tool was called" in script.requests[1][-1].parts[-1].content
-    # challenged and still nothing to call: the first reply reaches the operator as it was
-    assistant, _ = talk(microscope, "Hello, how can I help?", "SAME")
-    assert assistant.send("hi") == "Hello, how can I help?"
-    # the "SAME" exchange is not kept: the next turn's model sees only the first reply
-    assistant, script = talk(microscope, "Hello.", "SAME", "You can image.", "SAME")
-    assert assistant.send("hi") == "Hello."
-    assert [type(m).__name__ for m in assistant.history] == ["ModelRequest", "ModelResponse"]
-    assert assistant.send("what can I do?") == "You can image."
-    seen = [part for message in script.requests[2] for part in message.parts]
-    assert not any(isinstance(p, RetryPromptPart) for p in seen)
-    assert "SAME" not in str([getattr(p, "content", "") for p in seen])
-    # a reply that opens with the guard's word, or echoes the challenge, is not passed on
-    assistant, _ = talk(microscope, "SAME\nHello.", "SAME")
-    assert assistant.send("hi") == "Hello."
-    assistant, _ = talk(microscope, "SAME", "Hello.", "SAME")
-    assert assistant.send("hi") == "Hello."
-    echoed = "Validation feedback:\n" + CALLED_NOTHING_CHALLENGE
-    assistant, _ = talk(microscope, echoed, "Hi.", "SAME")
-    assert assistant.send("hi") == "Hi."
-    # a challenge that led to a tool call stays in the history
-    assistant, _ = talk(microscope, "I moved it.", ("get_status", {}), "Here is the status.")
-    assistant.send("status")
-    assert any(isinstance(p, RetryPromptPart) for m in assistant.history for p in m.parts)
-    # off by default: no challenge, one request
-    microscope.challenge_no_tool = False
-    assistant, script = talk(microscope, "Hello.")
-    assert assistant.send("hi") == "Hello." and len(script.requests) == 1
 
 
 def test_use_switches_the_model_and_its_settings(microscope):
@@ -1067,26 +992,6 @@ def test_the_history_only_grows_until_it_is_long(microscope):
         assistant.send(f"message {n}")
         assert assistant.history[: len(grown)] == grown  # nothing earlier was changed
         grown = list(assistant.history)
-
-
-def test_a_long_conversation_is_made_smaller_between_turns(microscope):
-    steps = [answer(n) for n in range(1, 17)]
-    steps[7:7] = [("get_status", {})]  # turn 8 reads the (long) status first
-    assistant, _ = talk(microscope, *steps)
-    for n in range(1, 17):
-        assistant.send(f"message {n}")
-
-    prompts = operator_prompts(assistant.history)
-    assert len(prompts) == HISTORY_KEEP_TURNS and prompts[0].startswith("message 7")
-    # the newest three turns keep the full state; older ones keep a one-line reading
-    assert ["<microscope_state>" in p for p in prompts] == [False] * 7 + [True] * 3
-    assert "<microscope_state_then>" in prompts[0] and "position_um" in prompts[0]
-    # the old reasoning is left out, all of it, so what remains passes the model's check
-    parts = [part for message in assistant.history for part in message.parts]
-    assert not any(isinstance(part, ThinkingPart) for part in parts)
-    assert any(isinstance(part, TextPart) and part.content == "16" for part in parts)
-    (status,) = tool_results(assistant)
-    assert status.endswith("(shortened in memory)")
 
 
 def test_clear_context_forgets_the_conversation(microscope):

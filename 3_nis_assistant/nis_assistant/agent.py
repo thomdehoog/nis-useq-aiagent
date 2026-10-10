@@ -2,8 +2,8 @@
 
 Built on Pydantic AI. The tools (``tools.py``) are what the model
 can ask the microscope to do; the instructions (``instructions.py``) are what
-it is told; the memory (``memory.py``) keeps a long conversation small; the
-models (``models.py``) are the ways to reach a model. ``Assistant`` is one
+it is told; the memory (``memory.py``) measures the conversation, which is kept
+whole; the models (``models.py``) are the ways to reach a model. ``Assistant`` is one
 conversation: a message in, the answer out.
 
     microscope = Microscope(NisEngine(), output_dir=Path("runs"))
@@ -28,8 +28,17 @@ from pydantic_ai.messages import ModelMessage, ModelRequest
 
 from . import models
 from .instructions import COORDINATES, INSTRUCTIONS
-from .memory import compact, without_a_declined_challenge, without_state_block
-from .settings import AXIS_CHOICES, DEFAULT_AXES, DEFAULT_MODEL_SETTINGS, MODEL, TOOL_CALL_RETRIES
+from .memory import last_request_tokens, without_state_block
+from .settings import (
+    AXIS_CHOICES,
+    CONTEXT_FULL,
+    CONTEXT_LARGE,
+    CONTEXT_TOKENS,
+    DEFAULT_AXES,
+    DEFAULT_MODEL_SETTINGS,
+    MODEL,
+    TOOL_CALL_RETRIES,
+)
 from .tools import REPLY_GUARDS, TOOLS, Microscope
 
 agent = Agent(
@@ -82,31 +91,27 @@ class Assistant:
         self.endpoint: models.Endpoint | None = None  # what the window chose, if it did
         self.history: list[ModelMessage] = []
         self.last_turn: list[ModelMessage] = []  # the latest turn's messages, for traces
+        self.tokens = 0  # the last request's input tokens: the session's size
 
-    def send(self, text: str, scheduled: bool = False) -> str:
+    def send(self, text: str) -> str:
         """One message in, the assistant's answer out.
 
-        A message the operator typed starts a new turn of theirs: moves are
-        measured from where the stage is now, and a question the assistant
-        asked in the turn before counts as answered by this message. A
-        ``scheduled`` message (the window sends one when a schedule falls due)
-        does neither, so a repeating schedule cannot creep the stage along in
-        small steps, and cannot stand in for the operator's go-ahead.
+        A message starts a new turn of the operator's: moves are measured from
+        where the stage is now, and a question the assistant asked in the turn
+        before counts as answered by this message.
         """
         self.microscope.cancel.clear()
         try:
             if self.microscope.engine.client.closed:  # after a timeout, or a restarted bridge
                 self.microscope.engine.reconnect()
             state = self.microscope.state()
-            if not scheduled:
-                self.microscope.anchor = state["position_um"]
+            self.microscope.anchor = state["position_um"]
         except (RuntimeError, ValueError, OSError) as exc:
             # No bridge, or NIS is closed: the model still gets the message, so it
             # can call check_setup and tell the operator what to do.
             state = {"microscope": f"not answering: {exc}"}
             self.microscope.anchor = None
-        if not scheduled:
-            self.microscope.turn += 1
+        self.microscope.turn += 1
         prompt = f"{text}\n\n<microscope_state>{json.dumps(state)}</microscope_state>"
         with capture_run_messages() as messages:
             try:
@@ -125,9 +130,23 @@ class Assistant:
                     self.last_turn = list(messages[len(self.history) :])
                     self.history = list(messages)
                 raise
-        self.last_turn = without_a_declined_challenge(result.new_messages())
-        self.history = compact(without_a_declined_challenge(result.all_messages()))
+        self.last_turn = result.new_messages()
+        self.history = result.all_messages()
+        self.tokens = last_request_tokens(self.history) or self.tokens
         return without_state_block(result.output)
+
+    def size_note(self) -> str | None:
+        """Whether the session is large for this model, or full.
+
+        None, CONTEXT_LARGE or CONTEXT_FULL, by the last request's tokens.
+        """
+        provider = self.endpoint.provider if self.endpoint is not None else "Gemini"
+        warn, ceiling = CONTEXT_TOKENS.get(provider, (None, None))
+        if ceiling is not None and self.tokens > ceiling:
+            return CONTEXT_FULL
+        if warn is not None and self.tokens > warn:
+            return CONTEXT_LARGE
+        return None
 
     def use(self, endpoint: models.Endpoint, vision: models.Endpoint | None = None) -> None:
         """Talk to another model from the next message on; the conversation is kept.
@@ -144,11 +163,10 @@ class Assistant:
     def clear(self) -> None:
         """Forget the conversation; the next message starts a new one.
 
-        The eyes forget their images and the schedules are cancelled.
+        The eyes forget their images.
         """
-        self.history, self.last_turn = [], []
+        self.history, self.last_turn, self.tokens = [], [], 0
         self.microscope.plans.clear()
         self.microscope.planned_in.clear()
         self.microscope.go_ahead_asked.clear()
-        self.microscope.scheduler.clear()
         self.microscope.eyes.reset()

@@ -40,8 +40,8 @@ adding it:
    not, change the Coordinate system box in the Model panel)
 10. *Look again: has anything changed since the first image?* (the eyes compare with
     what they saw in step 5)
-11. *Look every three minutes and tell me whether the sample drifts.* (a scheduled
-    turn appears in the chat when it is due; *Stop microscope* cancels it)
+11. *Take 3 time points, one every 30 seconds, here.* (the acquisition keeps the time;
+    *Stop microscope* ends it)
 
 ## Let a coding assistant do it
 
