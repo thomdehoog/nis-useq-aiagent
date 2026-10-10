@@ -38,7 +38,7 @@ Version 1.0, 10 October 2026. Applies `agent-lessons.md` (from mesoSPIM-control,
 
 ## WP2. Lean, for cloud models (branch `agent/lean`)
 
-- [ ] **2.1 Anthropic and caching.** A Claude preset (claude-haiku-5-5) through
+- [x] **2.1 Anthropic and caching** (10 October 2026, 8cc4453 and 0f19369 on `agent/lean`). A Claude preset (claude-haiku-5-5) through
   `pydantic-ai-slim[anthropic]`, with tool definitions and instructions cached for an hour and
   the history for five minutes; the other providers unchanged. A test reads the cache marks off
   the request on the wire.
