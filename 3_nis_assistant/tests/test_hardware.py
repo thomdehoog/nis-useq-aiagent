@@ -88,23 +88,14 @@ def test_refuses_a_move_beyond_the_limits(engine, talk, here):
     assert engine.client.request("get_position")["z"] == pytest.approx(here["z"], abs=0.5)
 
 
-def test_asks_before_a_long_move(engine, talk, here):
-    assistant = talk(("move_stage", {"x": here["x"] + 5000}), "Shall I move 5 mm?")
-    assistant.send("move 5 mm")  # the operator never says yes, so nothing moves
-    assert tool_results(assistant)[0]["status"] == "needs_go_ahead"
-    assert engine.client.request("get_position")["x"] == pytest.approx(here["x"], abs=1.0)
-
-
-def test_plans_then_runs_after_the_go_ahead(talk, configuration):
+def test_plans_then_runs(talk, configuration):
     plan = {"name": "hardware", "channels": [{"config": configuration}],
             "z_stack": {"range_um": 2, "step_um": 1}}  # fmt: skip
     run_it = ("run_acquisition", {"plan_id": "hardware-1"})
-    assistant = talk(("plan_acquisition", plan), run_it, "Shall I start?", run_it, "Saved.")
+    assistant = talk(("plan_acquisition", plan), run_it, "Saved.")
     assistant.send("a small stack here")
-    planned, asked = tool_results(assistant)
+    planned, ran = tool_results(assistant)
     print(planned["summary"])
-    assert planned["images"] == 3 and asked["status"] == "needs_go_ahead"
-    assistant.send("yes")
-    ran = tool_results(assistant)[-1]
+    assert planned["images"] == 3
     assert ran["images"] == 3 and ran["finished"] == "completed"
     assert tifffile.imread(ran["saved_to"]).shape[0] == 3

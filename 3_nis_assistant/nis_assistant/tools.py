@@ -2,12 +2,10 @@
 
 Each tool checks what it is asked before acting, and answers with data the
 model can read: the result, or an "error" with what was refused, why, and
-what to do next (the advice in ``instructions.py``). The two big steps,
-starting an acquisition and moving the stage far, are not carried out in the
-turn the model first asks for them: the tool answers that the operator's
-go-ahead is needed (``needs_go_ahead``), and the step runs only in the next
-turn, after the operator has replied. That rule is in this code, not in the
-model's instructions.
+what to do next (the advice in ``instructions.py``). A call within the limits
+runs at once; one outside them is refused before anything moves: the stage
+limits set in NIS-Elements, narrowed by the window's limit fields, the
+exposure range, the objectives and optical configurations the microscope has.
 
 ``TOOLS`` lists them; ``agent.py`` registers them on the Agent. This is the
 place to look up or add a tool. At the end is a guard on the model's reply
@@ -24,7 +22,6 @@ Acknowledgement: if you use this code or build on its ideas, please acknowledge 
 from __future__ import annotations
 
 import asyncio
-import contextlib
 import functools
 import inspect
 import os
@@ -57,18 +54,14 @@ from .instructions import (
     EMPTY_REPLY_CHALLENGE,
     EMPTY_REPLY_FALLBACK,
     FAILURE_ADVICE,
-    GO_AHEAD_ADVICE,
     LAST_IMAGE_QUESTION,
     LIMIT_ADVICE,
     OPTCONF_STEPS,
     OPTIONS_ADVICE,
-    START_ADVICE,
 )
 from .plans import AcquisitionPlan, PositionSpec, count_images, describe, plan_to_sequence
 from .settings import (
     CLOCK_FORMAT,
-    CONFIRM_XY_UM,
-    CONFIRM_Z_UM,
     DEFAULT_AXES,
     MAX_EXPOSURE_MS,
     MAX_SWEEP_UM,
@@ -102,17 +95,10 @@ class Microscope:
     # What a positive move on each axis does to the sample in the image (settings.AXIS_CHOICES).
     axes: dict[str, str] = field(default_factory=lambda: dict(DEFAULT_AXES))
     plans: dict[str, useq.MDASequence] = field(default_factory=dict)  # plan id -> sequence
-    planned_in: dict[str, int] = field(default_factory=dict)  # plan id -> turn it was last shown
     runner: MDARunner | None = None  # set while an acquisition runs, so it can be stopped
     # Set by Cancel: every further tool call in this turn does nothing.
     cancel: threading.Event = field(default_factory=threading.Event)
-    # Where the stage was when the operator last wrote, or where they last agreed
-    # to go. Moves are measured from here, so small steps cannot add up to a long
-    # move unasked.
-    anchor: dict[str, float] | None = None
     turn: int = 0  # the operator's messages so far
-    # Long moves the assistant asked the operator about, and in which turn.
-    go_ahead_asked: dict[str, int] = field(default_factory=dict)
 
     @property
     def client(self):
@@ -174,21 +160,6 @@ def refusal(
     if code in ("limit", "invalid"):
         ctx.deps.on_warning(message)
     return {"error": {"code": code, "message": message, **details, "advice": advice}}
-
-
-def needs_go_ahead(ctx: RunContext[Microscope], key: str, summary: str) -> dict | None:
-    """None if the operator has had the chance to agree to this action; else the
-    answer that tells the assistant to ask first.
-
-    The first request for a long move is only noted. The same request in the
-    operator's next turn (after they read the question and replied) goes ahead.
-    Whether the reply was a yes is for the model to read; that the operator saw
-    the question before anything moved is guaranteed here.
-    """
-    if ctx.deps.go_ahead_asked.pop(key, None) == ctx.deps.turn - 1:
-        return None
-    ctx.deps.go_ahead_asked[key] = ctx.deps.turn
-    return {"status": "needs_go_ahead", "not_done_yet": summary, "advice": GO_AHEAD_ADVICE}
 
 
 def guarded_tool(fn: Callable) -> Callable:
@@ -334,22 +305,7 @@ def move_stage(
                 "The stage did not move.",
                 LIMIT_ADVICE,
             )
-    here = client.request("get_position")
-    anchor = ctx.deps.anchor or here
-    xy_step = max(abs(target.get(a, here[a]) - anchor[a]) for a in ("x", "y"))
-    z_step = abs(target.get("z", here["z"]) - anchor["z"])
-    if xy_step <= CONFIRM_XY_UM and z_step <= CONFIRM_Z_UM:
-        return client.request("move", **target)
-    where = ", ".join(f"{a} = {v:g} um" for a, v in target.items())
-    summary = (
-        f"move the stage to {where}: {xy_step:.0f} um in XY and {z_step:.0f} um in Z "
-        "from where it was when the operator last wrote"
-    )
-    if (question := needs_go_ahead(ctx, f"move {sorted(target.items())}", summary)) is not None:
-        return question
-    moved = client.request("move", **target)
-    ctx.deps.anchor = moved  # the operator agreed to this position
-    return moved
+    return client.request("move", **target)
 
 
 @guarded_tool
@@ -590,7 +546,6 @@ def keep_plan(ctx: RunContext[Microscope], name: str, sequence: useq.MDASequence
         return plan_refusal(ctx, exc)
     plan_id = f"{name}-{len(ctx.deps.plans) + 1}"
     ctx.deps.plans[plan_id] = sequence
-    ctx.deps.planned_in[plan_id] = ctx.deps.turn
     return {
         "plan_id": plan_id,
         "images": count_images(events),
@@ -629,18 +584,9 @@ async def run_acquisition(ctx: RunContext[Microscope], plan_id: str) -> dict[str
             configured_options=list(ctx.deps.plans),
         )
     try:  # the microscope, or the limits, may have changed since planning
-        events = ctx.deps.engine.check(sequence)
+        ctx.deps.engine.check(sequence)
     except ValueError as exc:
         return plan_refusal(ctx, exc)
-    # The run goes ahead only in the turn right after the plan (or this question)
-    # was shown, so that the operator's reply to it is the go-ahead. A plan from
-    # earlier in the conversation is asked about again.
-    if ctx.deps.planned_in[plan_id] != ctx.deps.turn - 1:
-        ctx.deps.planned_in[plan_id] = ctx.deps.turn
-        here = ctx.deps.client.request("get_position")
-        summary = f"start acquisition {plan_id!r}: {describe(sequence, events, here)}"
-        return {"status": "needs_go_ahead", "not_done_yet": summary, "advice": START_ADVICE}
-
     stem = f"{datetime.now():%Y%m%d_%H%M%S}_{plan_id}"
     ctx.deps.output_dir.mkdir(parents=True, exist_ok=True)
     output = ctx.deps.output_dir / f"{stem}.ome.tiff"
@@ -665,8 +611,6 @@ async def run_acquisition(ctx: RunContext[Microscope], plan_id: str) -> dict[str
         error = f"{type(exc).__name__}: {exc}"
     finally:
         ctx.deps.runner = None
-    with contextlib.suppress(Exception):  # the connection may be gone after an error
-        ctx.deps.anchor = ctx.deps.client.request("get_position")
     # With several positions (tiles count too) the writer makes a folder of the
     # same name, with one OME-TIFF per position, instead of one file.
     saved_to = output if output.exists() else ctx.deps.output_dir / stem

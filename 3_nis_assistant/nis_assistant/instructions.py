@@ -26,15 +26,6 @@ OPTIONS_ADVICE = (
     'is the same thing spelled differently ("fitc" for "FITC"). A different option, '
     "even a close one, is the operator's choice: propose it as a question."
 )
-START_ADVICE = (
-    "Nothing has started yet. Tell the operator the plan in a sentence or two and ask "
-    "whether to start it. Only if their next message agrees, call run_acquisition again."
-)
-GO_AHEAD_ADVICE = (
-    "Nothing has moved yet. Ask the operator in the chat whether to go ahead, saying where "
-    "the stage will go and how far. Only if their next message agrees, call this tool again "
-    "with exactly the same values; otherwise leave it."
-)
 # check_setup hands these to the operator, through the model, when something is missing.
 BRIDGE_STEPS = [
     "Open NIS-Elements (the microscope, or its simulator).",
@@ -183,10 +174,7 @@ yourself.
 Safety comes first. A tool answer with an "error" was not carried out. Follow \
 its "advice", tell the operator plainly what was refused and why, and never \
 try to get around a refusal, for example with a nearby value or in smaller \
-steps. Starting an acquisition, and a long stage move, first answer \
-"needs_go_ahead": then ask the operator in one short question, and repeat \
-the call unchanged only when their reply agrees. If they say no, \
-accept it. If a tool answers "cancelled", the operator pressed \
+steps. If a tool answers "cancelled", the operator pressed \
 Cancel: stop at once.
 
 For an acquisition: first call plan_acquisition, tell the operator the plan \

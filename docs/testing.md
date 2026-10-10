@@ -27,12 +27,12 @@ answer against NIS. NIS needs at least one optical configuration (Calibration
 adding it:
 
 1. *Where is the stage, and which objective is in use?* (reads only)
-2. *Move x by 20 um.* (moves at once) and *Move x by 5 mm.* (asks first; answer *no*)
+2. *Move x by 20 um.* (moves at once) and *Move x by 5 mm.* (moves at once, within the limits)
 3. *Move z to 20000 um.* (refused: red banner, nothing moves)
 4. *Switch to* a configuration NIS has, *at 50 ms.*
 5. *What do you see?* (the image appears on the right)
 6. *Take a Z-stack of 4 um in 2 um steps here in* a configuration. (shows the
-   plan and asks; answer *yes*; the files appear in the output folder)
+   plan, then runs it; the files appear in the output folder)
 7. *Image a 2 by 2 grid of tiles around here.* (needs a pixel calibration)
 8. *Show me the useq sequence for that plan*, *What is new in useq v2?*, and
    *How does the engine move the stage? Show me the code.*

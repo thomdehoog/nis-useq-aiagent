@@ -52,10 +52,11 @@ you ──► chat window ──► language model ──► tools ──► Nis
 There are two layers of safety. The model is told, in instructions it reads
 with every message, to ask when something is unclear and to stop at a
 refusal. The rules that matter, though, are in the tools' code and hold
-whatever the model says: a move outside the limits is refused; an
-acquisition, or a stage move of more than 1 mm in XY or 100 um in Z, is not
-carried out in the turn it is first asked for, but only after you have
-agreed in the chat. [How it stays safe](#how-it-stays-safe) lists them all.
+whatever the model says: a move outside the limits, an exposure outside
+the camera's range, or an objective or optical configuration the microscope
+does not have is refused. Everything within the limits runs at once, so a
+task of several steps runs through without stopping to ask.
+[How it stays safe](#how-it-stays-safe) lists them all.
 
 ## Install and start
 
@@ -135,12 +136,12 @@ did, as opposed to what it says.
 | You type | What happens |
 |---|---|
 | *Where is the stage, and which objective is in use?* | The assistant reads the microscope and answers with the position in um and the objective. Nothing moves. The status panel on the right shows the same numbers. |
-| *Move x by 20 um.* | The stage moves at once; the answer gives the new position. Small moves do not ask first. |
-| *Move x by 5 mm.* | Nothing moves. The assistant says where the stage would go and how far, and asks whether to go ahead. Answer *no*. The tool refused to carry out a long move in the turn it was first asked; it runs only if your next message agrees. |
+| *Move x by 20 um.* | The stage moves at once; the answer gives the new position. |
+| *Move x by 5 mm.* (within the limits) | The stage moves at once, like a short move. Narrow the limit fields below the chat to keep the stage closer. |
 | *Move z to 20000 um.* (outside the limits shown below the chat) | Refused: a red banner in the window, and the assistant names the limit. It is told not to try a nearby value instead. |
 | *Switch to DAPI at 50 ms.* (a configuration your NIS has) | The optical configuration and exposure change. A misspelt name is refused with the list of names NIS has; the assistant corrects an obvious spelling or asks which you meant, and may not choose another on its own. |
 | *What do you see?* | One image is taken, appears on the right, and is described in a few sentences by the vision model (see *The eyes remember* below). |
-| *Take a Z-stack of 4 um in 2 um steps here in DAPI.* | The assistant builds a useq sequence and has the engine check every image of it without moving; then it states the plan (images, channel, Z range, duration, stage travel) and asks whether to start. Answer *yes*: the run starts, each image appears as it is taken, and the files land in the output folder. The last image is described. |
+| *Take a Z-stack of 4 um in 2 um steps here in DAPI.* | The assistant builds a useq sequence and has the engine check every image of it without moving; the plan's summary states images, channel, Z range, duration and stage travel. Then the run starts: each image appears as it is taken, and the files land in the output folder. The last image is described. |
 | *Show me the useq sequence for that plan.* | The sequence is printed and explained field by field. |
 
 That is the shape of every interaction: the assistant acts at once when the
@@ -226,13 +227,11 @@ its ceiling no message is sent until you clear it.
   nosepiece slot), the refusal lists the microscope's own names.
 - **A red banner for refusals.** A limit breach or an invalid value is also
   shown in the window directly, whatever the assistant says.
-- **Big steps are agreed in the chat first.** Starting an acquisition always
-  waits for you: the assistant shows the plan and asks, and the run can start
-  only after your reply. A stage move of more than 1 mm in XY or 100 um in Z
-  works the same way ("Shall I move 19 mm to x = 20 mm?"). Moves are measured
-  from where the stage was when you last wrote, so small steps that add up
-  also ask. That the question comes first is in the code, not only in the
-  model's instructions. Everything else runs at once.
+- **No questions in between.** A call within the limits runs at once, an
+  acquisition too; the safety is in the limits, not in asking. Ask for the plan
+  first if you want to see it before it runs ("plan a stack here, don't start
+  it"). A plan's summary says when it includes a long move (more than 1 mm in
+  XY or 100 um in Z).
 - **One action at a time,** so each result is seen before the next action.
 - **Looking stays out of the chat.** The image goes to the model in a separate
   request with a few measured numbers (brightness, saturation, sharpness),
@@ -272,8 +271,7 @@ One turn in detail:
    each result is seen before the next call.
 3. The tool checks the request. It returns the result (the position after a
    move, the plan summary), or an `error` with what was refused, why, and a
-   line of advice for the model ("tell the operator the limit and stop"),
-   or `needs_go_ahead` with a summary of what it would do.
+   line of advice for the model ("tell the operator the limit and stop").
 4. The model reads the answer and calls another tool, or writes its reply.
 5. An empty reply goes back to the model once before you see it.
 
@@ -324,7 +322,7 @@ only fitted it to the cases.
 
 | File | What it is |
 |---|---|
-| `nis_assistant/tools.py` | The tools: everything the model can ask for, one function each, with the go-ahead rule, the refusals and the check on a reply. The place to look up or add a tool. |
+| `nis_assistant/tools.py` | The tools: everything the model can ask for, one function each, with the limit checks, the refusals and the check on a reply. The place to look up or add a tool. |
 | `nis_assistant/instructions.py` | The prose the model reads: its instructions, the advice given with a refusal, and the setup steps it passes on. |
 | `nis_assistant/plans.py` | The plan format, plan to useq sequence, and the plan summary. |
 | `nis_assistant/images.py` | One snap, its statistics, and the binned PNG for the model. |
@@ -332,7 +330,7 @@ only fitted it to the cases.
 | `nis_assistant/memory.py` | The conversation's size, and a quoted state block taken out of a reply. |
 | `nis_assistant/models.py` | The ways to reach a model: a provider preset, an API key held in memory, the model object. |
 | `nis_assistant/agent.py` | The assembly: the Agent with the tools and the reply check, and `Assistant`, one conversation. |
-| `nis_assistant/settings.py` | Every constant: the provider presets, the coordinate choices, go-ahead distances, session sizes, window defaults. |
+| `nis_assistant/settings.py` | Every constant: the provider presets, the coordinate choices, the long-move distances, session sizes, window defaults. |
 | `nis_assistant/window.py` | The chat window (`nis-assistant`), with the Model panel from `panel.py`. |
 | `tests/evals.py` | The evaluation with a real model; `eval_cases.json` and `eval_cases_holdout.json`. |
 | `docs/tutorial.md` | The walk-through of a first session. |

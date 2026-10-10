@@ -32,9 +32,8 @@ you ──► chat window ──► language model ──► tools ──► Nis
 
 So there are two layers of safety. The model is *told* to be careful, in
 instructions it reads with every message; but the rules that matter (a move
-outside the limits is refused, an acquisition or a long move starts only after
-you have agreed in the chat) are in the tools' code, and hold whatever the
-model says.
+outside the limits is refused, and so is a setting the microscope does not
+have) are in the tools' code, and hold whatever the model says.
 
 The assistant is also a demonstration of the other two parts: its
 acquisitions are useq sequences run on the engine, and it can show you those
@@ -94,17 +93,13 @@ shows the same numbers.
 
 **"Move x by 20 um."**
 
-The stage moves at once, and the answer says the new position. Small moves do
-not ask first.
+The stage moves at once, and the answer says the new position.
 
 **"Move x by 5 mm."**
 
-This time the assistant does *not* move. It tells you where the stage would
-go and how far, and asks whether to go ahead. Answer *no*. Any move of more
-than 1 mm in XY or 100 um in Z works like this: the tool refuses to carry it
-out in the turn it was first asked, and runs it only if your next message
-agrees. The distance is measured from where the stage was when you last
-wrote, so ten small moves that add up to a long one also ask.
+This moves at once too: any move within the limits runs without a question,
+so a task of several steps runs through. The limits are what keep the stage
+where it may go; narrow the limit fields below the chat to keep it closer.
 
 **"Move z to 20000 um."** (or any value outside the limits shown below the chat)
 
@@ -129,16 +124,14 @@ in a few sentences. Where the description comes from is explained below
 
 The assistant plans the acquisition, which means: it builds a useq sequence
 and has the engine check every image of it against the stage limits and the
-configurations, without moving. Then it tells you the plan in a sentence
-(three images, which channel, the Z range, roughly how long, how far the
-stage will travel) and asks whether to start. Answer *yes*. The run starts,
-each image appears on the right as it is taken, and at the end the files are
+configurations, without moving. The plan's summary says what it is (three
+images, which channel, the Z range, roughly how long, how far the stage will
+travel), and the run starts: each image appears on the right as it is taken, and at the end the files are
 in the output folder: an OME-TIFF and, next to it, the sequence as
 `.useq.json`. The assistant then describes the last image.
 
-An acquisition always asks first, however small, and can only start in the
-turn right after the plan was shown. If you talk about something else in
-between, it shows the plan again and asks again.
+To see a plan before it runs, say so ("plan a Z-stack here, don't start
+it"); the assistant then shows the plan and starts it when you ask.
 
 **"Show me the useq sequence for that plan."**
 
@@ -271,8 +264,7 @@ detail:
 3. The tool checks the request. It either does the thing and returns the
    result (the position after a move, the plan summary), or returns an
    *error* with what was refused, why, and a line of advice for the model
-   ("tell the operator the limit and stop"), or returns *needs go-ahead*
-   with a summary of what it would do.
+   ("tell the operator the limit and stop").
 4. The model reads the answer and either calls another tool, or writes its
    reply to you.
 5. An empty reply goes back to the model once before you see it.

@@ -96,21 +96,17 @@ class Assistant:
     def send(self, text: str) -> str:
         """One message in, the assistant's answer out.
 
-        A message starts a new turn of the operator's: moves are measured from
-        where the stage is now, and a question the assistant asked in the turn
-        before counts as answered by this message.
+        Each message carries a fresh reading of the microscope.
         """
         self.microscope.cancel.clear()
         try:
             if self.microscope.engine.client.closed:  # after a timeout, or a restarted bridge
                 self.microscope.engine.reconnect()
             state = self.microscope.state()
-            self.microscope.anchor = state["position_um"]
         except (RuntimeError, ValueError, OSError) as exc:
             # No bridge, or NIS is closed: the model still gets the message, so it
             # can call check_setup and tell the operator what to do.
             state = {"microscope": f"not answering: {exc}"}
-            self.microscope.anchor = None
         self.microscope.turn += 1
         prompt = f"{text}\n\n<microscope_state>{json.dumps(state)}</microscope_state>"
         with capture_run_messages() as messages:
@@ -167,6 +163,4 @@ class Assistant:
         """
         self.history, self.last_turn, self.tokens = [], [], 0
         self.microscope.plans.clear()
-        self.microscope.planned_in.clear()
-        self.microscope.go_ahead_asked.clear()
         self.microscope.eyes.reset()

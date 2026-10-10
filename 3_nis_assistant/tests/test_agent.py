@@ -41,7 +41,6 @@ from nis_assistant.agent import Assistant, axes_section
 from nis_assistant.eyes import Eyes, last_turns
 from nis_assistant.images import as_png, binned, image_statistics
 from nis_assistant.instructions import (
-    GO_AHEAD_ADVICE,
     LIMIT_ADVICE,
     OPTIONS_ADVICE,
 )
@@ -162,50 +161,13 @@ def test_limit_breach_is_refused_with_advice_and_shown_in_the_window(microscope,
     assert microscope.warnings == [error["message"]] and moves(fake) == []
 
 
-# -- long moves are asked about in the chat first ------------------------------------------
-
-LONG = ("move_stage", {"x": 20000})
+# -- a long move within the limits runs at once --------------------------------------------
 
 
-def test_a_long_move_is_asked_about_in_the_chat_first(microscope, fake):
-    assistant, _ = talk(microscope, LONG, "Shall I move 19 mm to x = 20 mm?", LONG, "We are there.")
-    assert assistant.send("go to x 20 mm") == "Shall I move 19 mm to x = 20 mm?"
-    question = tool_results(assistant)[0]
-    assert question["status"] == "needs_go_ahead" and question["advice"] == GO_AHEAD_ADVICE
-    assert "19000 um in XY" in question["not_done_yet"] and moves(fake) == []
-
-    assert assistant.send("yes, go ahead") == "We are there."
+def test_a_long_move_within_the_limits_runs_at_once(microscope, fake):
+    assistant, _ = talk(microscope, ("move_stage", {"x": 20000}), "We are there.")
+    assert assistant.send("go to x 20 mm") == "We are there."
     assert moves(fake) == ["move_xy(20000,-500)"]
-
-
-def test_when_the_operator_says_no_nothing_moves(microscope, fake):
-    assistant, _ = talk(microscope, LONG, "Shall I?", "OK, we stay here.")
-    assistant.send("go to x 20 mm")
-    assert assistant.send("no, stay") == "OK, we stay here." and moves(fake) == []
-
-
-def test_asking_twice_in_one_turn_is_not_a_go_ahead(microscope, fake):
-    assistant, _ = talk(microscope, LONG, LONG, "Shall I?")
-    assistant.send("go to x 20 mm")
-    assert [r["status"] for r in tool_results(assistant)] == ["needs_go_ahead"] * 2
-    assert moves(fake) == []
-
-
-def test_a_go_ahead_counts_only_for_the_next_message(microscope, fake):
-    assistant, _ = talk(microscope, LONG, "Shall I?", "Sure.", LONG, "Shall I?")
-    assistant.send("go to x 20 mm")
-    assistant.send("hmm, tell me something else first")
-    assistant.send("do it")  # two messages later: asked again, not moved
-    assert tool_results(assistant)[-1]["status"] == "needs_go_ahead" and moves(fake) == []
-
-
-def test_small_steps_that_add_up_are_asked_about_too(microscope, fake):
-    steps = [("move_stage", {"z": 500 + 60 * n}) for n in (1, 2)]
-    assistant, _ = talk(microscope, *steps, "Shall I go on?")
-    assistant.send("walk the focus up")
-    # 560 ran (60 um from where the stage was); 620 is 120 um from there, so it asks
-    assert moves(fake) == ["move_z(560)"]
-    assert "120 um in Z" in tool_results(assistant)[1]["not_done_yet"]
 
 
 # -- settings ------------------------------------------------------------------------------
@@ -403,10 +365,8 @@ def test_older_images_are_detached_but_their_words_stay(microscope):
 def test_the_eyes_see_the_last_image_of_a_run_and_forget_on_clear(microscope, fake):
     vision = Script("A dim, even field.")
     microscope.vision_model, microscope.vision = vision.model(), True
-    steps = [("plan_acquisition", PLAN), RUN, "Start?", RUN, "Saved."]
-    assistant, _ = talk(microscope, *steps)
+    assistant, _ = talk(microscope, ("plan_acquisition", PLAN), RUN, "Saved.")
     assistant.send("take a stack at a")
-    assistant.send("yes")
     assert microscope.eyes.frames == 1
     assistant.clear()
     assert microscope.eyes.frames == 0 and microscope.eyes._history == []
@@ -437,10 +397,8 @@ def test_a_failing_vision_model_is_reported_and_the_image_not_counted(microscope
     # the last image of a run: the run is not turned into a failure by the describing
     vision = Script(RuntimeError("still down"))
     microscope.vision_model = vision.model()
-    steps = [("plan_acquisition", PLAN), RUN, "Start?", RUN, "Saved."]
-    assistant, _ = talk(microscope, *steps)
+    assistant, _ = talk(microscope, ("plan_acquisition", PLAN), RUN, "Saved.")
     assistant.send("take a stack at a")
-    assistant.send("yes")
     run = tool_results(assistant)[-1]
     assert run["finished"] == "completed" and "still down" in run["last_image"]["vision_error"]
 
@@ -639,19 +597,13 @@ PLAN = {  # the flat form, as the model sends it
 RUN = ("run_acquisition", {"plan_id": "stack_test-1"})
 
 
-def test_an_acquisition_starts_only_after_the_operator_saw_the_plan(microscope, fake):
+def test_a_planned_acquisition_runs_in_the_same_turn(microscope, fake):
     microscope.vision_model, microscope.vision = Script("A dim, even field.").model(), True
-    steps = [("plan_acquisition", PLAN), RUN, "Shall I start these 6 images?", RUN, "Saved."]
-    assistant, _ = talk(microscope, *steps)
-    assert assistant.send("take a two-channel stack at a") == "Shall I start these 6 images?"
-    plan, question = tool_results(assistant)
+    assistant, _ = talk(microscope, ("plan_acquisition", PLAN), RUN, "Saved.")
+    assert assistant.send("take a two-channel stack at a") == "Saved."
+    plan, run = tool_results(assistant)
     assert plan["plan_id"] == "stack_test-1" and plan["images"] == 6
     assert "a at x 100, y 200, z 500 um" in plan["summary"] and "900 um in XY" in plan["summary"]
-    assert question["status"] == "needs_go_ahead" and "6 images" in question["not_done_yet"]
-    assert fake.captures == 0 and moves(fake) == []  # nothing happened yet
-
-    assert assistant.send("yes, start") == "Saved."
-    run = tool_results(assistant)[-1]
     assert run["images"] == 6 and run["finished"] == "completed"
     assert tifffile.imread(run["saved_to"]).shape == (2, 3, 48, 64)
     assert list(microscope.output_dir.glob("*.useq.json")) and len(microscope.images) == 6
@@ -662,10 +614,8 @@ def test_an_acquisition_starts_only_after_the_operator_saw_the_plan(microscope, 
 
 def test_a_model_that_cannot_see_gets_the_last_image_numbers_only(microscope, fake):
     microscope.vision = False
-    steps = [("plan_acquisition", PLAN), RUN, "Start?", RUN, "Saved."]
-    assistant, _ = talk(microscope, *steps)
+    assistant, _ = talk(microscope, ("plan_acquisition", PLAN), RUN, "Saved.")
     assistant.send("take a stack at a")
-    assistant.send("yes")
     last = tool_results(assistant)[-1]["last_image"]
     assert "description" not in last and "cannot see" in last["note"]
 
@@ -675,29 +625,6 @@ def test_the_plan_comes_back_as_a_useq_sequence(microscope):
     assistant.send("plan a stack at a")
     sequence = useq.MDASequence(**tool_results(assistant)[0]["useq_sequence"])
     assert len(list(sequence)) == 6 and sequence.channels[0].config == "DAPI"
-
-
-def test_a_plan_the_operator_declines_is_not_run(microscope, fake):
-    steps = [("plan_acquisition", PLAN), RUN, "Shall I start?", "OK, not now."]
-    assistant, _ = talk(microscope, *steps)
-    assistant.send("take a stack")
-    assistant.send("no")
-    assert fake.captures == 0 and not microscope.output_dir.exists()
-
-
-def test_a_plan_from_earlier_in_the_conversation_is_asked_about_again(microscope, fake):
-    steps = [
-        ("plan_acquisition", PLAN),
-        "Shall I start?",
-        "OK, not now.",
-        RUN,
-        "Shall I start it now?",
-    ]
-    assistant, _ = talk(microscope, *steps)
-    assistant.send("plan a stack at a")
-    assistant.send("no, later")
-    assistant.send("run it now")  # the plan is two messages old: a new question, no run
-    assert tool_results(assistant)[-1]["status"] == "needs_go_ahead" and fake.captures == 0
 
 
 def test_the_saved_sequence_is_written_as_utf8(microscope, monkeypatch):
@@ -721,7 +648,7 @@ def test_the_saved_sequence_is_written_as_utf8(microscope, monkeypatch):
 
 def test_a_far_away_plan_says_so(microscope):
     far = {**PLAN, "positions": [{"x": 50000, "y": 30000, "z": 900}]}
-    assistant, _ = talk(microscope, ("plan_acquisition", far), "Shall I? It is far.")
+    assistant, _ = talk(microscope, ("plan_acquisition", far), "It is far.")
     assistant.send("image over there")
     summary = tool_results(assistant)[0]["summary"]
     assert "49000 um in XY and 401 um in Z" in summary and "This includes a long move." in summary

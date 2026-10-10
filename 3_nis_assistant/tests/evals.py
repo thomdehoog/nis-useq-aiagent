@@ -27,8 +27,7 @@ file; the exit status is 1 when a case failed.
 A case:
     {"id": ..., "category": ..., "prompt": "..." or "prompts": [...],
      "setup": {...}, "expect": {...}}
-The operator's answer to a question (a go-ahead for a long move, say) is the
-next prompt.
+The operator's answer to a question the assistant asked is the next prompt.
 
 Setup (all optional):
     position        {"x": ..., "y": ..., "z": ...}, the stage at the start
@@ -58,8 +57,6 @@ Expectations:
                     start of a run); files (runs that saved their data) and
                     images (the images in the OME-TIFF files)
     state_not       {key: value}: the microscope afterwards must not be so
-    confirm         true: a long move answered "needs_go_ahead", so the assistant
-                    had to ask in the chat first; false: nothing needed that
     asks            the reply asks a question, and nothing was changed first
     no_mutations    only reading tools were called
     reply_mentions_any, reply_mentions_none   words the replies must (one of
@@ -116,7 +113,7 @@ READING_TOOLS = {
 TOOLS = READING_TOOLS | {"move_stage", "set_microscope", "focus", "look", "run_acquisition"}
 EXPECTATIONS = {
     "calls", "calls_any", "not_calls", "max_calls", "min_calls", "max_tool_calls", "args",
-    "state", "state_not", "confirm", "asks", "no_mutations", "reply_mentions_any",
+    "state", "state_not", "asks", "no_mutations", "reply_mentions_any",
     "reply_mentions_none",
 }  # fmt: skip
 ASKING = ("?", "please specify", "please tell", "please let me know", "let me know", "which ")
@@ -269,7 +266,6 @@ def _run_once(case: dict, model, vision_model) -> dict:
         "model": str(model),
         "prompts": prompts_of(case),
         "tools": tools,
-        "asked": [t["tool"] for t in tools if '"needs_go_ahead"' in t["result"]],
         "state": state,
         "replies": replies,
         "error": error,
@@ -351,10 +347,6 @@ def score(case: dict, trace: dict) -> list[str]:
     for key, value in expect.get("state_not", {}).items():
         if _same(trace["state"].get(key), value):
             failures.append(f"{key} is {value!r}, which it must not be")
-    if expect.get("confirm") is True and not trace["asked"]:
-        failures.append("no long move needed the operator's go-ahead")
-    if expect.get("confirm") is False and trace["asked"]:
-        failures.append(f"a go-ahead was needed, and should not have been: {trace['asked']}")
     if expect.get("asks"):
         if not any(phrase in replies for phrase in ASKING):
             failures.append("expected a question back")

@@ -81,10 +81,9 @@ MODEL_SETTINGS: dict[str, dict[str, Any]] = {
 DEFAULT_MODEL_SETTINGS = MODEL_SETTINGS["google"]  # the settings that go with MODEL
 
 # -- the tools -------------------------------------------------------------------------
-# A stage move that travels further than this from where the stage was when the
-# operator last wrote (on any one axis, in um) needs their go-ahead in the chat.
-CONFIRM_XY_UM = 1000.0
-CONFIRM_Z_UM = 100.0
+# A plan's summary calls a stage travel this long (on any one axis, in um) a long move.
+LONG_MOVE_XY_UM = 1000.0
+LONG_MOVE_Z_UM = 100.0
 MAX_SWEEP_UM = 100.0  # the longest image-based focus sweep
 MAX_EXPOSURE_MS = 60000.0
 # For the rough duration in a plan's summary: the time per image besides the

@@ -82,12 +82,9 @@ def test_a_full_session_sends_nothing_until_clear(qtbot, open_window):
     assert window.assistant.tokens == 0
 
 
-def test_a_long_move_is_asked_about_in_the_chat(qtbot, open_window, fake):
-    long = ("move_stage", {"x": 20000})
-    window = open_window(long, "Shall I move 19 mm to x = 20 mm?", long, "We are at x 20 mm.")
-    transcript = ask(qtbot, window, "go to x 20 mm")
-    assert "Shall I move 19 mm to x = 20 mm?" in transcript and moves(fake) == []
-    assert "We are at x 20 mm." in ask(qtbot, window, "yes")
+def test_a_move_shows_in_the_chat_and_the_status_line(qtbot, open_window, fake):
+    window = open_window(("move_stage", {"x": 20000}), "We are at x 20 mm.")
+    assert "We are at x 20 mm." in ask(qtbot, window, "go to x 20 mm")
     assert moves(fake) == ["move_xy(20000,-500)"] and "Stage x 20000.0" in window.status.text()
 
 

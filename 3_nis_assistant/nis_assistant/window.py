@@ -71,8 +71,7 @@ COLOURS = {"you": "#1a5fb4", "assistant": "#26a269", "system": "#b00020"}
 WELCOME = (
     "Hello. I can move the stage, change the optical settings, focus, look at the "
     "sample and run acquisitions. Ask me in your own words, for example "
-    "<i>What do you see?</i> or <i>Take a 3-channel Z-stack of 10 um here</i>. "
-    "Before a long stage move I ask you here first."
+    "<i>What do you see?</i> or <i>Take a 3-channel Z-stack of 10 um here</i>."
 )
 
 

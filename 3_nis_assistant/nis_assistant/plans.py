@@ -21,9 +21,9 @@ import useq
 from pydantic import BaseModel, Field
 
 from .settings import (
-    CONFIRM_XY_UM,
-    CONFIRM_Z_UM,
     GUESSED_EXPOSURE_MS,
+    LONG_MOVE_XY_UM,
+    LONG_MOVE_Z_UM,
     MAX_EXPOSURE_MS,
     SECONDS_PER_IMAGE,
 )
@@ -181,7 +181,7 @@ def describe(
     xy = max((_distance(e, here, "x", "y") for e in events), default=0.0)
     z = max((_distance(e, here, "z") for e in events), default=0.0)
     travel = f"The stage travels up to {xy:.0f} um in XY and {z:.0f} um in Z from where it is now."
-    if xy > CONFIRM_XY_UM or z > CONFIRM_Z_UM:
+    if xy > LONG_MOVE_XY_UM or z > LONG_MOVE_Z_UM:
         travel += " This includes a long move."
     return (
         f"{images} images: channels {', '.join(channels) or 'as set now'}, {planes}{times}, "
