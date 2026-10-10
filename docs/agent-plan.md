@@ -42,12 +42,12 @@ Version 1.0, 10 October 2026. Applies `agent-lessons.md` (from mesoSPIM-control,
   `pydantic-ai-slim[anthropic]`, with tool definitions and instructions cached for an hour and
   the history for five minutes; the other providers unchanged. A test reads the cache marks off
   the request on the wire.
-- [ ] **2.2 No timer.** `schedules.py`, the schedule tools and the window's clock go; a time
+- [x] **2.2 No timer** (10 October 2026, 817d77f; until WP1 a time course is an acquisition with time points). `schedules.py`, the schedule tools and the window's clock go; a time
   course is NIS's own time loop (WP1).
-- [ ] **2.3 No small-model scaffolding.** History compaction (`memory.py`), the "called nothing"
+- [x] **2.3 No small-model scaffolding** (817d77f). History compaction (`memory.py`), the "called nothing"
   challenge and the local-model mode go. The history is append-only until Clear; the window shows
   the session's size and refuses a turn past a ceiling per model.
-- [ ] **2.4 Every tool sequential.**
+- [x] **2.4 Every tool sequential** (already so).
 
 ## WP3. Safety at the bridge (branch `agent/limits`)
 
