@@ -48,7 +48,12 @@ PROVIDERS: dict[str, dict[str, Any]] = {
 DEFAULT_PROVIDER = "Gemini"
 MODEL = "google:gemini-3.5-flash-lite"  # the model when no endpoint is chosen (tests, evals)
 # The short names Pydantic AI uses in a "provider:model" string, by provider preset.
-PREFIXES = {"google": "Gemini", "google-gla": "Gemini", "anthropic": "Anthropic", "openai": "OpenAI"}
+PREFIXES = {
+    "google": "Gemini",
+    "google-gla": "Gemini",
+    "anthropic": "Anthropic",
+    "openai": "OpenAI",
+}
 # Sampling and retries for every model, cloud or local. An assistant that drives an
 # instrument wants the most likely tool call, not a creative one, so the temperature
 # is 0.

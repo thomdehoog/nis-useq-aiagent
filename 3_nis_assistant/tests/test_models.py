@@ -146,13 +146,23 @@ def test_an_anthropic_request_is_cached_and_carries_no_temperature():
 
     def answer(request):
         bodies.append(json.loads(request.content))
-        return httpx.Response(200, json={
-            "id": "m", "type": "message", "role": "assistant", "model": "claude-haiku-5-5",
-            "content": [{"type": "text", "text": "ok"}], "stop_reason": "end_turn",
-            "stop_sequence": None, "usage": {"input_tokens": 10, "output_tokens": 1}})
+        return httpx.Response(
+            200,
+            json={
+                "id": "m",
+                "type": "message",
+                "role": "assistant",
+                "model": "claude-haiku-5-5",
+                "content": [{"type": "text", "text": "ok"}],
+                "stop_reason": "end_turn",
+                "stop_sequence": None,
+                "usage": {"input_tokens": 10, "output_tokens": 1},
+            },
+        )
 
     endpoint = Endpoint.from_preset("Anthropic", api_key="k")
-    client = AsyncAnthropic(api_key="k", http_client=httpx.AsyncClient(transport=httpx.MockTransport(answer)))
+    transport = httpx.MockTransport(answer)
+    client = AsyncAnthropic(api_key="k", http_client=httpx.AsyncClient(transport=transport))
     model = AnthropicModel(endpoint.model, provider=AnthropicProvider(anthropic_client=client))
 
     def first(a: int) -> str:
@@ -161,22 +171,29 @@ def test_an_anthropic_request_is_cached_and_carries_no_temperature():
     def second(b: int) -> str:
         return "2"
 
-    agent = Agent(model, instructions="the instructions", tools=[Tool(first), Tool(second)],
-                  model_settings=endpoint.settings)
+    agent = Agent(
+        model,
+        instructions="the instructions",
+        tools=[Tool(first), Tool(second)],
+        model_settings=endpoint.settings,
+    )
     agent.run_sync("turn two", message_history=agent.run_sync("turn one").all_messages())
     assert len(bodies) == 2
+    hour, five_minutes = {"type": "ephemeral", "ttl": "1h"}, {"type": "ephemeral", "ttl": "5m"}
     for body in bodies:
-        assert body["cache_control"] == {"type": "ephemeral", "ttl": "5m"}
-        assert [t.get("cache_control") for t in body["tools"]] == [None, {"type": "ephemeral", "ttl": "1h"}]
-        assert body["system"][-1]["cache_control"] == {"type": "ephemeral", "ttl": "1h"}
+        assert body["cache_control"] == five_minutes
+        assert [t.get("cache_control") for t in body["tools"]] == [None, hour]
+        assert body["system"][-1]["cache_control"] == hour
         assert "temperature" not in body
     for provider in ("Gemini", "OpenAI", "OpenAI-style server"):
-        assert not any(key.startswith("anthropic_") for key in Endpoint.from_preset(provider, api_key="k").settings)
+        settings = Endpoint.from_preset(provider, api_key="k").settings
+        assert not any(key.startswith("anthropic_") for key in settings)
 
 
 def test_the_anthropic_preset_and_its_prefix(monkeypatch):
     monkeypatch.setenv("ANTHROPIC_API_KEY", "from-env")
     endpoint = Endpoint.from_name("anthropic:claude-haiku-5-5")
-    assert (endpoint.provider, endpoint.kind, endpoint.model) == ("Anthropic", "anthropic", "claude-haiku-5-5")
+    assert (endpoint.provider, endpoint.kind) == ("Anthropic", "anthropic")
+    assert endpoint.model == "claude-haiku-5-5"
     assert endpoint.api_key == "from-env" and endpoint.vision
     assert type(models.build_model(endpoint)).__name__ == "AnthropicModel"
