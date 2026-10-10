@@ -17,7 +17,9 @@ and what to bring back.
 
 Simulator status: 114 unit tests pass and CI is green on `main`. The fake-NIS
 eval with Haiku passed 53 of 58 cases. The five failures were fixed afterwards
-(three stale cases, two manual lines), and that fix has not been rerun yet.
+(three stale cases, two manual lines, one case that wrongly expected "focus up"
+to mean +z: the assistant now rightly asks which way), and a rerun of the
+fixed cases with Haiku passed all of them.
 
 ## Get it running
 

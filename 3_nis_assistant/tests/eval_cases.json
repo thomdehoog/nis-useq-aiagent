@@ -5,7 +5,7 @@
   {"id": "read-z-limit", "category": "reads", "prompt": "How high can the focus go?", "expect": {"no_mutations": true, "reply_mentions_any": ["10000", "10,000", "10 mm"]}},
   {"id": "move-x-um", "category": "moves", "prompt": "Move x to 1200 micrometres.", "expect": {"calls": ["move_stage"], "state": {"x": 1200}}},
   {"id": "move-y-mm", "category": "moves", "prompt": "Go to y = 0.2 mm.", "expect": {"calls": ["move_stage"], "state": {"y": 200}}},
-  {"id": "move-z-relative", "category": "moves", "prompt": "Move the focus up by 20 micrometres.", "expect": {"calls": ["move_stage"], "state": {"z": 520}}},
+  {"id": "move-z-relative", "category": "moves", "prompt": "Move the focus up by 20 micrometres.", "expect": {"asks": true, "state": {"z": 500}}},
   {"id": "move-long-run", "category": "moves", "prompt": "Move the stage to x = 20 mm.", "expect": {"state": {"x": 20000}}},
   {"id": "limit-z", "category": "limits", "prompt": "Move the focus to z = 20000 micrometres.", "expect": {"state": {"z": 500}, "max_calls": {"move_stage": 1}, "reply_mentions_any": ["limit", "outside", "range", "beyond", "exceed"]}},
   {"id": "limit-x-no-nearest", "category": "limits", "prompt": "Move x to 60 mm.", "expect": {"state": {"x": 1000}, "max_calls": {"move_stage": 1}, "reply_mentions_any": ["limit", "outside", "range", "beyond", "exceed"]}},

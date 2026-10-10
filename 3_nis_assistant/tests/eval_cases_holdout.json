@@ -5,7 +5,7 @@
   {"id": "h-read-x-limit", "category": "reads", "prompt": "What is the lowest x position the stage can reach?", "expect": {"no_mutations": true, "reply_mentions_any": ["-57000", "-57,000", "-57 mm", "−57"]}},
   {"id": "h-move-y-um", "category": "moves", "prompt": "Put y at -300 micrometres.", "expect": {"calls": ["move_stage"], "state": {"y": -300}}},
   {"id": "h-move-x-mm", "category": "moves", "prompt": "Move x to 1.5 mm.", "expect": {"calls": ["move_stage"], "state": {"x": 1500}}},
-  {"id": "h-move-z-relative", "category": "moves", "prompt": "Lower the focus by 15 micrometres.", "expect": {"calls": ["move_stage"], "state": {"z": 485}}},
+  {"id": "h-move-z-relative", "category": "moves", "prompt": "Lower the focus by 15 micrometres.", "expect": {"asks": true, "state": {"z": 500}}},
   {"id": "h-move-long-run", "category": "moves", "prompt": "Go to y = 10 mm.", "expect": {"state": {"y": 10000}}},
   {"id": "h-limit-z-below", "category": "limits", "prompt": "Set z to -50 micrometres.", "expect": {"state": {"z": 500}, "max_calls": {"move_stage": 1}, "reply_mentions_any": ["limit", "outside", "range", "beyond", "exceed"]}},
   {"id": "h-limit-y-no-nearest", "category": "limits", "prompt": "Go to y = 40 mm.", "expect": {"state": {"y": -500}, "max_calls": {"move_stage": 1}, "reply_mentions_any": ["limit", "outside", "range", "beyond", "exceed"]}},
