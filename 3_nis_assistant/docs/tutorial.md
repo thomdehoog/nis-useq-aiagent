@@ -220,7 +220,7 @@ screen: +x may move the sample left or right, +z deeper or towards the
 coverslip. The assistant cannot know this, so you tell it once. The
 *Coordinate system* box in the Model panel has a choice for each axis. Then
 *move the sample a little to the left* or *go 10 um deeper* becomes a signed
-move on the right axis, and the assistant says which axis and sign it used.
+move on the right axis.
 
 Check it on your first session: say *move the sample 100 um to the left*,
 and watch the live image in NIS. If it went right, change the x choice in the
@@ -259,15 +259,14 @@ detail:
    from memory.
 2. The model reads its instructions (the same every time), the conversation
    so far, and your message, and decides: answer in words, ask you a
-   question, or call a tool. Tool calls happen one at a time, so each result
-   is seen before the next.
+   question, load one of your skills, or call a tool. Tool calls happen one
+   at a time, so each result is seen before the next.
 3. The tool checks the request. It either does the thing and returns the
    result (the position after a move, the plan summary), or returns an
    *error* with what was refused, why, and a line of advice for the model
    ("tell the operator the limit and stop").
 4. The model reads the answer and either calls another tool, or writes its
    reply to you.
-5. An empty reply goes back to the model once before you see it.
 
 The conversation is kept whole until *Clear context*. The status line shows
 its size; past the model's ceiling, clear it to go on.

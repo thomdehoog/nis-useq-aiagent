@@ -122,7 +122,7 @@ VISION_FRAMES_KEPT = 8
 # few minutes for a whole day does not send the whole day with every question.
 VISION_TURNS_KEPT = 40
 
-# -- schedules ---------------------------------------------------------------------------
+# -- the clock ---------------------------------------------------------------------------
 CLOCK_FORMAT = "%H:%M:%S"  # how the state and the eyes write a time of day
 
 # The conversation is kept whole until Clear, so each request carries the session. The
@@ -144,6 +144,12 @@ CONTEXT_TOO_SMALL_HELP = (
     "Give it 16,384 or more: for Ollama, set OLLAMA_CONTEXT_LENGTH=16384 on the server, "
     "or make a copy of the model with PARAMETER num_ctx 16384."
 )
+
+# -- skills ------------------------------------------------------------------------------
+# Procedures the operator writes, one Markdown file each (skills.py). The folder is in the
+# home folder unless --skills names another one.
+SKILLS_FOLDER = "nis_assistant_skills"
+SKILL_MAX_CHARS = 8000  # a skill is a short procedure; a longer file is refused
 
 # -- the window --------------------------------------------------------------------------
 OUTPUT_FOLDER = "nis_assistant_runs"  # in the home folder, when --output is not given

@@ -561,16 +561,7 @@ def test_image_statistics_and_png(shape):
     assert as_png(image).media_type == "image/png"
 
 
-# -- guards on the reply ---------------------------------------------------------------
-
-
-def test_an_empty_reply_is_handed_back_once(microscope):
-    assistant, script = talk(microscope, "_", "The stage is at x 0.")
-    assert assistant.send("where?") == "The stage is at x 0."
-    challenge = script.requests[1][-1].parts[-1].content
-    assert "empty" in challenge
-    assistant, _ = talk(microscope, "_", "...")  # empty twice: a plain fallback line
-    assert "no answer in words" in assistant.send("where?")
+# -- switching the model ----------------------------------------------------------------
 
 
 def test_use_switches_the_model_and_its_settings(microscope):

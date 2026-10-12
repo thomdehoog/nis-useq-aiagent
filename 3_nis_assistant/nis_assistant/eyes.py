@@ -85,12 +85,24 @@ class Eyes:
             self._agent = Agent(
                 self.model,
                 instructions=EYES_INSTRUCTIONS.format(kept=self.frames_kept),
-                model_settings={"temperature": TEMPERATURE},
+                model_settings=vision_settings(self.model),
             )
         result = await self._agent.run(prompt, message_history=self._history)
         kept = last_turns(result.all_messages(), self.turns_kept)
         self._history = detach_old_frames(kept, self.frames_kept)
         return result.output
+
+
+def vision_settings(model: Any) -> dict[str, Any]:
+    """The sampling settings for the eyes: temperature 0, for the most likely description.
+
+    Claude models refuse a temperature (claude-haiku-5-5 among them), so an
+    Anthropic model gets none. ``model`` is a model name or a model object.
+    """
+    provider = model if isinstance(model, str) else getattr(model, "system", "")
+    if str(provider).startswith("anthropic"):
+        return {}
+    return {"temperature": TEMPERATURE}
 
 
 def last_turns(messages: list[ModelMessage], kept: int) -> list[ModelMessage]:
