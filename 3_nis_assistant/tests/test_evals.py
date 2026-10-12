@@ -122,3 +122,11 @@ def test_the_scoreboard_sums_up_runs_per_model():
     ]
     board = evals.scoreboard(traces)
     assert "| m | 2 | 50% | 0 | 2.0 | 1 | 0 |" in board and "pass only sometimes: a" in board
+
+
+def test_a_plan_counts_whether_sent_flat_or_wrapped_under_its_name():
+    """plan_acquisition takes one plan; a model may send its fields as they are or under
+    "plan". Both are the same call, so an expectation finds the field either way."""
+    assert evals._get({"time_points": 4}, "time_points") == 4
+    assert evals._get({"plan": {"time_points": 4, "grid": {"rows": 2}}}, "grid.rows") == 2
+    assert evals._get({"x": 3}, "y") is None

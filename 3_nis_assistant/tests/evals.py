@@ -377,6 +377,12 @@ def score(case: dict, trace: dict) -> list[str]:
 
 
 def _get(args: dict, dotted: str):
+    # A tool that takes one model (plan_acquisition takes a plan) accepts its fields
+    # either as they are or wrapped under the argument's name; both are the same call.
+    if len(args) == 1 and dotted.split(".")[0] not in args:
+        (inner,) = args.values()
+        if isinstance(inner, dict):
+            args = inner
     value = args
     for key in dotted.split("."):
         if isinstance(value, list) and key.isdigit() and int(key) < len(value):
