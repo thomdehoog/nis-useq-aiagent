@@ -16,7 +16,7 @@ required: the assistant uses them for you.
 ## The idea
 
 You type a request in your own words: *take a Z-stack of 10 um in DAPI and
-FITC here*. A language model (Gemini, OpenAI, or one running on this
+FITC here*. A language model (Claude, Gemini, OpenAI, or one running on this
 computer) reads it, and decides what to do. But the model does not touch the
 microscope. It can only ask for a small set of **tools**, written in this
 package, such as "read the status", "move the stage to x, y, z", "plan this
@@ -66,11 +66,12 @@ microscope status.
 The assistant needs a language model, and the first time you must tell it
 which. The **Model** line at the top of the window folds open.
 
-The simplest start is Gemini: get a free API key at
-[aistudio.google.com](https://aistudio.google.com), paste it into the panel,
-and press *Use this model*. The key stays in memory for this session and is
-never written to disk. Claude and OpenAI work the same way, with a key from
-[console.anthropic.com](https://console.anthropic.com) or
+The panel opens on Anthropic, with the model claude-haiku-5-5 already filled
+in. Get an API key at [console.anthropic.com](https://console.anthropic.com),
+paste it into the panel, and press *Use this model*. The key stays in memory
+for this session and is never written to disk. Gemini and OpenAI work the same
+way: choose them in the panel, with a key from
+[aistudio.google.com](https://aistudio.google.com) (it has a free tier) or
 [platform.openai.com](https://platform.openai.com). Each message costs a
 fraction of a cent; the provider's pricing page says how much.
 
@@ -220,7 +221,7 @@ screen: +x may move the sample left or right, +z deeper or towards the
 coverslip. The assistant cannot know this, so you tell it once. The
 *Coordinate system* box in the Model panel has a choice for each axis. Then
 *move the sample a little to the left* or *go 10 um deeper* becomes a signed
-move on the right axis, and the assistant says which axis and sign it used.
+move on the right axis.
 
 Check it on your first session: say *move the sample 100 um to the left*,
 and watch the live image in NIS. If it went right, change the x choice in the
@@ -259,15 +260,14 @@ detail:
    from memory.
 2. The model reads its instructions (the same every time), the conversation
    so far, and your message, and decides: answer in words, ask you a
-   question, or call a tool. Tool calls happen one at a time, so each result
-   is seen before the next.
+   question, load one of your skills, or call a tool. Tool calls happen one
+   at a time, so each result is seen before the next.
 3. The tool checks the request. It either does the thing and returns the
    result (the position after a move, the plan summary), or returns an
    *error* with what was refused, why, and a line of advice for the model
    ("tell the operator the limit and stop").
 4. The model reads the answer and either calls another tool, or writes its
    reply to you.
-5. An empty reply goes back to the model once before you see it.
 
 The conversation is kept whole until *Clear context*. The status line shows
 its size; past the model's ceiling, clear it to go on.

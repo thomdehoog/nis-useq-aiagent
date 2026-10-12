@@ -2,9 +2,10 @@
 
 Built on Pydantic AI. The tools (``tools.py``) are what the model
 can ask the microscope to do; the instructions (``instructions.py``) are what
-it is told; the memory (``memory.py``) measures the conversation, which is kept
-whole; the models (``models.py``) are the ways to reach a model. ``Assistant`` is one
-conversation: a message in, the answer out.
+it is told; the skills (``skills.py``) are procedures the lab wrote, which the
+model loads when a request matches one; the memory (``memory.py``) measures the
+conversation, which is kept whole; the models (``models.py``) are the ways to
+reach a model. ``Assistant`` is one conversation: a message in, the answer out.
 
     microscope = Microscope(NisEngine(), output_dir=Path("runs"))
     assistant = Assistant(microscope)
@@ -25,9 +26,10 @@ from typing import Any
 
 from pydantic_ai import Agent, RunContext, capture_run_messages
 from pydantic_ai.messages import ModelMessage, ModelRequest
+from pydantic_ai.tools import ToolDefinition
 
 from . import models
-from .instructions import COORDINATES, INSTRUCTIONS
+from .instructions import COORDINATES, INSTRUCTIONS, SKILLS_SECTION
 from .memory import last_request_tokens, without_state_block
 from .settings import (
     AXIS_CHOICES,
@@ -39,7 +41,8 @@ from .settings import (
     MODEL,
     TOOL_CALL_RETRIES,
 )
-from .tools import REPLY_GUARDS, TOOLS, Microscope
+from .skills import listing
+from .tools import TOOLS, Microscope, load_skill
 
 agent = Agent(
     deps_type=Microscope,
@@ -48,16 +51,36 @@ agent = Agent(
     retries=TOOL_CALL_RETRIES,
     defer_model_check=True,
 )
+
+
+async def only_with_skills(
+    ctx: RunContext[Microscope], tool_def: ToolDefinition
+) -> ToolDefinition | None:
+    """load_skill is offered only when the microscope has skills to load."""
+    return tool_def if ctx.deps.skills else None
+
+
 for tool in TOOLS:
-    agent.tool(sequential=True)(tool)  # one tool call at a time, so each result is seen
-for guard in REPLY_GUARDS:
-    agent.output_validator(guard)
+    # One tool call at a time, so each result is seen before the next call.
+    prepare = only_with_skills if tool is load_skill else None
+    agent.tool(sequential=True, prepare=prepare)(tool)
 
 
 @agent.instructions
 def coordinate_system(ctx: RunContext[Microscope]) -> str:
     """The operator's choice of what +x, +y and +z do, added to the instructions."""
     return axes_section(ctx.deps.axes)
+
+
+@agent.instructions
+def skills_section(ctx: RunContext[Microscope]) -> str:
+    """The skills by name and description, added to the instructions when there are any.
+
+    Only this short list goes with every request; a skill's steps reach the model
+    when it calls load_skill. The list stays the same for the session, so it is
+    cached with the rest of the instructions.
+    """
+    return SKILLS_SECTION + listing(ctx.deps.skills) if ctx.deps.skills else ""
 
 
 def axes_section(axes: dict[str, str]) -> str:

@@ -51,7 +51,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from . import models
+from . import models, skills
 from .agent import Assistant
 from .images import as_png
 from .panel import AxesBox, ModelPanel, PreferencesBox
@@ -62,8 +62,9 @@ from .settings import (
     DEFAULT_PROVIDER,
     FONT_POINTS,
     OUTPUT_FOLDER,
+    SKILLS_FOLDER,
 )
-from .tools import Microscope, bridge_steps
+from .tools import TOOLS, Microscope, bridge_steps
 
 # The colour of each voice in the transcript.
 COLOURS = {"you": "#1a5fb4", "assistant": "#26a269", "system": "#b00020"}
@@ -511,6 +512,12 @@ def main(argv: list[str] | None = None) -> int:
         help="folder for the acquisitions (default: nis_assistant_runs in your home folder)",
     )
     parser.add_argument(
+        "--skills",
+        default=str(Path.home() / SKILLS_FOLDER),
+        help="folder with the microscope's skills, one .md file each "
+        "(default: nis_assistant_skills in your home folder; none is fine)",
+    )
+    parser.add_argument(
         "--model",
         default=None,
         help="the model to start with, e.g. google:gemini-3.5-flash-lite or "
@@ -541,12 +548,16 @@ def main(argv: list[str] | None = None) -> int:
         engine = NisEngine(HOST, args.port, connect=False)
         nis_starting = args.start_nis and _start_nis()
     microscope = Microscope(engine, output_dir=Path(args.output))
+    known_tools = [tool.__name__ for tool in TOOLS]
+    microscope.skills, skill_problems = skills.load(args.skills, known_tools)
     endpoint = (
         models.Endpoint.from_name(args.model)
         if args.model
         else models.Endpoint.from_preset(DEFAULT_PROVIDER)
     )
     window = AssistantWindow(Assistant(microscope), endpoint=endpoint, nis_starting=nis_starting)
+    if skill_problems:  # a skill file with a mistake: the operator sees which and why
+        microscope.on_warning(" ".join(skill_problems))
     window.show()
     try:
         return app.exec()

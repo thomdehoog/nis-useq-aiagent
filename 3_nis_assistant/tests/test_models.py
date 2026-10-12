@@ -141,3 +141,13 @@ def test_the_anthropic_preset_and_its_prefix(monkeypatch):
     assert endpoint.model == "claude-haiku-5-5"
     assert endpoint.api_key == "from-env" and endpoint.vision
     assert type(models.build_model(endpoint)).__name__ == "AnthropicModel"
+
+
+def test_the_eyes_send_no_temperature_to_claude():
+    """Claude refuses a temperature, so the eyes leave it out there and keep 0 elsewhere."""
+    from nis_assistant.eyes import vision_settings
+
+    assert vision_settings("anthropic:claude-haiku-5-5") == {}
+    claude = models.build_model(Endpoint.from_preset("Anthropic", api_key="k"))
+    assert vision_settings(claude) == {}
+    assert vision_settings("google:gemini-3.5-flash-lite") == {"temperature": 0.0}

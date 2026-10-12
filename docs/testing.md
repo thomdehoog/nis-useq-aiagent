@@ -43,6 +43,19 @@ adding it:
 11. *Take 3 time points, one every 30 seconds, here.* (the acquisition keeps the time;
     *Stop microscope* ends it)
 
+## The checklist, run automatically
+
+`python 3_nis_assistant/tests/bench.py` sends the checklist above to the real
+model on the running NIS, checks each step and writes a report to a new
+`bench-<date>-<time>` folder. It needs `ANTHROPIC_API_KEY` set (or `--model`
+with another provider's key), narrows the stage limits to a small box around
+the start, and moves the stage back at the end.
+
+[bench-run.md](bench-run.md) has Claude Code do the whole test: the hardware
+tests, the bench run, the open evaluation cases, and the report. The
+operator starts the bridge, pastes an API key into the chat, and says
+"Read docs/bench-run.md and do what it says."
+
 ## Let a coding assistant do it
 
 To let a coding assistant on the microscope computer do all of this, give it this prompt:

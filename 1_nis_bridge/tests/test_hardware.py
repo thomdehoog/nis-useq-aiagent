@@ -14,12 +14,19 @@ Acknowledgement: if you use this code or build on its ideas, please acknowledge 
         author (name and e-mail addresses above) in your work.
 """
 
+import sys
+
 import pytest
 import tifffile
 
 from nis_bridge.client import NisClient, NisConnectionError
 
 pytestmark = pytest.mark.hardware
+
+# NIS names objectives with characters such as "λ"; a cp1252 console cannot
+# print them, so -s would fail the test instead of showing the name.
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(errors="backslashreplace")
 
 
 @pytest.fixture

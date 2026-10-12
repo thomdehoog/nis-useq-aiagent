@@ -8,8 +8,14 @@ limits set in NIS-Elements, narrowed by the window's limit fields, the
 exposure range, the objectives and optical configurations the microscope has.
 
 ``TOOLS`` lists them; ``agent.py`` registers them on the Agent. This is the
-place to look up or add a tool. At the end is a guard on the model's reply
-itself (``REPLY_GUARDS``): an empty reply goes back to the model once.
+place to look up or add a tool.
+
+A tool's docstring is what the model reads to choose it, so it is written for
+choosing: first a line ``in: {...}. out: {...}.`` naming what goes in (``?``
+marks an optional argument) and what comes back, then only the facts that set
+the tool apart from its neighbours, with units. It states facts, not
+procedures: how tools are chained is for the instructions and for skills. The
+``Args:`` section becomes each argument's description in the schema.
 
 Author: Thom de Hoog, Center for Microscopy and Image Analysis (ZMB), University of Zurich
         thom.dehoog@zmb.uzh.ch . thomdehoog@gmail.com
@@ -51,8 +57,6 @@ from .instructions import (
     BRIDGE_MACRO_MISSING,
     BRIDGE_STEPS,
     CANCELLED_ADVICE,
-    EMPTY_REPLY_CHALLENGE,
-    EMPTY_REPLY_FALLBACK,
     FAILURE_ADVICE,
     LAST_IMAGE_QUESTION,
     LIMIT_ADVICE,
@@ -69,6 +73,7 @@ from .settings import (
     SOURCE_LINES,
     SOURCE_MATCHES,
 )
+from .skills import Skill
 
 # The source code the assistant may read to explain how things work: the three
 # parts and useq-schema as installed, nothing else on the computer.
@@ -99,6 +104,8 @@ class Microscope:
     # Set by Cancel: every further tool call in this turn does nothing.
     cancel: threading.Event = field(default_factory=threading.Event)
     turn: int = 0  # the operator's messages so far
+    # The skills the model may load, by name (skills.py); empty when there are none.
+    skills: dict[str, Skill] = field(default_factory=dict)
 
     @property
     def client(self):
@@ -230,11 +237,12 @@ def bridge_steps() -> list[str]:
 
 
 def check_setup(ctx: RunContext[Microscope]) -> dict[str, Any]:
-    """Whether NIS-Elements and its bridge answer, and whether an optical
-    configuration exists, with the steps for the operator when not.
+    """in: {}. out: {bridge, nis_elements?, optical_configurations?, note?,
+    steps_for_the_operator?}.
 
-    Call it when the microscope does not answer, or when no optical
-    configuration is listed; it moves nothing.
+    Whether NIS-Elements and its bridge answer and whether an optical
+    configuration exists; when something is missing, the steps that set it up.
+    Reconnects to a bridge that was restarted. Moves nothing.
     """
     engine = ctx.deps.engine
     try:
@@ -264,8 +272,11 @@ def check_setup(ctx: RunContext[Microscope]) -> dict[str, Any]:
 
 @guarded_tool
 def get_status(ctx: RunContext[Microscope]) -> dict[str, Any]:
-    """Everything the microscope reports: position, limits, objectives, optical
-    configurations and the Perfect Focus System (PFS)."""
+    """in: {}. out: {position_um, stage_limits_um, objectives, optical_configurations, pfs}.
+
+    Everything the microscope reports, more than the state sent with each
+    message: every objective in the nosepiece and every optical configuration.
+    """
     client = ctx.deps.client
     return {
         "position_um": client.request("get_position"),
@@ -283,7 +294,11 @@ def move_stage(
     y: float | None = None,
     z: float | None = None,
 ) -> dict[str, Any]:
-    """Move the stage to an absolute position.
+    """in: {x?, y?, z?}. out: {x, y, z} after the move, in um.
+
+    Moves the stage to an absolute position in NIS stage coordinates; an axis
+    left out stays where it is. A target outside the stage limits is refused
+    and nothing moves.
 
     Args:
         x: stage x in um; leave out to keep.
@@ -316,7 +331,13 @@ def set_microscope(
     objective_slot: int | None = None,
     pfs_on: bool | None = None,
 ) -> dict[str, Any]:
-    """Change optical settings. Leave out what should stay as it is.
+    """in: {optical_configuration?, exposure_ms?, objective_slot?, pfs_on?}.
+    out: {the settings applied}.
+
+    Changes the optical settings given and leaves the rest as they are. All
+    values are checked before anything changes, so a refused value changes
+    nothing. An optical configuration sets the channel (filters, light,
+    camera) as saved in NIS-Elements.
 
     Args:
         optical_configuration: name of a NIS optical configuration, e.g. "DAPI".
@@ -376,7 +397,12 @@ def focus(
     method: Literal["pfs", "image_sweep"] = "pfs",
     range_um: float = 50.0,
 ) -> dict[str, Any]:
-    """Find focus.
+    """in: {method?, range_um?}. out: {focused, z_before_um, z_after_um} or, when the
+    PFS cannot lock, {focused: false, pfs, z_um}.
+
+    Moves z to the focus. "pfs" uses the Perfect Focus System and leaves it on
+    or off as it was; "image_sweep" takes images through a range of z and
+    stops at the sharpest one. No image is kept.
 
     Args:
         method: "pfs" locks focus with the Perfect Focus System; "image_sweep" moves
@@ -423,10 +449,13 @@ def focus(
 
 @guarded_tool
 async def look(ctx: RunContext[Microscope], question: str) -> dict[str, Any]:
-    """Take one image with the current settings and answer a question about it.
+    """in: {question}. out: {answer, statistics, images_seen}.
 
-    The answer comes from the eyes, which have seen every image of this session:
-    ask them to compare with an earlier image when that is the question.
+    Takes one image with the current settings, shows it in the window and
+    answers the question from the picture. The image is not saved. The answer
+    comes from the eyes, which have seen every image of this session, so the
+    question may compare with an earlier image. statistics are the measured
+    numbers: min, max, mean and saturated_percent.
 
     Args:
         question: what to find out, e.g. "what do you see?", "is it in focus?",
@@ -449,9 +478,10 @@ async def look(ctx: RunContext[Microscope], question: str) -> dict[str, Any]:
 
 @guarded_tool
 async def ask_eyes(ctx: RunContext[Microscope], question: str) -> dict[str, Any]:
-    """Ask the eyes about the images already seen in this session, without taking
-    a new image: "has the sample moved since the first image?", "which image
-    was sharpest?".
+    """in: {question}. out: {answer, images_seen}.
+
+    Answers a question about the images already seen in this session, without
+    taking a new one: what changed between them, or which one was sharpest.
 
     Args:
         question: what to compare or recall across the images seen.
@@ -472,11 +502,13 @@ def _image_context(microscope: Microscope) -> dict[str, Any]:
 
 @guarded_tool
 def plan_acquisition(ctx: RunContext[Microscope], plan: AcquisitionPlan) -> dict[str, Any]:
-    """Turn a plan into a useq MDASequence and check it on the microscope, without
-    moving. A plan with a grid takes one image to measure the camera field.
+    """in: {plan}. out: {plan_id, images, summary, useq_sequence}.
 
-    Returns a plan id, a summary to tell the operator before starting it, and
-    the useq sequence itself.
+    Turns a plan (channels, z-stack, positions, grid, time points) into a useq
+    MDASequence and checks every image of it against the microscope's limits
+    and settings, without moving. A plan with a grid takes one image to
+    measure the camera field. summary says in words what the run will do and
+    roughly how long it takes. Nothing is imaged until run_acquisition.
     """
     if not plan.positions:  # fix "here" now, so the run images exactly what was checked
         here = ctx.deps.client.request("get_position")
@@ -497,15 +529,13 @@ def plan_useq_sequence(
     path: str | None = None,
     sequence: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
-    """Load a classic useq MDASequence made elsewhere and check it, like
-    plan_acquisition.
+    """in: {name, path? or sequence?}. out: {plan_id, images, summary, useq_sequence}.
 
-    This is how a sequence from another useq tool (pymmcore-widgets,
-    napari-micromanager, a script) runs on this microscope. Positions are NIS
-    stage coordinates in um; a sequence without positions is imaged where the
-    stage is now. Returns the same as plan_acquisition. A useq v2 sequence
-    cannot be read from JSON yet (useq-schema 0.9 does not save its axes), so
-    only the classic form works here.
+    Loads a classic useq MDASequence made elsewhere (pymmcore-widgets,
+    napari-micromanager, a script) from a file or as JSON, and checks it like
+    plan_acquisition. Positions are NIS stage coordinates in um; a sequence
+    without positions is imaged where the stage is now. A useq v2 sequence
+    cannot be read from JSON yet, so only the classic form works.
 
     Args:
         name: short name for the saved files: letters, digits, - and _.
@@ -567,9 +597,12 @@ def plan_refusal(ctx: RunContext[Microscope], exc: ValueError) -> dict:
 
 @guarded_tool
 async def run_acquisition(ctx: RunContext[Microscope], plan_id: str) -> dict[str, Any]:
-    """Run a plan made by plan_acquisition or plan_useq_sequence. The images are
-    saved as OME-TIFF (one file, or a folder with one file per position when
-    there are several), with the useq sequence next to them as .useq.json.
+    """in: {plan_id}. out: {images, finished, duration_s, saved_to, last_image, error?}.
+
+    Runs a checked plan and waits until it ends. The images are saved as
+    OME-TIFF (one file, or a folder with one file per position), with the useq
+    sequence next to them as .useq.json. last_image holds the last image's
+    numbers and, when the model can see, a short description of it.
 
     Args:
         plan_id: the id the planning tool returned.
@@ -651,11 +684,10 @@ async def describe_image(
 
 @guarded_tool
 def search_source(ctx: RunContext[Microscope], text: str) -> dict[str, Any]:
-    """Search the source code of the three parts and of useq-schema (v2 included)
-    for a word or phrase, to explain how something works.
+    """in: {text}. out: {matches, more} or, when nothing matches, {matches: [], files}.
 
-    Returns matching lines as "file:line: text". When nothing matches, returns
-    the list of files that can be read instead.
+    Searches the source code of the three parts (bridge, engine, assistant)
+    and of useq-schema, v2 included. Each match is "file:line: text".
 
     Args:
         text: the word or phrase to find, for example "def setup_event" or
@@ -677,7 +709,10 @@ def search_source(ctx: RunContext[Microscope], text: str) -> dict[str, Any]:
 def read_source(
     ctx: RunContext[Microscope], file: str, start_line: int = 1, lines: int = 80
 ) -> dict[str, Any]:
-    """Read part of a source file of the three parts or of useq-schema, with line numbers.
+    """in: {file, start_line?, lines?}. out: {file, lines, text}.
+
+    Reads part of a source file of the three parts or of useq-schema, with
+    line numbers, at most 200 lines at a time.
 
     Args:
         file: a file as search_source names it, for example "nis_engine/engine.py"
@@ -726,6 +761,24 @@ class _FrameCounter:
         self.on_image(image, f"frame {self.count} ({index})")
 
 
+@guarded_tool
+def load_skill(ctx: RunContext[Microscope], name: str) -> dict[str, Any]:
+    """in: {name}. out: {skill, tools, steps}.
+
+    Hands over the steps of one of this microscope's skills, the procedures
+    listed by name in the instructions. Changes nothing at the microscope.
+
+    Args:
+        name: the skill's name as listed.
+    """
+    skill = ctx.deps.skills.get(name.strip().lower())
+    if skill is None:
+        message = f"there is no skill named {name!r}"
+        options = list(ctx.deps.skills)
+        return refusal(ctx, "not_found", message, OPTIONS_ADVICE, configured_options=options)
+    return {"skill": skill.name, "tools": list(skill.tools), "steps": skill.steps}
+
+
 TOOLS = (
     check_setup,
     get_status,
@@ -739,27 +792,5 @@ TOOLS = (
     run_acquisition,
     search_source,
     read_source,
+    load_skill,
 )
-
-
-# -- guards on the reply ----------------------------------------------------------------
-
-
-def hand_back_an_empty_reply(ctx: RunContext[Microscope], output: str) -> str:
-    """A reply with no letter or digit goes back to the model once.
-
-    A second empty reply reaches the operator as a plain sentence rather than as,
-    say, an underscore.
-    """
-    asked = ctx.deps.__dict__.setdefault("_empty_asked", set())
-    if re.search(r"[^\W_]", output or ""):
-        asked.discard(ctx.run_id)
-        return output
-    if ctx.run_id in asked:
-        asked.discard(ctx.run_id)
-        return EMPTY_REPLY_FALLBACK
-    asked.add(ctx.run_id)
-    raise ModelRetry(EMPTY_REPLY_CHALLENGE)
-
-
-REPLY_GUARDS = (hand_back_an_empty_reply,)

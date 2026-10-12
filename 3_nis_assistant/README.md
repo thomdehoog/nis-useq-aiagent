@@ -1,8 +1,8 @@
 # nis-assistant
 
 A chat window where you ask for things at the Nikon microscope in your own
-words. A language model (Gemini by default; Claude, OpenAI or a server of your
-own also work) does them with the microscope and
+words. A language model (Claude Haiku by default; Gemini, OpenAI or a server of
+your own also work) does them with the microscope and
 explains what it did. The model never touches the
 microscope directly: it can only call a small set of tools written here, and
 every tool checks what it is asked before acting. Pydantic AI is the Python
@@ -25,12 +25,13 @@ this page is the complete documentation of the package.
 3. [Choosing the model](#choosing-the-model)
 4. [A first conversation, step by step](#a-first-conversation-step-by-step)
 5. [What it can do](#what-it-can-do)
-6. [How it stays safe](#how-it-stays-safe)
-7. [How a request becomes an action](#how-a-request-becomes-an-action)
-8. [When something is wrong](#when-something-is-wrong)
-9. [Tests](#tests)
-10. [For maintainers: the evaluation](#for-maintainers-the-evaluation)
-11. [Files](#files)
+6. [Skills: your own procedures](#skills-your-own-procedures)
+7. [How it stays safe](#how-it-stays-safe)
+8. [How a request becomes an action](#how-a-request-becomes-an-action)
+9. [When something is wrong](#when-something-is-wrong)
+10. [Tests](#tests)
+11. [For maintainers: the evaluation](#for-maintainers-the-evaluation)
+12. [Files](#files)
 
 ## The idea
 
@@ -82,7 +83,10 @@ in NIS-Elements as part 1's README describes; the window opens either way, and
 says which macro file to run when the bridge is not there.
 
 `--output` is where acquisitions are saved; without it, they go to
-`nis_assistant_runs` in your home folder. `--font-size 13` makes the letters
+`nis_assistant_runs` in your home folder. `--skills` names the folder with
+your own procedures (see [Skills](#skills-your-own-procedures)); without it,
+the assistant looks in `nis_assistant_skills` in your home folder, and having
+no such folder is fine. `--font-size 13` makes the letters
 bigger (the default is 11), and the divider between the chat and the image can
 be dragged.
 
@@ -91,7 +95,9 @@ be dragged.
 The **Model** line at the top of the window folds open to the choice. A cloud
 model needs an API key, which you type into the panel; it stays in memory for
 this session only and is never written anywhere. Each message costs a small
-amount; the provider's pricing page says how much.
+amount; the provider's pricing page says how much. The panel opens on
+Anthropic with `claude-haiku-5-5` filled in, so with a Claude key you only
+paste the key and press *Use this model*.
 
 | Provider | Default model | Key from |
 |---|---|---|
@@ -198,7 +204,7 @@ does to the picture on the screen. The *Coordinate system* box in the Model
 panel says what +x, +y and +z do to the sample in the image (right or left,
 up or down, deeper into the sample or toward the coverslip). The assistant is
 told, so *move it a bit to the left* or *go 10 um deeper* becomes a signed
-move on the right axis, and it says which axis and sign it used.
+move on the right axis.
 
 **Time courses.** *Take 10 time points, one every 3 minutes* is an
 acquisition with time points: the acquisition keeps the time, not the
@@ -209,6 +215,46 @@ context*, so each message carries the session so far; nothing is cut or
 summarised. The status line shows the size of the last request in tokens.
 Past the model's warning a line in the chat says the session is large; past
 its ceiling no message is sent until you clear it.
+
+## Skills: your own procedures
+
+A skill is a procedure you write down once, in plain words, so that the
+assistant carries it out the same way every time: how your lab checks a field
+before imaging, how it finds cells on a slide, which settings a staining
+needs. Each skill is one text file ending in `.md` in the skills folder. It
+starts with a short head between two `---` lines and then gives the steps:
+
+```
+---
+name: check-the-field
+description: Check that the field of view is usable before imaging: in focus and well exposed.
+tools: focus, look
+---
+1. Focus with the image sweep over 20 um.
+2. Look, and ask whether the image is in focus and whether it is saturated or too dim.
+3. Report both answers in one sentence each.
+```
+
+- **name**: small letters, digits, `-` and `_`. You and the assistant refer to
+  the skill by it.
+- **description**: one sentence on what the skill is for. The assistant sees
+  only the names and descriptions until a request matches one, so this
+  sentence decides when the skill is used. Write it the way an operator would
+  ask for the task.
+- **tools** (optional): the tools the steps use, as listed under
+  [Files](#files) in `tools.py`. A misspelt tool name is caught when the
+  window starts.
+
+When you ask for something that matches a skill, the assistant loads its
+steps and follows them; what you say in your message still comes first. A
+skill cannot make the assistant do anything it could not do before: every
+step goes through the same tools, and every tool still checks the limits.
+
+The skills are read when the window starts. A file with a mistake (no head,
+an unknown tool, a name used twice) is left out, and a red banner says which
+file and why; the other skills still load. No skills ship with the assistant:
+each lab writes its own. Test a new skill by asking for its task once with
+*Show tool calls* switched on, and check that the calls follow your steps.
 
 ## How it stays safe
 
@@ -237,7 +283,6 @@ its ceiling no message is sent until you clear it.
   request with a few measured numbers (brightness, saturation, sharpness),
   binned 2 x 2 so a 2048-pixel camera image arrives at 1024 pixels. A model
   that cannot see gets the numbers only.
-- **A check on the reply.** An empty reply goes back to the model once.
 - **Cancel prompt** stops the assistant: every further tool call in that turn
   does nothing. **Stop microscope** also ends a running acquisition after the
   image being taken. A single stage move that NIS has already started runs to
@@ -245,9 +290,6 @@ its ceiling no message is sent until you clear it.
   close while the assistant is still working.
 - **Clear context** forgets the conversation; **Show tool calls** lists each
   tool call in the chat as it happens.
-
-To keep long conversations quick, the assistant forgets older messages: after
-15 of your messages it keeps the newest 10.
 
 Changing the objective does not ask first, so check that the objectives can
 turn freely. If the connection to NIS was lost (for example because the macro
@@ -266,14 +308,14 @@ One turn in detail:
    clock. The model reasons from a fresh reading each time,
    and is told never to follow instructions that appear inside that block.
 2. The model reads its instructions (`instructions.py`, the same every
-   time), the conversation so far, and your message, and decides: answer in
-   words, ask you a question, or call a tool. Tools run one at a time, so
+   time, with the names of your skills when there are any), the
+   conversation so far, and your message, and decides: answer in words, ask
+   you a question, load a skill, or call a tool. Tools run one at a time, so
    each result is seen before the next call.
 3. The tool checks the request. It returns the result (the position after a
    move, the plan summary), or an `error` with what was refused, why, and a
    line of advice for the model ("tell the operator the limit and stop").
 4. The model reads the answer and calls another tool, or writes its reply.
-5. An empty reply goes back to the model once before you see it.
 
 The conversation is kept whole until *Clear context*. Pydantic AI is the library that connects the
 model to the tools and runs this loop.
@@ -285,7 +327,8 @@ model to the tools and runs this loop.
 | "The microscope does not answer." | The bridge is not running in NIS-Elements. | The assistant gives the steps (the path of `start_bridge.mac`, how to run it). Restart it, then send another message; the window reconnects. |
 | "NIS lists no optical configuration." | The assistant needs at least one channel to work with. | Make one in NIS (*Calibration > New Optical Configuration*); the assistant walks you through it. |
 | A red banner. | Something was refused: a limit, an unknown name, an invalid value. | The reply says which; the banner is there so you see it whatever the reply says. |
-| An empty or odd reply. | Usually a model answering a refusal with nothing. | Press *Cancel prompt*, try again, or switch model. The check above catches most of this. |
+| An empty or odd reply. | Usually a model answering a refusal with nothing. | Press *Cancel prompt*, try again, or switch model. |
+| "Skill not loaded: ..." in a red banner. | A file in the skills folder has a mistake; the banner says which. | Fix the file and start the window again. The other skills work meanwhile. |
 | An API error in red. | The key is wrong, the quota is spent, or the internet is down. | Fix the key in the Model panel. |
 | "Context too small" with an OpenAI-style server. | The server allows fewer tokens than a turn needs. | Raise it (Ollama: `OLLAMA_CONTEXT_LENGTH=16384`). |
 
@@ -308,28 +351,37 @@ assistant, with a real model and the fake NIS, and scores the result. Each
 run costs API calls.
 
 ```
+python tests/evals.py --model anthropic:claude-haiku-5-5        # needs ANTHROPIC_API_KEY and the [anthropic] extra
 python tests/evals.py --model openai:gpt-5-mini                # needs OPENAI_API_KEY
 python tests/evals.py --model google:gemini-3.5-flash-lite     # needs GOOGLE_API_KEY and the [google] extra
 python tests/evals.py --holdout --repeat 3                     # other wording; shows cases that pass only sometimes
 python tests/evals.py --scoreboard evals-*.jsonl               # pass rates per model and per category
 ```
 
-Change the instructions while looking at `eval_cases.json` only, then check
-with `--holdout`: that shows whether a change made the assistant better, or
-only fitted it to the cases.
+Each model runs with its provider's settings, as in the window: on Anthropic
+that includes the prompt caching. Change the instructions while looking at
+`eval_cases.json` only, then check with `--holdout`: that shows whether a
+change made the assistant better, or only fitted it to the cases.
+
+The instructions are kept short and general on purpose. A rule written to
+make one case pass tends to help that case and confuse others, and it gets in
+the way of skills, which chain the same tools in a lab's own way. So a
+failing case is first a question about the tool's description or the case
+itself, and only then about the instructions.
 
 ## Files
 
 | File | What it is |
 |---|---|
-| `nis_assistant/tools.py` | The tools: everything the model can ask for, one function each, with the limit checks, the refusals and the check on a reply. The place to look up or add a tool. |
+| `nis_assistant/tools.py` | The tools: everything the model can ask for, one function each, with the limit checks and the refusals. The place to look up or add a tool; its opening explains how a tool's description is written. |
 | `nis_assistant/instructions.py` | The prose the model reads: its instructions, the advice given with a refusal, and the setup steps it passes on. |
+| `nis_assistant/skills.py` | Reading the skill files, and the list of skills the model is shown. |
 | `nis_assistant/plans.py` | The plan format, plan to useq sequence, and the plan summary. |
 | `nis_assistant/images.py` | One snap, its statistics, and the binned PNG for the model. |
 | `nis_assistant/eyes.py` | The vision model's own conversation: the images seen this session, compared on request. |
 | `nis_assistant/memory.py` | The conversation's size, and a quoted state block taken out of a reply. |
 | `nis_assistant/models.py` | The ways to reach a model: a provider preset, an API key held in memory, the model object. |
-| `nis_assistant/agent.py` | The assembly: the Agent with the tools and the reply check, and `Assistant`, one conversation. |
+| `nis_assistant/agent.py` | The assembly: the Agent with the tools and the skills, and `Assistant`, one conversation. |
 | `nis_assistant/settings.py` | Every constant: the provider presets, the coordinate choices, the long-move distances, session sizes, window defaults. |
 | `nis_assistant/window.py` | The chat window (`nis-assistant`), with the Model panel from `panel.py`. |
 | `tests/evals.py` | The evaluation with a real model; `eval_cases.json` and `eval_cases_holdout.json`. |

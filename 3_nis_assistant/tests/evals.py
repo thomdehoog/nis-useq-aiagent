@@ -43,6 +43,7 @@ Setup (all optional):
     calibrated      NIS has a pixel size for the objective (needed for tiles)
     useq_file       a useq MDASequence (as JSON) saved to a file before the case;
                     "{useq_file}" in a prompt becomes its path
+    skills          a list of skill files, each as its text (see skills.py)
 
 Expectations:
     calls, calls_any, not_calls   tools that must, at least one of which must,
@@ -62,9 +63,7 @@ Expectations:
     reply_mentions_any, reply_mentions_none   words the replies must (one of
                     them) or must not contain; case does not matter, and a
                     word right after "not" or "no" does not count
-Every case also fails when a reply quotes the <microscope_state> block, or
-when one is the guard's word SAME (a reply meant for the guard, not the operator).
-The assistant runs with the window's reply guards on, as the operator meets it.
+Every case also fails when a reply quotes the <microscope_state> block.
 
 Author: Thom de Hoog, Center for Microscopy and Image Analysis (ZMB), University of Zurich
         thom.dehoog@zmb.uzh.ch . thomdehoog@gmail.com
@@ -94,8 +93,11 @@ from nis_bridge.fake import FakeNisApi, running_bridge
 from nis_engine import NisEngine
 from pydantic_ai.messages import ToolCallPart, ToolReturnPart
 
+from nis_assistant import skills
 from nis_assistant.agent import Assistant
+from nis_assistant.models import Endpoint
 from nis_assistant.settings import MODEL
+from nis_assistant.tools import TOOLS as ASSISTANT_TOOLS
 from nis_assistant.tools import Microscope
 
 HERE = Path(__file__).resolve().parent
@@ -109,6 +111,7 @@ READING_TOOLS = {
     "plan_useq_sequence",
     "search_source",
     "read_source",
+    "load_skill",
 }  # they change nothing at the microscope
 TOOLS = READING_TOOLS | {"move_stage", "set_microscope", "focus", "look", "run_acquisition"}
 EXPECTATIONS = {
@@ -240,7 +243,15 @@ def _run_once(case: dict, model, vision_model) -> dict:
                 vision_model=vision_model,
             )
             microscope.axes.update(setup.get("axes", {}))  # the coordinate system, if set
-            assistant = Assistant(microscope, model=model)
+            known = [tool.__name__ for tool in ASSISTANT_TOOLS]
+            for text in setup.get("skills", []):
+                skill = skills.parse(text, known_tools=known)
+                microscope.skills[skill.name] = skill
+            # A model given by name gets its provider's settings, as in the window (on
+            # Anthropic: prompt caching and no temperature); a model object, as in the
+            # offline tests, keeps the defaults.
+            settings = Endpoint.from_name(model).settings if isinstance(model, str) else None
+            assistant = Assistant(microscope, model=model, model_settings=settings)
             for turn, prompt in enumerate(prompts_of(case), start=1):
                 try:
                     replies.append(assistant.send(prompt.replace("{useq_file}", str(useq_file))))
@@ -366,6 +377,12 @@ def score(case: dict, trace: dict) -> list[str]:
 
 
 def _get(args: dict, dotted: str):
+    # A tool that takes one model (plan_acquisition takes a plan) accepts its fields
+    # either as they are or wrapped under the argument's name; both are the same call.
+    if len(args) == 1 and dotted.split(".")[0] not in args:
+        (inner,) = args.values()
+        if isinstance(inner, dict):
+            args = inner
     value = args
     for key in dotted.split("."):
         if isinstance(value, list) and key.isdigit() and int(key) < len(value):
