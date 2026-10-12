@@ -1,5 +1,11 @@
 # nis-useq-aiagent
 
+> **Tested only on the simulator.** This software has been tested on the Ti2
+> simulator of NIS-Elements AR 6.10.02, not yet on a real microscope with a
+> sample. Use it at your own risk: check every move against the instrument,
+> keep the objective clear of the sample on a first run, and read the
+> [disclaimer](#disclaimer) before you start.
+
 This repository consists of three things to control the NIS-Elements
 microscope software through Python:
 
