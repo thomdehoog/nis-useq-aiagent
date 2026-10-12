@@ -45,7 +45,9 @@ PROVIDERS: dict[str, dict[str, Any]] = {
         "vision": False,  # set by the operator in the window when their server can see
     },
 }
-DEFAULT_PROVIDER = "Gemini"
+# The provider the Model panel opens with: Anthropic, whose preset is claude-haiku-5-5,
+# so only the API key needs typing in.
+DEFAULT_PROVIDER = "Anthropic"
 MODEL = "google:gemini-3.5-flash-lite"  # the model when no endpoint is chosen (tests, evals)
 # The short names Pydantic AI uses in a "provider:model" string, by provider preset.
 PREFIXES = {

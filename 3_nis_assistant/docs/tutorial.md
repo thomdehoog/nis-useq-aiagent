@@ -16,7 +16,7 @@ required: the assistant uses them for you.
 ## The idea
 
 You type a request in your own words: *take a Z-stack of 10 um in DAPI and
-FITC here*. A language model (Gemini, OpenAI, or one running on this
+FITC here*. A language model (Claude, Gemini, OpenAI, or one running on this
 computer) reads it, and decides what to do. But the model does not touch the
 microscope. It can only ask for a small set of **tools**, written in this
 package, such as "read the status", "move the stage to x, y, z", "plan this
@@ -66,11 +66,12 @@ microscope status.
 The assistant needs a language model, and the first time you must tell it
 which. The **Model** line at the top of the window folds open.
 
-The simplest start is Gemini: get a free API key at
-[aistudio.google.com](https://aistudio.google.com), paste it into the panel,
-and press *Use this model*. The key stays in memory for this session and is
-never written to disk. Claude and OpenAI work the same way, with a key from
-[console.anthropic.com](https://console.anthropic.com) or
+The panel opens on Anthropic, with the model claude-haiku-5-5 already filled
+in. Get an API key at [console.anthropic.com](https://console.anthropic.com),
+paste it into the panel, and press *Use this model*. The key stays in memory
+for this session and is never written to disk. Gemini and OpenAI work the same
+way: choose them in the panel, with a key from
+[aistudio.google.com](https://aistudio.google.com) (it has a free tier) or
 [platform.openai.com](https://platform.openai.com). Each message costs a
 fraction of a cent; the provider's pricing page says how much.
 

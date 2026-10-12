@@ -1,8 +1,8 @@
 # nis-assistant
 
 A chat window where you ask for things at the Nikon microscope in your own
-words. A language model (Gemini by default; Claude, OpenAI or a server of your
-own also work) does them with the microscope and
+words. A language model (Claude Haiku by default; Gemini, OpenAI or a server of
+your own also work) does them with the microscope and
 explains what it did. The model never touches the
 microscope directly: it can only call a small set of tools written here, and
 every tool checks what it is asked before acting. Pydantic AI is the Python
@@ -95,7 +95,9 @@ be dragged.
 The **Model** line at the top of the window folds open to the choice. A cloud
 model needs an API key, which you type into the panel; it stays in memory for
 this session only and is never written anywhere. Each message costs a small
-amount; the provider's pricing page says how much.
+amount; the provider's pricing page says how much. The panel opens on
+Anthropic with `claude-haiku-5-5` filled in, so with a Claude key you only
+paste the key and press *Use this model*.
 
 | Provider | Default model | Key from |
 |---|---|---|
