@@ -1,5 +1,7 @@
 # Step 0: test what NIS-Elements lets our Python do
 
+Run on **NIS-Elements 7.01.03 (Build 2233)**, with its own Python 3.12.4 (as reported by the test itself, 2026-10-25).
+
 ## Run it
 
 1. Unzip `nikon-step0.zip` on the desktop (or to `C:\nikon-step0\`). Any folder name works.
