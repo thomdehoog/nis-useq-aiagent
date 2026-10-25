@@ -56,6 +56,16 @@ our software  ──►  NIS's Python  ──►  nis.mac  ──►  microscope
 (outside NIS)      (started by a macro)
 ```
 
+The options for connecting our software to NIS:
+
+1. **TCP via NIS's own Python** (`socketserver`, 127.0.0.1): our choice. Standard library,
+   values come back, already working in the bridge.
+2. **NkSocket:** Nikon's TCP in a macro. The same idea, but text commands only, no values back.
+3. **COM port (NkComPort):** serial, for devices such as an Arduino, not for programs.
+4. **Windows COM/ActiveX:** NIS offers none.
+5. **REST API:** from Nikon, but it needs a separate licence.
+6. **Files or named pipes:** possible, but slower or more fiddly, with no benefit.
+
 ## What our Python can reach, with the microscope off
 
 Step 0 on NIS-Elements 7.01.03, 2026-10-25, microscope switched off. Reachable means `nis.mac` offers the function by name. Every function: [FUNCTIONS.md](FUNCTIONS.md).
