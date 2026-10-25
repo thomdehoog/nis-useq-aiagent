@@ -2,12 +2,12 @@
 
 ## Run it
 
-1. Copy this folder's files to `C:\nikon-step0\`.
+1. Unzip `nikon-step0.zip` on the desktop (or to `C:\nikon-step0\`). Any folder name works.
 2. Start NIS without hardware: Win+R, then
    `"C:\Program Files\NIS-Elements\nis_ar.exe" -passive`
-3. In NIS: Macro > Run Macro From File > `C:\nikon-step0\step0.mac`.
+3. In NIS: Macro > Run Macro From File > `step0.mac` in that folder.
 4. Wait until NIS responds again (a minute at most).
-5. Bring back the folder `C:\nikon-step0\results\`.
+5. Bring back the `results` folder that appears next to the files.
 
 ## The results
 
