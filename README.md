@@ -55,3 +55,32 @@ requests from our software outside NIS.
 our software  ──►  NIS's Python  ──►  nis.mac  ──►  microscope
 (outside NIS)      (started by a macro)
 ```
+
+## What our Python can reach, with the microscope off
+
+Step 0 on NIS-Elements 7.01.03, 2026-10-25, microscope switched off. Reachable means `nis.mac` offers the function by name. Every function: [FUNCTIONS.md](FUNCTIONS.md).
+
+| Section | Reachable | Not reachable | Total |
+|---|---:|---:|---:|
+| Acquire | 153 | 199 | 352 |
+| AdvancedAPI | 148 | 0 | 148 |
+| Analysis | 208 | 20 | 228 |
+| Applications | 38 | 160 | 198 |
+| Binary | 385 | 7 | 392 |
+| Calibration | 21 | 0 | 21 |
+| Device | 502 | 112 | 614 |
+| ExportResults | 57 | 0 | 57 |
+| Image | 524 | 61 | 585 |
+| ImageDocument | 143 | 4 | 147 |
+| Macro | 59 | 3 | 62 |
+| Measure | 173 | 0 | 173 |
+| Misc | 7 | 0 | 7 |
+| ND | 215 | 5 | 220 |
+| Organizer | 75 | 0 | 75 |
+| System | 105 | 6 | 111 |
+| UserInterface | 26 | 0 | 26 |
+| View | 201 | 1 | 202 |
+| Visualization | 49 | 0 | 49 |
+| **All** | **3089** | **578** | **3667** |
+
+Most of what is not reachable needs the camera (Acquire: camera, live, ROI), belongs to hardware this system does not have (Device), or to modules not installed (Applications).
