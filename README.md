@@ -1,6 +1,6 @@
 # Step 0: test what NIS-Elements lets our Python do
 
-Run on **NIS-Elements 7.01.03 (Build 2233)**, with its own Python 3.12.4 (as reported by the test itself, 2026-10-25).
+Run on **NIS-Elements AR 7.01.03 (Build 2233)**, with its own Python 3.12.4 (version and Python as reported by the test itself, 2026-10-25; edition from Help > About).
 
 ## Run it
 
@@ -28,7 +28,7 @@ the microscope. Each write is put back afterwards.
 
 ## Note by hand
 
-- Help > About: is it AR?
+- Help > About: is it AR? (2026-10-25: yes)
 - With the bridge running: what does the flickering text at the bottom say? (screenshot)
 
 ## How we connect

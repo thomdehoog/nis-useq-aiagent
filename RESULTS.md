@@ -1,6 +1,6 @@
 # Step 0 results
 
-## 2026-10-25: NIS-Elements 7.01.03, without hardware
+## 2026-10-25: NIS-Elements AR 7.01.03, without hardware
 
 Two runs on the microscope computer, both on purpose without the microscope switched on: the
 first with NIS started as `-passive`, the second with the test's fixes (timing per route, plain
@@ -31,7 +31,7 @@ The 578 fall into four groups:
 
 | Question | Answer |
 |---|---|
-| NIS and its Python | NIS-Elements 7.01.03 (Build 2233), Python 3.12.4 |
+| NIS and its Python | NIS-Elements AR 7.01.03 (Build 2233), Python 3.12.4 |
 | Does `nis.mac` work from our Python, outside a JOB? | **Yes**, with the same values as ctypes |
 | Is the name lookup real? | **Yes**: an unknown name raises `AttributeError` |
 | `nis.call_proc` (used by the bridge on NIS 6.10) | **Gone in 7.01**: `nis` has `mac`, `ptr`, `log`, `error`, `stdout_hook`, `stderr_hook` |
