@@ -28,3 +28,30 @@ the microscope. Each write is put back afterwards.
 
 - Help > About: is it AR?
 - With the bridge running: what does the flickering text at the bottom say? (screenshot)
+
+## How we connect
+
+```
+┌──────────────────── NIS-Elements ────────────────────┐
+│                                                      │
+│ step0.mac ──► NIS's Python ──► nis.mac ──────────────┼──► microscope
+│ (a macro)     (step0_test.py)  (any function)        │
+│                    │                                 │
+└────────────────────┼─────────────────────────────────┘
+                     ▼
+                 results\  (the report)
+```
+
+1. **The macro** is the way in: NIS runs macros, and one line of macro starts Python.
+2. **NIS's own Python** runs our code, inside NIS. No separate Python is needed.
+3. **`nis.mac`** is Nikon's documented door from that Python to every macro function: stage,
+   focus, optical configurations, capture, saving … by name, with the values coming back.
+4. **The microscope** does what the function says.
+
+The driver later works the same way, with one step added: the Python inside NIS listens for
+requests from our software outside NIS.
+
+```
+our software  ──►  NIS's Python  ──►  nis.mac  ──►  microscope
+(outside NIS)      (started by a macro)
+```
