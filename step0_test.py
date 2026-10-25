@@ -3,7 +3,7 @@
 Runs INSIDE NIS-Elements, started by step0.mac (Macro > Run Macro From File). It answers:
 
   1. Which ways of calling a macro function work from NIS's Python here:
-     nis.mac (documented), nis.call_proc (used by the bridge today), ctypes on g5_regprocs.dll.
+     nis.mac (documented), nis.call_proc (NIS 6.10 only), ctypes on g5_regprocs.dll.
   2. Whether every function the AR edition includes can be reached by name (coverage check;
      nothing is called for this).
   3. What the readings return on this microscope, and how long each call takes.
@@ -90,7 +90,8 @@ def save():
         json.dump(report, handle, indent=1, default=repr)
 
 
-def code(value):
+def dr(value):
+    """A return value the manual documents as a DR code, with its meaning beside it."""
     return f"{value} ({DR_CODES.get(value, 'not a DR code')})" if isinstance(value, int) else value
 
 
@@ -147,19 +148,22 @@ def ctypes_version():
 def mac_xy():
     x, y = nis.ptr.double(), nis.ptr.double()
     result = nis.mac.StgGetPosXY(x, y)
-    return {"return": code(result), "x": x.get(), "y": y.get()}
+    return {"return": dr(result), "x": x.get(), "y": y.get()}
 
 
 def call_proc_xy():
+    """nis.call_proc existed in NIS 6.10; NIS 7.01 has none."""
+    if not hasattr(nis, "call_proc"):
+        return {"present": False}
     out = nis.call_proc("StgGetPosXY", 0.0, 0.0)
-    return {"raw": repr(out)}
+    return {"present": True, "raw": repr(out)}
 
 
 def ctypes_xy():
     x, y = ct.c_double(), ct.c_double()
     fn = regprocs.StgGetPosXY
     fn.argtypes, fn.restype = [ct.POINTER(ct.c_double)] * 2, ct.c_int32
-    return {"return": code(fn(ct.byref(x), ct.byref(y))), "x": x.value, "y": y.value}
+    return {"return": dr(fn(ct.byref(x), ct.byref(y))), "x": x.value, "y": y.value}
 
 
 check("Get_InfoStr via nis.mac", mac_version, group="routes")
@@ -195,16 +199,22 @@ def reading(name, build):
     check(name, build, group="readings")
 
 
-def ptr_call(function_name, *args):
-    """Call nis.mac.<function_name>; hand back the return value and every nis.ptr value."""
+def ptr_call(function_name, *args, dr_code=False):
+    """Call nis.mac.<function_name>; hand back the return value and every nis.ptr value.
+
+    The return value is shown as it is: a count, a yes/no or a value. Only where the manual
+    documents a DR code (``dr_code=True``) is its meaning added.
+    """
     result = getattr(nis.mac, function_name)(*args)
     values = [a.get() if hasattr(a, "get") else a for a in args]
-    return {"return": code(result), "values": values}
+    return {"return": dr(result) if dr_code else result, "values": values}
 
 
-reading("StgGetPosZ", lambda: ptr_call("StgGetPosZ", nis.ptr.double(), 0))
-reading("StgXY_GetLimits", lambda: ptr_call("StgXY_GetLimits", *(nis.ptr.double() for _ in range(4))))
-reading("StgZ_GetLimits", lambda: ptr_call("StgZ_GetLimits", nis.ptr.double(), nis.ptr.double()))
+reading("StgGetPosZ", lambda: ptr_call("StgGetPosZ", nis.ptr.double(), 0, dr_code=True))
+reading("StgXY_GetLimits",
+        lambda: ptr_call("StgXY_GetLimits", *(nis.ptr.double() for _ in range(4)), dr_code=True))
+reading("StgZ_GetLimits",
+        lambda: ptr_call("StgZ_GetLimits", nis.ptr.double(), nis.ptr.double(), dr_code=True))
 reading("GetOptConfCount", lambda: ptr_call("GetOptConfCount"))
 
 
@@ -236,7 +246,7 @@ def objectives():
     for position in range(1, max(count, 0) + 1):
         text = nis.ptr.char()
         result = nis.mac.Stg_GetNosepieceObjectiveName(position, text, 256)
-        names[position] = {"return": code(result), "name": text.get()}
+        names[position] = {"return": dr(result), "name": text.get()}
     return names
 
 
@@ -251,17 +261,22 @@ if ALLOW_CAMERA_READ:
 
 
 def timing():
-    """The same reading TIMING_REPEATS times through each route."""
+    """The same reading TIMING_REPEATS times through each route that is there.
+
+    A route that fails is recorded with its error; the other routes are still timed.
+    """
     answer = {}
-    routes = {"nis.mac": mac_xy, "nis.call_proc": call_proc_xy}
-    if regprocs is not None:
-        routes["ctypes"] = ctypes_xy
+    routes = {"nis.mac": mac_xy, "ctypes": ctypes_xy}
     for route, function in routes.items():
         times = []
-        for _ in range(TIMING_REPEATS):
-            started = time.perf_counter()
-            function()
-            times.append(time.perf_counter() - started)
+        try:
+            for _ in range(TIMING_REPEATS):
+                started = time.perf_counter()
+                function()
+                times.append(time.perf_counter() - started)
+        except Exception as error:  # noqa: BLE001 - one route failing leaves the others
+            answer[route] = {"error": f"{type(error).__name__}: {error}"}
+            continue
         times.sort()
         answer[route] = {"median_ms": round(1000 * times[len(times) // 2], 3),
                          "max_ms": round(1000 * times[-1], 3)}
@@ -287,11 +302,11 @@ def stage_round_trip():
         return {"skipped": f"no room for {STAGE_STEP_UM} um within the X limits {low}..{high}"}
     steps = {"limits_x": [low, high]}
     started = time.perf_counter()
-    steps["move"] = code(nis.mac.StgMoveXY(target, start_y, 0))
+    steps["move"] = dr(nis.mac.StgMoveXY(target, start_y, 0))
     steps["move_s"] = round(time.perf_counter() - started, 3)
     nis.mac.StgGetPosXY(x, y)
     steps["read_after_move"] = [x.get(), y.get()]
-    steps["back"] = code(nis.mac.StgMoveXY(start_x, start_y, 0))
+    steps["back"] = dr(nis.mac.StgMoveXY(start_x, start_y, 0))
     nis.mac.StgGetPosXY(x, y)
     steps["read_after_back"] = [x.get(), y.get()]
     steps["start"] = [start_x, start_y]
@@ -304,10 +319,10 @@ def z_round_trip():
     z = nis.ptr.double()
     nis.mac.StgGetPosZ(z, 0)
     start = z.get()
-    steps = {"start": start, "move": code(nis.mac.StgMoveZ(start + Z_STEP_UM, 0))}
+    steps = {"start": start, "move": dr(nis.mac.StgMoveZ(start + Z_STEP_UM, 0))}
     nis.mac.StgGetPosZ(z, 0)
     steps["read_after_move"] = z.get()
-    steps["back"] = code(nis.mac.StgMoveZ(start, 0))
+    steps["back"] = dr(nis.mac.StgMoveZ(start, 0))
     nis.mac.StgGetPosZ(z, 0)
     steps["read_after_back"] = z.get()
     return steps
@@ -319,9 +334,9 @@ def optical_configuration_round_trip():
         return {"skipped": "fewer than two optical configurations"}
     first, other = names[0], names[1]
     steps = {"before": selected_optical_configuration()["values"][:3]}
-    steps["select_other"] = code(nis.mac.SelectOptConf(other))
+    steps["select_other"] = nis.mac.SelectOptConf(other)
     steps["read_after_select"] = selected_optical_configuration()["values"][:3]
-    steps["select_first"] = code(nis.mac.SelectOptConf(first))
+    steps["select_first"] = nis.mac.SelectOptConf(first)
     steps["read_after_first"] = selected_optical_configuration()["values"][:3]
     steps["selected"] = [other, first]
     return steps
@@ -329,20 +344,20 @@ def optical_configuration_round_trip():
 
 def capture_save_close():
     path = os.path.join(OUT_DIR, "step0_capture.tif")
-    steps = {"capture": code(nis.mac.Capture())}
+    steps = {"capture": nis.mac.Capture()}
     info = nis.ptr.char()
     steps["Get_Calibration"] = ptr_call("Get_Calibration", info, nis.ptr.double(), nis.ptr.double(),
                                         nis.ptr.int())
-    steps["save"] = code(nis.mac.ImageSaveAs(path, 18, 0))
+    steps["save"] = nis.mac.ImageSaveAs(path, 18, 0)
     steps["saved_file"] = os.path.exists(path)
-    steps["close"] = code(nis.mac.CloseCurrentDocument(2))
+    steps["close"] = nis.mac.CloseCurrentDocument(2)
     return steps
 
 
 def command_text():
     """The fallback route: macro text on NIS's own process. Harmless text: it only sets a title."""
     result = nis.mac.Int_ExecuteCommand(os.getpid(), 'WaitText(1, "step0: command text works");')
-    return {"return": code(result)}
+    return {"return": result}
 
 
 if ALLOW_STAGE:
