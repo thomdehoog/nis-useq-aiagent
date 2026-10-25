@@ -15,6 +15,9 @@ return values). All 25 checks of the second run passed.
 | Called by the test and confirmed working | about 20 (the readings below) |
 | Not reachable without hardware | 578 |
 
+Every function with its answer, by section: [FUNCTIONS.md](FUNCTIONS.md) (as a spreadsheet:
+`functions.csv`).
+
 The 578 fall into four groups:
 
 - **Camera, live and ROI** (`CameraSet_Exposure`, `Live`, `ROISet` …): NIS makes these only when
