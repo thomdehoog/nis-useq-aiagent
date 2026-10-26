@@ -1,0 +1,4 @@
+# Nikon's function list and anything made from it stay on the NIS computer
+FunctionList*.htm*
+results/
+__pycache__/

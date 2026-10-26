@@ -1,98 +1,72 @@
-# Step 0: test what NIS-Elements lets our Python do
+# Step 0: test what NIS-Elements 6.10 lets our Python do
 
-Run on **NIS-Elements AR 7.01.03 (Build 2233)**, with its own Python 3.12.4 (version and Python as reported by the test itself, 2026-10-25; edition from Help > About).
+The mirror of the NIS 7 Step 0 (branch `agent/nis-7-step0`), for **NIS-Elements AR 6.10.02**
+on the Ti2 simulator: the version the bridge was built and tested on. It calls every NIS
+function the bridge uses, so the two versions can be compared function by function.
 
 ## Run it
 
-1. Unzip `nikon-step0.zip` on the desktop (or to `C:\nikon-step0\`). Any folder name works.
-2. Start NIS without hardware: Win+R, then
-   `"C:\Program Files\NIS-Elements\nis_ar.exe" -passive`
+1. Download this branch (GitHub: Code > Download ZIP) and unzip it on the desktop (or to
+   `C:\nikon-step0-610\`). Any folder name works. The NIS 7 folder can stay on the desktop:
+   `step0.mac` only runs a `step0_test.py` whose first line says 6.10.
+2. Start NIS-Elements 6.10 with the Ti2 simulator.
 3. In NIS: Macro > Run Macro From File > `step0.mac` in that folder.
-4. Wait until NIS responds again (a minute at most).
+4. Wait until NIS responds again (a minute or two: the writes move the simulated stage).
 5. Bring back the `results` folder that appears next to the files.
+
+Optional, for the coverage check: copy NIS's own `FunctionList_6.10.02.html` next to
+`step0_test.py`. The test also looks for it under `C:\Program Files\NIS-Elements`. The list is
+Nikon's and is **not** part of this branch; neither is anything made from it. The per-function
+answer goes to `results\functions.csv`, which stays on the NIS computer.
 
 ## The results
 
 - `step0_summary.txt`: one line per check, ok or FAIL.
 - `step0_report.json`: everything in full.
 - `step0.log`: the run step by step. If NIS hangs, the last line names the call.
+- `functions.csv`: per function in NIS's list, reachable by name or not (local only, see above).
 
-Without hardware, these are expected and fine: readings that say `DR_NOTAVAILABLE`, and
-camera or device functions listed as missing.
+## What it calls
 
-## Writes (later, with hardware)
+Every NIS function in `1_nis_bridge/nis_bridge/nis_dll.py`, the way the bridge calls it
+(ctypes on `g5_regprocs.dll`; `nis.call_proc` for `Camera_ExposureSet`):
 
-All writes are off. To test one, open `step0_test.py` in Notepad, change one
-`ALLOW_... = False` to `True`, save, and run `step0.mac` again. One at a time, with someone at
-the microscope. Each write is put back afterwards.
+| | Functions |
+|---|---|
+| Readings | `Get_InfoStr`, `StgGetPos`, `StgXY_GetLimits`, `StgZ_GetLimits`, `GetOptConfCount`, `GetOptConfName`, `Stg_IsNosepiecePresent`, `Stg_GetNosepiecePositions`, `Stg_GetNosepiecePosition`, `Stg_GetNosepieceObjectiveName`, `Stg_IsPFSPresent`, `Stg_GetPFSStatus`, `Get_Calibration` |
+| Writes, each put back | `StgMoveXY`, `StgMoveZ`, `StgMove`, `SelectOptConf`, `Camera_ExposureSet`, `Stg_SetNosepiecePosition`, `Stg_SetPFSStatus`, `Stg_WaitForPFS`, `StgFocusInRangeEx`, `Capture`, `ImageSaveAs`, `CloseCurrentDocument` |
+| Also read, to compare with NIS 7 | `StgGetPosXY`, `StgGetPosZ`, `GetSelectedOptConf` |
+
+It also tries each of the three ways of calling (ctypes, `nis.call_proc`, `nis.mac`) on the
+same reading, and times them.
+
+## Writes
+
+Unlike on NIS 7, the writes are **on**: this run is for the simulator. `Camera_ExposureSet`
+leaves the exposure at 50 ms (it cannot be read back without a blocking dialog). On a real
+microscope, open `step0_test.py` in Notepad, set every `ALLOW_... = True` to `False`, and switch
+them on one at a time, with someone at the microscope.
+
+Off by default, as on NIS 7: `ALLOW_CAMERA_READ` (`Camera_ExposureGet` opened a blocking dialog
+on the 6.10 simulator) and `ALLOW_COMMAND_TEXT` (`Int_ExecuteCommand`, may hang).
 
 ## Note by hand
 
-- Help > About: is it AR? (2026-10-25: yes)
-- With the bridge running: what does the flickering text at the bottom say? (screenshot)
+- Help > About: the version and edition (AR?).
 
 ## How we connect
 
 ```
 ┌──────────────────── NIS-Elements ────────────────────┐
 │                                                      │
-│ step0.mac ──► NIS's Python ──► nis.mac ──────────────┼──► microscope
-│ (a macro)     (step0_test.py)  (any function)        │
-│                    │                                 │
+│ step0.mac ──► NIS's Python ──► g5_regprocs.dll ──────┼──► microscope
+│ (a macro)     (step0_test.py)  (ctypes; call_proc    │    (simulator)
+│                    │            for the exposure)    │
 └────────────────────┼─────────────────────────────────┘
                      ▼
                  results\  (the report)
 ```
 
-1. **The macro** is the way in: NIS runs macros, and one line of macro starts Python.
-2. **NIS's own Python** runs our code, inside NIS. No separate Python is needed.
-3. **`nis.mac`** is Nikon's documented door from that Python to every macro function: stage,
-   focus, optical configurations, capture, saving … by name, with the values coming back.
-4. **The microscope** does what the function says.
-
-The driver later works the same way, with one step added: the Python inside NIS listens for
-requests from our software outside NIS.
-
-```
-our software  ──►  NIS's Python  ──►  nis.mac  ──►  microscope
-(outside NIS)      (started by a macro)
-```
-
-The options for connecting our software to NIS:
-
-1. **TCP via NIS's own Python** (`socketserver`, 127.0.0.1): our choice. Standard library,
-   values come back, already working in the bridge.
-2. **NkSocket:** Nikon's TCP in a macro. The same idea, but text commands only, no values back.
-3. **COM port (NkComPort):** serial, for devices such as an Arduino, not for programs.
-4. **Windows COM/ActiveX:** NIS offers none.
-5. **REST API:** from Nikon, but it needs a separate licence.
-6. **Files or named pipes:** possible, but slower or more fiddly, with no benefit.
-
-## What our Python can reach, with the microscope off
-
-Step 0 on NIS-Elements 7.01.03, 2026-10-25, microscope switched off. Reachable means `nis.mac` offers the function by name. Every function: [FUNCTIONS.md](FUNCTIONS.md).
-
-| Section | Reachable | Not reachable | Total |
-|---|---:|---:|---:|
-| Acquire | 153 | 199 | 352 |
-| AdvancedAPI | 148 | 0 | 148 |
-| Analysis | 208 | 20 | 228 |
-| Applications | 38 | 160 | 198 |
-| Binary | 385 | 7 | 392 |
-| Calibration | 21 | 0 | 21 |
-| Device | 502 | 112 | 614 |
-| ExportResults | 57 | 0 | 57 |
-| Image | 524 | 61 | 585 |
-| ImageDocument | 143 | 4 | 147 |
-| Macro | 59 | 3 | 62 |
-| Measure | 173 | 0 | 173 |
-| Misc | 7 | 0 | 7 |
-| ND | 215 | 5 | 220 |
-| Organizer | 75 | 0 | 75 |
-| System | 105 | 6 | 111 |
-| UserInterface | 26 | 0 | 26 |
-| View | 201 | 1 | 202 |
-| Visualization | 49 | 0 | 49 |
-| **All** | **3089** | **578** | **3667** |
-
-Most of what is not reachable needs the camera (Acquire: camera, live, ROI), belongs to hardware this system does not have (Device), or to modules not installed (Applications).
+On 6.10 the bridge reaches NIS through ctypes on `g5_regprocs.dll`, and through
+`nis.call_proc` for the one function the DLL does not export. NIS 7.01 has no
+`nis.call_proc` but has `nis.mac`; this run shows whether 6.10 already has `nis.mac`.
