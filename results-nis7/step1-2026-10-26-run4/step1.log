@@ -1,0 +1,475 @@
+17:55:15 closing the server of an earlier run
+17:55:15 start: step 1 version 2026-10-26 run-by-itself, file C:\Users\t.de\Desktop\nikon-step1_3\nikon-step1\step1_bridge.py
+17:55:15 start: Python 3.12.4, pid 25448, nis module True
+17:55:15 listening on 127.0.0.1:54471
+17:55:16 DIALOG 17:55:16 '': Continue
+17:55:16 connection from 127.0.0.1:58750
+17:55:16 RUN   ping
+17:55:16 DONE  ping: ok
+17:55:16 RUN   Get_InfoStr
+17:55:16 DONE  Get_InfoStr: ok
+17:55:16 RUN   StgGetPosZ
+17:55:16 DONE  StgGetPosZ: ok
+17:55:16 RUN   StgGetPosXY
+17:55:16 DONE  StgGetPosXY: ok
+17:55:16 RUN   GetOptConfCount
+17:55:16 DONE  GetOptConfCount: ok
+17:55:16 RUN   Stg_GetPFSStatus
+17:55:16 DONE  Stg_GetPFSStatus: ok
+17:55:16 RUN   ThisFunctionDoesNotExist_Step1
+17:55:16 DONE  ThisFunctionDoesNotExist_Step1: AttributeError: 'Macro' object has no attribute 'ThisFunctionDoesNotExist_Step1'
+17:55:16 RUN   StgMoveZ
+17:55:16 DONE  StgMoveZ: PermissionError: StgMoveZ is not on the step 1 list of readings
+17:55:16 RUN   raise
+17:55:16 DONE  raise: RuntimeError: step 1: a deliberate Python error, to see it come back as a reply
+17:55:16 RUN   fly
+17:55:16 DONE  fly: ValueError: unknown op 'fly'; one of ping, call, raise, hold, shutdown
+17:55:16 RUN   StgGetPosZ
+17:55:16 DONE  StgGetPosZ: ok
+17:55:16 RUN   StgGetPosZ
+17:55:16 DONE  StgGetPosZ: ok
+17:55:16 RUN   StgGetPosZ
+17:55:16 DONE  StgGetPosZ: ok
+17:55:16 RUN   StgGetPosZ
+17:55:16 DONE  StgGetPosZ: ok
+17:55:16 RUN   StgGetPosZ
+17:55:16 DONE  StgGetPosZ: ok
+17:55:16 RUN   StgGetPosZ
+17:55:16 DONE  StgGetPosZ: ok
+17:55:16 RUN   StgGetPosZ
+17:55:16 DONE  StgGetPosZ: ok
+17:55:16 RUN   StgGetPosZ
+17:55:16 DONE  StgGetPosZ: ok
+17:55:16 RUN   StgGetPosZ
+17:55:16 DONE  StgGetPosZ: ok
+17:55:17 RUN   StgGetPosZ
+17:55:17 DONE  StgGetPosZ: ok
+17:55:17 RUN   StgGetPosZ
+17:55:17 DONE  StgGetPosZ: ok
+17:55:17 RUN   StgGetPosZ
+17:55:17 DONE  StgGetPosZ: ok
+17:55:17 RUN   StgGetPosZ
+17:55:17 DONE  StgGetPosZ: ok
+17:55:17 RUN   StgGetPosZ
+17:55:17 DONE  StgGetPosZ: ok
+17:55:17 RUN   StgGetPosZ
+17:55:17 DONE  StgGetPosZ: ok
+17:55:17 RUN   StgGetPosZ
+17:55:17 DONE  StgGetPosZ: ok
+17:55:17 RUN   StgGetPosZ
+17:55:17 DONE  StgGetPosZ: ok
+17:55:17 RUN   StgGetPosZ
+17:55:17 DONE  StgGetPosZ: ok
+17:55:17 RUN   StgGetPosZ
+17:55:17 DONE  StgGetPosZ: ok
+17:55:17 RUN   StgGetPosZ
+17:55:17 DONE  StgGetPosZ: ok
+17:55:17 RUN   StgGetPosZ
+17:55:17 DONE  StgGetPosZ: ok
+17:55:17 RUN   StgGetPosZ
+17:55:17 DONE  StgGetPosZ: ok
+17:55:17 RUN   StgGetPosZ
+17:55:17 DONE  StgGetPosZ: ok
+17:55:17 RUN   StgGetPosZ
+17:55:17 DONE  StgGetPosZ: ok
+17:55:17 RUN   StgGetPosZ
+17:55:17 DONE  StgGetPosZ: ok
+17:55:17 RUN   StgGetPosZ
+17:55:17 DONE  StgGetPosZ: ok
+17:55:17 RUN   StgGetPosZ
+17:55:17 DONE  StgGetPosZ: ok
+17:55:17 RUN   StgGetPosZ
+17:55:17 DONE  StgGetPosZ: ok
+17:55:17 RUN   StgGetPosZ
+17:55:17 DONE  StgGetPosZ: ok
+17:55:17 RUN   StgGetPosZ
+17:55:17 DONE  StgGetPosZ: ok
+17:55:17 RUN   StgGetPosZ
+17:55:17 DONE  StgGetPosZ: ok
+17:55:17 RUN   StgGetPosZ
+17:55:17 DONE  StgGetPosZ: ok
+17:55:17 RUN   StgGetPosZ
+17:55:17 DONE  StgGetPosZ: ok
+17:55:17 RUN   StgGetPosZ
+17:55:17 DONE  StgGetPosZ: ok
+17:55:17 RUN   StgGetPosZ
+17:55:17 DONE  StgGetPosZ: ok
+17:55:17 RUN   StgGetPosZ
+17:55:17 DONE  StgGetPosZ: ok
+17:55:17 RUN   StgGetPosZ
+17:55:17 DONE  StgGetPosZ: ok
+17:55:17 RUN   StgGetPosZ
+17:55:17 DONE  StgGetPosZ: ok
+17:55:17 RUN   StgGetPosZ
+17:55:17 DONE  StgGetPosZ: ok
+17:55:17 RUN   StgGetPosZ
+17:55:17 DONE  StgGetPosZ: ok
+17:55:17 RUN   StgGetPosZ
+17:55:17 DONE  StgGetPosZ: ok
+17:55:17 RUN   StgGetPosZ
+17:55:17 DONE  StgGetPosZ: ok
+17:55:17 RUN   StgGetPosZ
+17:55:17 DONE  StgGetPosZ: ok
+17:55:17 RUN   StgGetPosZ
+17:55:17 DONE  StgGetPosZ: ok
+17:55:17 RUN   StgGetPosZ
+17:55:17 DONE  StgGetPosZ: ok
+17:55:17 RUN   StgGetPosZ
+17:55:17 DONE  StgGetPosZ: ok
+17:55:17 RUN   StgGetPosZ
+17:55:17 DONE  StgGetPosZ: ok
+17:55:17 RUN   StgGetPosZ
+17:55:17 DONE  StgGetPosZ: ok
+17:55:17 RUN   StgGetPosZ
+17:55:17 DONE  StgGetPosZ: ok
+17:55:17 RUN   StgGetPosZ
+17:55:17 DONE  StgGetPosZ: ok
+17:55:17 RUN   StgGetPosZ
+17:55:17 DONE  StgGetPosZ: ok
+17:55:17 RUN   StgGetPosZ
+17:55:17 DONE  StgGetPosZ: ok
+17:55:17 RUN   StgGetPosZ
+17:55:17 DONE  StgGetPosZ: ok
+17:55:17 RUN   StgGetPosZ
+17:55:17 DONE  StgGetPosZ: ok
+17:55:17 RUN   StgGetPosZ
+17:55:17 DONE  StgGetPosZ: ok
+17:55:17 RUN   StgGetPosZ
+17:55:17 DONE  StgGetPosZ: ok
+17:55:17 RUN   StgGetPosZ
+17:55:17 DONE  StgGetPosZ: ok
+17:55:17 RUN   StgGetPosZ
+17:55:17 DONE  StgGetPosZ: ok
+17:55:17 RUN   StgGetPosZ
+17:55:17 DONE  StgGetPosZ: ok
+17:55:17 RUN   StgGetPosZ
+17:55:17 DONE  StgGetPosZ: ok
+17:55:17 RUN   StgGetPosZ
+17:55:17 DONE  StgGetPosZ: ok
+17:55:17 RUN   StgGetPosZ
+17:55:17 DONE  StgGetPosZ: ok
+17:55:17 RUN   StgGetPosZ
+17:55:17 DONE  StgGetPosZ: ok
+17:55:17 RUN   StgGetPosZ
+17:55:17 DONE  StgGetPosZ: ok
+17:55:17 RUN   StgGetPosZ
+17:55:17 DONE  StgGetPosZ: ok
+17:55:17 RUN   StgGetPosZ
+17:55:17 DONE  StgGetPosZ: ok
+17:55:17 RUN   StgGetPosZ
+17:55:17 DONE  StgGetPosZ: ok
+17:55:17 RUN   StgGetPosZ
+17:55:17 DONE  StgGetPosZ: ok
+17:55:17 RUN   StgGetPosZ
+17:55:17 DONE  StgGetPosZ: ok
+17:55:17 RUN   StgGetPosZ
+17:55:17 DONE  StgGetPosZ: ok
+17:55:17 RUN   StgGetPosZ
+17:55:17 DONE  StgGetPosZ: ok
+17:55:17 RUN   StgGetPosZ
+17:55:17 DONE  StgGetPosZ: ok
+17:55:17 RUN   StgGetPosZ
+17:55:17 DONE  StgGetPosZ: ok
+17:55:17 RUN   StgGetPosZ
+17:55:17 DONE  StgGetPosZ: ok
+17:55:17 RUN   StgGetPosZ
+17:55:17 DONE  StgGetPosZ: ok
+17:55:17 RUN   StgGetPosZ
+17:55:17 DONE  StgGetPosZ: ok
+17:55:17 RUN   StgGetPosZ
+17:55:17 DONE  StgGetPosZ: ok
+17:55:17 RUN   StgGetPosZ
+17:55:17 DONE  StgGetPosZ: ok
+17:55:17 RUN   StgGetPosZ
+17:55:17 DONE  StgGetPosZ: ok
+17:55:17 RUN   StgGetPosZ
+17:55:17 DONE  StgGetPosZ: ok
+17:55:17 RUN   StgGetPosZ
+17:55:17 DONE  StgGetPosZ: ok
+17:55:17 RUN   StgGetPosZ
+17:55:17 DONE  StgGetPosZ: ok
+17:55:17 RUN   StgGetPosZ
+17:55:17 DONE  StgGetPosZ: ok
+17:55:17 RUN   StgGetPosZ
+17:55:17 DONE  StgGetPosZ: ok
+17:55:17 RUN   StgGetPosZ
+17:55:17 DONE  StgGetPosZ: ok
+17:55:17 RUN   StgGetPosZ
+17:55:17 DONE  StgGetPosZ: ok
+17:55:17 RUN   StgGetPosZ
+17:55:17 DONE  StgGetPosZ: ok
+17:55:17 RUN   StgGetPosZ
+17:55:17 DONE  StgGetPosZ: ok
+17:55:17 RUN   StgGetPosZ
+17:55:17 DONE  StgGetPosZ: ok
+17:55:17 RUN   StgGetPosZ
+17:55:17 DONE  StgGetPosZ: ok
+17:55:17 RUN   StgGetPosZ
+17:55:17 DONE  StgGetPosZ: ok
+17:55:17 RUN   StgGetPosZ
+17:55:17 DONE  StgGetPosZ: ok
+17:55:17 RUN   StgGetPosZ
+17:55:17 DONE  StgGetPosZ: ok
+17:55:17 RUN   StgGetPosZ
+17:55:17 DONE  StgGetPosZ: ok
+17:55:17 RUN   StgGetPosZ
+17:55:17 DONE  StgGetPosZ: ok
+17:55:17 RUN   StgGetPosZ
+17:55:17 DONE  StgGetPosZ: ok
+17:55:17 RUN   StgGetPosZ
+17:55:17 DONE  StgGetPosZ: ok
+17:55:17 RUN   StgGetPosZ
+17:55:17 DONE  StgGetPosZ: ok
+17:55:17 RUN   StgGetPosZ
+17:55:17 DONE  StgGetPosZ: ok
+17:55:17 RUN   StgGetPosZ
+17:55:18 DONE  StgGetPosZ: ok
+17:55:18 RUN   StgGetPosZ
+17:55:18 DONE  StgGetPosZ: error: Bad number of parameters
+17:55:18 RUN   ping
+17:55:18 DONE  ping: ok
+17:55:18 connection closed
+17:55:18 self-test done: all ok
+17:55:18 starting the outside client: C:\Program Files\NIS-Elements\Python\python.exe -I C:\Users\t.de\Desktop\nikon-step1_3\nikon-step1\step1_client.py 54471
+17:55:19 connection from 127.0.0.1:58753
+17:55:19 RUN   ping
+17:55:19 DONE  ping: ok
+17:55:19 RUN   Get_InfoStr
+17:55:19 DONE  Get_InfoStr: ok
+17:55:20 RUN   StgGetPosZ
+17:55:20 DONE  StgGetPosZ: ok
+17:55:20 RUN   StgGetPosXY
+17:55:20 DONE  StgGetPosXY: ok
+17:55:20 RUN   GetOptConfCount
+17:55:20 DONE  GetOptConfCount: ok
+17:55:20 RUN   Stg_GetPFSStatus
+17:55:20 DONE  Stg_GetPFSStatus: ok
+17:55:20 RUN   ThisFunctionDoesNotExist_Step1
+17:55:20 DONE  ThisFunctionDoesNotExist_Step1: AttributeError: 'Macro' object has no attribute 'ThisFunctionDoesNotExist_Step1'
+17:55:20 RUN   StgMoveZ
+17:55:20 DONE  StgMoveZ: PermissionError: StgMoveZ is not on the step 1 list of readings
+17:55:20 RUN   raise
+17:55:20 DONE  raise: RuntimeError: step 1: a deliberate Python error, to see it come back as a reply
+17:55:20 RUN   fly
+17:55:20 DONE  fly: ValueError: unknown op 'fly'; one of ping, call, raise, hold, shutdown
+17:55:20 RUN   StgGetPosZ
+17:55:20 DONE  StgGetPosZ: ok
+17:55:20 RUN   StgGetPosZ
+17:55:20 DONE  StgGetPosZ: ok
+17:55:20 RUN   StgGetPosZ
+17:55:20 DONE  StgGetPosZ: ok
+17:55:20 RUN   StgGetPosZ
+17:55:20 DONE  StgGetPosZ: ok
+17:55:20 RUN   StgGetPosZ
+17:55:20 DONE  StgGetPosZ: ok
+17:55:20 RUN   StgGetPosZ
+17:55:20 DONE  StgGetPosZ: ok
+17:55:20 RUN   StgGetPosZ
+17:55:20 DONE  StgGetPosZ: ok
+17:55:20 RUN   StgGetPosZ
+17:55:20 DONE  StgGetPosZ: ok
+17:55:20 RUN   StgGetPosZ
+17:55:20 DONE  StgGetPosZ: ok
+17:55:20 RUN   StgGetPosZ
+17:55:20 DONE  StgGetPosZ: ok
+17:55:20 RUN   StgGetPosZ
+17:55:20 DONE  StgGetPosZ: ok
+17:55:20 RUN   StgGetPosZ
+17:55:20 DONE  StgGetPosZ: ok
+17:55:20 RUN   StgGetPosZ
+17:55:20 DONE  StgGetPosZ: ok
+17:55:20 RUN   StgGetPosZ
+17:55:20 DONE  StgGetPosZ: ok
+17:55:20 RUN   StgGetPosZ
+17:55:20 DONE  StgGetPosZ: ok
+17:55:20 RUN   StgGetPosZ
+17:55:20 DONE  StgGetPosZ: ok
+17:55:20 RUN   StgGetPosZ
+17:55:20 DONE  StgGetPosZ: ok
+17:55:20 RUN   StgGetPosZ
+17:55:20 DONE  StgGetPosZ: ok
+17:55:20 RUN   StgGetPosZ
+17:55:20 DONE  StgGetPosZ: ok
+17:55:20 RUN   StgGetPosZ
+17:55:20 DONE  StgGetPosZ: ok
+17:55:20 RUN   StgGetPosZ
+17:55:20 DONE  StgGetPosZ: ok
+17:55:20 RUN   StgGetPosZ
+17:55:20 DONE  StgGetPosZ: ok
+17:55:20 RUN   StgGetPosZ
+17:55:20 DONE  StgGetPosZ: ok
+17:55:20 RUN   StgGetPosZ
+17:55:20 DONE  StgGetPosZ: ok
+17:55:20 RUN   StgGetPosZ
+17:55:20 DONE  StgGetPosZ: ok
+17:55:20 RUN   StgGetPosZ
+17:55:20 DONE  StgGetPosZ: ok
+17:55:20 RUN   StgGetPosZ
+17:55:20 DONE  StgGetPosZ: ok
+17:55:20 RUN   StgGetPosZ
+17:55:20 DONE  StgGetPosZ: ok
+17:55:20 RUN   StgGetPosZ
+17:55:20 DONE  StgGetPosZ: ok
+17:55:20 RUN   StgGetPosZ
+17:55:20 DONE  StgGetPosZ: ok
+17:55:20 RUN   StgGetPosZ
+17:55:20 DONE  StgGetPosZ: ok
+17:55:20 RUN   StgGetPosZ
+17:55:20 DONE  StgGetPosZ: ok
+17:55:20 RUN   StgGetPosZ
+17:55:20 DONE  StgGetPosZ: ok
+17:55:20 RUN   StgGetPosZ
+17:55:20 DONE  StgGetPosZ: ok
+17:55:20 RUN   StgGetPosZ
+17:55:20 DONE  StgGetPosZ: ok
+17:55:20 RUN   StgGetPosZ
+17:55:20 DONE  StgGetPosZ: ok
+17:55:20 RUN   StgGetPosZ
+17:55:20 DONE  StgGetPosZ: ok
+17:55:20 RUN   StgGetPosZ
+17:55:20 DONE  StgGetPosZ: ok
+17:55:20 RUN   StgGetPosZ
+17:55:20 DONE  StgGetPosZ: ok
+17:55:20 RUN   StgGetPosZ
+17:55:20 DONE  StgGetPosZ: ok
+17:55:20 RUN   StgGetPosZ
+17:55:20 DONE  StgGetPosZ: ok
+17:55:20 RUN   StgGetPosZ
+17:55:20 DONE  StgGetPosZ: ok
+17:55:20 RUN   StgGetPosZ
+17:55:20 DONE  StgGetPosZ: ok
+17:55:20 RUN   StgGetPosZ
+17:55:20 DONE  StgGetPosZ: ok
+17:55:20 RUN   StgGetPosZ
+17:55:20 DONE  StgGetPosZ: ok
+17:55:20 RUN   StgGetPosZ
+17:55:20 DONE  StgGetPosZ: ok
+17:55:20 RUN   StgGetPosZ
+17:55:20 DONE  StgGetPosZ: ok
+17:55:20 RUN   StgGetPosZ
+17:55:20 DONE  StgGetPosZ: ok
+17:55:20 RUN   StgGetPosZ
+17:55:20 DONE  StgGetPosZ: ok
+17:55:20 RUN   StgGetPosZ
+17:55:20 DONE  StgGetPosZ: ok
+17:55:20 RUN   StgGetPosZ
+17:55:20 DONE  StgGetPosZ: ok
+17:55:20 RUN   StgGetPosZ
+17:55:20 DONE  StgGetPosZ: ok
+17:55:20 RUN   StgGetPosZ
+17:55:20 DONE  StgGetPosZ: ok
+17:55:20 RUN   StgGetPosZ
+17:55:20 DONE  StgGetPosZ: ok
+17:55:20 RUN   StgGetPosZ
+17:55:20 DONE  StgGetPosZ: ok
+17:55:20 RUN   StgGetPosZ
+17:55:20 DONE  StgGetPosZ: ok
+17:55:20 RUN   StgGetPosZ
+17:55:20 DONE  StgGetPosZ: ok
+17:55:20 RUN   StgGetPosZ
+17:55:20 DONE  StgGetPosZ: ok
+17:55:20 RUN   StgGetPosZ
+17:55:20 DONE  StgGetPosZ: ok
+17:55:20 RUN   StgGetPosZ
+17:55:20 DONE  StgGetPosZ: ok
+17:55:20 RUN   StgGetPosZ
+17:55:20 DONE  StgGetPosZ: ok
+17:55:20 RUN   StgGetPosZ
+17:55:20 DONE  StgGetPosZ: ok
+17:55:20 RUN   StgGetPosZ
+17:55:20 DONE  StgGetPosZ: ok
+17:55:20 RUN   StgGetPosZ
+17:55:20 DONE  StgGetPosZ: ok
+17:55:20 RUN   StgGetPosZ
+17:55:20 DONE  StgGetPosZ: ok
+17:55:20 RUN   StgGetPosZ
+17:55:20 DONE  StgGetPosZ: ok
+17:55:20 RUN   StgGetPosZ
+17:55:20 DONE  StgGetPosZ: ok
+17:55:20 RUN   StgGetPosZ
+17:55:20 DONE  StgGetPosZ: ok
+17:55:20 RUN   StgGetPosZ
+17:55:20 DONE  StgGetPosZ: ok
+17:55:20 RUN   StgGetPosZ
+17:55:20 DONE  StgGetPosZ: ok
+17:55:20 RUN   StgGetPosZ
+17:55:20 DONE  StgGetPosZ: ok
+17:55:20 RUN   StgGetPosZ
+17:55:20 DONE  StgGetPosZ: ok
+17:55:20 RUN   StgGetPosZ
+17:55:20 DONE  StgGetPosZ: ok
+17:55:20 RUN   StgGetPosZ
+17:55:20 DONE  StgGetPosZ: ok
+17:55:20 RUN   StgGetPosZ
+17:55:20 DONE  StgGetPosZ: ok
+17:55:20 RUN   StgGetPosZ
+17:55:20 DONE  StgGetPosZ: ok
+17:55:20 RUN   StgGetPosZ
+17:55:20 DONE  StgGetPosZ: ok
+17:55:21 RUN   StgGetPosZ
+17:55:21 DONE  StgGetPosZ: ok
+17:55:21 RUN   StgGetPosZ
+17:55:21 DONE  StgGetPosZ: ok
+17:55:21 RUN   StgGetPosZ
+17:55:21 DONE  StgGetPosZ: ok
+17:55:21 RUN   StgGetPosZ
+17:55:21 DONE  StgGetPosZ: ok
+17:55:21 RUN   StgGetPosZ
+17:55:21 DONE  StgGetPosZ: ok
+17:55:21 RUN   StgGetPosZ
+17:55:21 DONE  StgGetPosZ: ok
+17:55:21 RUN   StgGetPosZ
+17:55:21 DONE  StgGetPosZ: ok
+17:55:21 RUN   StgGetPosZ
+17:55:21 DONE  StgGetPosZ: ok
+17:55:21 RUN   StgGetPosZ
+17:55:21 DONE  StgGetPosZ: ok
+17:55:21 RUN   StgGetPosZ
+17:55:21 DONE  StgGetPosZ: ok
+17:55:21 RUN   StgGetPosZ
+17:55:21 DONE  StgGetPosZ: ok
+17:55:21 RUN   StgGetPosZ
+17:55:21 DONE  StgGetPosZ: ok
+17:55:21 RUN   StgGetPosZ
+17:55:21 DONE  StgGetPosZ: ok
+17:55:21 RUN   StgGetPosZ
+17:55:21 DONE  StgGetPosZ: ok
+17:55:21 RUN   StgGetPosZ
+17:55:21 DONE  StgGetPosZ: ok
+17:55:21 RUN   StgGetPosZ
+17:55:21 DONE  StgGetPosZ: ok
+17:55:21 RUN   StgGetPosZ
+17:55:21 DONE  StgGetPosZ: ok
+17:55:21 RUN   StgGetPosZ
+17:55:21 DONE  StgGetPosZ: ok
+17:55:21 RUN   StgGetPosZ
+17:55:21 DONE  StgGetPosZ: ok
+17:55:21 RUN   StgGetPosZ
+17:55:21 DONE  StgGetPosZ: ok
+17:55:21 RUN   StgGetPosZ
+17:55:21 DONE  StgGetPosZ: ok
+17:55:21 RUN   StgGetPosZ
+17:55:21 DONE  StgGetPosZ: ok
+17:55:21 RUN   StgGetPosZ
+17:55:21 DONE  StgGetPosZ: ok
+17:55:21 connection from 127.0.0.1:58754
+17:55:21 RUN   ping
+17:55:21 DONE  ping: ok
+17:55:21 connection closed
+17:55:21 connection from 127.0.0.1:58755
+17:55:21 RUN   hold
+17:55:22 DONE  hold: ok
+17:55:22 connection closed
+17:55:22 RUN   ping
+17:55:22 DONE  ping: ok
+17:55:22 RUN   hold
+17:55:25 DONE  hold: ok
+17:55:25 RUN   StgGetPosZ
+17:55:25 DONE  StgGetPosZ: error: Bad number of parameters
+17:55:25 RUN   ping
+17:55:25 DONE  ping: ok
+17:55:25 connection closed
+17:55:25 connection from 127.0.0.1:58756
+17:55:25 connection closed
+17:55:30 outside client: python.exe, finished; its window waits for Enter
+17:55:30 stopped (shutdown request from the client)

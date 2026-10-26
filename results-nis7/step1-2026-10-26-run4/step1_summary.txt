@@ -1,0 +1,25 @@
+step 1, 2026-10-26 17:55:15 to 2026-10-26 17:55:30, stopped by: shutdown request from the client
+version 2026-10-26 run-by-itself, C:\Users\t.de/Desktop\nikon-step1_3\nikon-step1\step1_bridge.py
+Python 3.12.4, nis module: True
+macro loop: 265 passes, 17.4 per second, longest gap 1.031 s, passes not on NIS's thread: 0
+requests: 231, ok 218, error replies 12, timeouts 0
+pump errors: 0  []
+dialogs seen: 1
+outside client (see step1_client.txt): python.exe, finished; its window waits for Enter
+   17:55:16 '': Continue
+
+self-test (from inside NIS's Python):
+ok   ping                                          521.7 ms  {"pid": 25448, "uptime_s": 1.06, "pumps": 1, "on_main_thread": true}
+ok   NIS version                                    12.6 ms  {"return": 1, "values": [1, "7.01.03 (Build 2233)"]}
+ok   Z position                                     10.8 ms  {"return": 1, "values": [250.0, 0]}
+ok   XY position (not there without hardware)       10.2 ms  {"return": -4, "values": [0.0, 0.0]}
+ok   optical configurations                         10.3 ms  {"return": 0, "values": []}
+ok   PFS status                                      9.9 ms  {"return": 0, "values": []}
+ok   unknown function                               11.1 ms  AttributeError: 'Macro' object has no attribute 'ThisFunctionDoesNotExist_Step1'
+ok   function not on the list (a move)              10.8 ms  PermissionError: StgMoveZ is not on the step 1 list of readings
+ok   Python error                                   10.1 ms  RuntimeError: step 1: a deliberate Python error, to see it come back as a reply
+ok   unknown op                                     10.6 ms  ValueError: unknown op 'fly'; one of ping, call, raise, hold, shutdown
+ok   broken request                                  0.1 ms  bad request: Expecting value: line 1 column 1 (char 0)
+ok   100 x Z position, round trip: median 11.0 ms, max 12.8 ms
+ok   wrong arguments                                10.2 ms  error: Bad number of parameters
+ok   ping after wrong arguments                     10.1 ms  {"pid": 25448, "uptime_s": 2.28, "pumps": 112, "on_main_thread": true}

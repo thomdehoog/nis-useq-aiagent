@@ -15,5 +15,13 @@ outside NIS (`step1_client.txt`, copied from its window).
 - Stop on request: the bridge closed, and the macro ended by itself.
 - Same NIS session as runs 1 to 3 (pid 25448).
 
-Still to bring back: `step1_summary.txt` and `step1.log` (dialogs seen, the macro loop's
-numbers), and by hand whether NIS stayed usable and whether any dialog appeared.
+- From the summary and log: the whole run took 15.2 s; 231 requests, 0 timeouts, 0 pump
+  errors; all 265 passes of the macro loop on NIS's own thread; the self-test also 14 of 14
+  ok. The only dialog: the macro's own `WaitText` message ("Continue") at the start. No
+  error dialog, no crash.
+- Python inside NIS: `sys.executable` is `nis_ar.exe`, `sys.base_prefix` is
+  `C:\Program Files\NIS-Elements\Python`, where `python.exe` is.
+
+**Step 1 answered: yes.** Software outside NIS can call NIS functions through NIS's own
+Python, with every error coming back as a reply, and without NIS crashing or showing an
+error. Not yet tested: with the microscope on, and calls that move or capture.
