@@ -1,0 +1,21 @@
+step 1 client, 2026-10-26 17:55:19, Python 3.12.4, C:\Program Files\NIS-Elements\Python\python.exe, pid 25016
+ok   ping                                            2.2 ms  {"pid": 25448, "uptime_s": 4.25, "pumps": 142, "on_main_thread": true}
+ok   NIS version                                    11.1 ms  {"return": 1, "values": [1, "7.01.03 (Build 2233)"]}
+ok   Z position                                    105.1 ms  {"return": 1, "values": [250.0, 0]}
+ok   XY position (not there without hardware)       10.6 ms  {"return": -4, "values": [0.0, 0.0]}
+ok   optical configurations                         10.6 ms  {"return": 0, "values": []}
+ok   PFS status                                     10.8 ms  {"return": 0, "values": []}
+ok   unknown function                               10.4 ms  AttributeError: 'Macro' object has no attribute 'ThisFunctionDoesNotExist_Step1'
+ok   function not on the list (a move)              10.9 ms  PermissionError: StgMoveZ is not on the step 1 list of readings
+ok   Python error                                   10.9 ms  RuntimeError: step 1: a deliberate Python error, to see it come back as a reply
+ok   unknown op                                     10.9 ms  ValueError: unknown op 'fly'; one of ping, call, raise, hold, shutdown
+ok   broken request                                  0.1 ms  bad request: Expecting value: line 1 column 1 (char 0)
+ok   100 x Z position, round trip: median 10.9 ms, max 11.5 ms
+ok   second connection at the same time              9.5 ms  {"pid": 25448, "uptime_s": 5.52, "pumps": 252, "on_main_thread": true}
+ok   ping after a client left mid-request            0.5 ms  {"pid": 25448, "uptime_s": 7.02, "pumps": 261, "on_main_thread": true}
+ok   NIS busy for 3 s (hold)                      3010.9 ms  {"held_s": 3.0}
+ok   wrong arguments                                11.7 ms  error: Bad number of parameters
+ok   ping after wrong arguments                     10.5 ms  {"pid": 25448, "uptime_s": 10.05, "pumps": 264, "on_main_thread": true}
+ok   shutdown                                        1.7 ms  {"stopping": true}
+ok   the bridge is closed after shutdown
+done: 19 ok, 0 FAIL
