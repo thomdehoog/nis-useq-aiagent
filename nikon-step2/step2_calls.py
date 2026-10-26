@@ -12,7 +12,7 @@ nis.mac, with no arguments, on NIS's own thread:
   not reachable    nis.mac does not offer it (camera, other hardware, modules)
   crashed or hung  NIS crashed or hung on it; the next run carries on after it
 
-Nothing is skipped. The functions that would end the run itself (quit NIS, stop or run a
+The readings (Get*, Is*) come first. The functions that would end the run itself (quit NIS, stop or run a
 macro) come last. Before each call the function is written to results\\step2_calls.jsonl,
 so after a crash or hang, running step2.mac again carries on after that function.
 
@@ -56,7 +56,7 @@ NEEDS_CAMERA = re.compile(
     r"Captur|Grab|Live|Acqui|Focus|HDR|Freeze_|^Experiment_|Parfocal|Snap|Shading|Stimulat|Trigger"
     r"|Auto(All|Bright|Expos|Signal|White|Gain)|Exposure|^_?ND_(Run|Start|Pause|Resume)"
     r"|Calibrat\w*Automatic", re.IGNORECASE)
-READING = re.compile(r"^_?(Get|Is|Stg_?Get|StgIs|Org_)", re.IGNORECASE)
+READING = re.compile(r"^_?(Get|Is|Stg_?Get|StgIs|Stg\w*_Get|Stg\w*_Is|Org_Get)", re.IGNORECASE)
 
 try:
     import nis  # exists only inside NIS-Elements
@@ -73,8 +73,10 @@ def read_functions():
             if line.strip() and not line.startswith("#"):
                 name, section = (line.rstrip("\n").split("\t") + [""])[:2]
                 names.append((name, section))
-    first = [n for n in names if not LAST.search(n[0])]
-    return first + [n for n in names if LAST.search(n[0])]
+    last = [n for n in names if LAST.search(n[0])]
+    rest = [n for n in names if not LAST.search(n[0])]
+    readings = [n for n in rest if READING.match(n[0])]  # first: Get*, Is*
+    return readings + [n for n in rest if not READING.match(n[0])] + last
 
 
 def read_done():
