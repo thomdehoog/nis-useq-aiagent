@@ -62,6 +62,9 @@ try {
     Write-Line "FAIL no bridge on port ${Port}: is step1.mac running in NIS? ($($_.Exception.Message))"
     exit 1
 }
+Write-Host ('=' * 78)
+Write-Host ' STEP 1 IS RUNNING. Leave NIS alone until this window says FINISHED.'
+Write-Host ('=' * 78)
 Write-Line "connected to 127.0.0.1:$Port"
 
 # The same checks as the self-test inside NIS (CHECKS in step1_bridge.py).
@@ -124,5 +127,13 @@ try {
     Write-Line 'FAIL the bridge still answers 3 s after shutdown'
 } catch { Write-Line 'ok   the bridge is closed after shutdown' }
 
-$fails = (Get-Content $Report | Where-Object { $_ -like 'FAIL*' }).Count
-Write-Line "done: $fails FAIL; the macro in NIS should now say 'step 1: stopped'."
+$fails = @(Get-Content $Report | Where-Object { $_ -like 'FAIL*' }).Count
+$oks = @(Get-Content $Report | Where-Object { $_ -like 'ok*' }).Count
+Write-Line "done: $oks ok, $fails FAIL"
+Write-Host ''
+Write-Host ('=' * 78)
+Write-Host " STEP 1 FINISHED: $oks ok, $fails FAIL. NIS can be used again."
+Write-Host " Send the folder $Out"
+Write-Host ' (and say whether NIS showed any dialog).'
+Write-Host ('=' * 78)
+$null = Read-Host ' Press Enter to close this window'

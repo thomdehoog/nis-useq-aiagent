@@ -32,6 +32,12 @@ def main(port):
     def write(text):
         report.write(text + "\n")
         report.flush()
+        print(text, flush=True)
+
+    print("=" * 78)
+    print(" STEP 1 IS RUNNING. Leave NIS alone until this window says FINISHED.")
+    print(" (At one point NIS is kept busy for 3 s on purpose.)")
+    print("=" * 78, flush=True)
 
     write(f"step 1 client, {time.strftime('%Y-%m-%d %H:%M:%S')}, Python {sys.version.split()[0]}, "
           f"{sys.executable}, pid {os.getpid()}")
@@ -53,8 +59,20 @@ def main(port):
         out.append(f"FAIL client stopped: {type(error).__name__}: {error}")
         write(out[-1])
     fails = sum(text.startswith("FAIL") for text in out)
-    write(f"done: {fails} FAIL")
+    oks = sum(text.startswith("ok") for text in out)
+    write(f"done: {oks} ok, {fails} FAIL")
     report.close()
+    print()
+    print("=" * 78)
+    print(f" STEP 1 FINISHED: {oks} ok, {fails} FAIL. NIS can be used again.")
+    print(f" Send the folder {os.path.dirname(OUT)}")
+    print(" (and say whether NIS showed any dialog).")
+    print("=" * 78, flush=True)
+    if sys.stdin is not None and sys.stdin.isatty():
+        try:
+            input(" Press Enter to close this window. ")
+        except EOFError:
+            pass
     return fails
 
 

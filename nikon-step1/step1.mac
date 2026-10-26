@@ -1,10 +1,10 @@
 WaitText(1, "step 1: starting");
 Python_RunString("import os, sys, glob, importlib.util; s = 'C:/Users/Public/nikon-step1.stop'; os.remove(s) if os.path.exists(s) else None; h = os.path.expanduser('~'); c = ['C:/nikon-step1/step1_bridge.py', 'C:/nikon-step1/nikon-step1/step1_bridge.py'] + sorted(glob.glob(h + '/Desktop/*/step1_bridge.py') + glob.glob(h + '/Desktop/*/*/step1_bridge.py')) + sorted(glob.glob(h + '/OneDrive*/Desktop/*/step1_bridge.py') + glob.glob(h + '/OneDrive*/Desktop/*/*/step1_bridge.py')); f = next((p for p in c if os.path.isfile(p)), None); spec = importlib.util.spec_from_file_location('step1_bridge', f) if f else None; m = importlib.util.module_from_spec(spec) if spec else None; sys.modules['step1_bridge'] = m; spec.loader.exec_module(m) if m else open(s, 'w').close(); m.start() if m else None");
-WaitText(1, "step 1: running on port 54471. Run step1_client.cmd, or press the macro Stop button to end.");
+WaitText(1, "step 1: running. A window shows the progress and says FINISHED at the end.");
 while (ExistFile("C:\\Users\\Public\\nikon-step1.stop") == 0)
 {
     Python_RunString("import sys; p = getattr(sys.modules.get('step1_bridge'), 'pump', None); p() if p else open('C:/Users/Public/nikon-step1.stop', 'w').close()");
     Wait(0.01);
 }
 Python_RunString("import sys; f = getattr(sys.modules.get('step1_bridge'), 'stop', None); f() if f else None");
-WaitText(2, "step 1: stopped. Bring back the results folder.");
+WaitText(2, "step 1: FINISHED. Bring back the results folder.");

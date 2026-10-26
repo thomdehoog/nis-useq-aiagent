@@ -9,8 +9,10 @@ install, because NIS brings its own.
 1. Unzip `nikon-step1.zip` on the desktop (or to `C:\nikon-step1\`). A folder inside a folder is fine.
 2. Start NIS (normally, or without hardware with `"C:\Program Files\NIS-Elements\nis_ar.exe" -passive`).
 3. In NIS: Macro > Run Macro From File > `step1.mac` in that folder.
-4. Wait about half a minute, until NIS's status bar says "step 1: stopped". It stops by
-   itself, at the latest after 5 minutes; the macro Stop button also ends it.
+4. After a few seconds a black window opens and shows each check as it runs. Leave NIS
+   alone until it says **STEP 1 FINISHED** (about half a minute); NIS's status bar then also
+   says "step 1: FINISHED". Press Enter to close the window. If no window opens, the run
+   still stops by itself, at the latest after 5 minutes.
 5. Bring back the `results` folder, and note by hand:
    - Did NIS show any dialog or error message? (screenshot)
    - Did NIS stay usable while it ran? (At one point NIS is kept busy for 3 s on purpose.)

@@ -375,10 +375,19 @@ def python_exe():
     return None
 
 
-def run_client():
-    """Start the outside client as its own program, wait for it, then end the run.
+def client_done(report):
+    try:
+        with open(report, encoding="utf-8") as handle:
+            return any(line.startswith("done:") for line in handle)
+    except OSError:
+        return False
 
-    First choice: step1_client.py with NIS's own python.exe. Without one: step1_client.ps1
+
+def run_client():
+    """Start the outside client as its own program, in a window of its own, then end the run.
+
+    The window shows each check as it runs and says FINISHED at the end; it stays open until
+    someone presses Enter, and the run does not wait for that. First choice: step1_client.py with NIS's own python.exe. Without one: step1_client.ps1
     with Windows PowerShell. The client ends the run with a shutdown request; if it cannot,
     this does.
     """
@@ -392,21 +401,28 @@ def run_client():
                    "-File", os.path.join(HERE, "step1_client.ps1")]
     log("starting the outside client: " + " ".join(command))
     try:
-        process = subprocess.Popen(command, cwd=HERE, stdout=subprocess.DEVNULL,
-                                   stderr=subprocess.PIPE, stdin=subprocess.DEVNULL,
-                                   creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
+        process = subprocess.Popen(command, cwd=HERE,
+                                   creationflags=getattr(subprocess, "CREATE_NEW_CONSOLE", 0))
     except OSError as error:
         state["client"] = f"could not start {command[0]}: {error}"
         log(state["client"])
         request_stop("the outside client could not be started")
         return
-    try:
-        _, err = process.communicate(timeout=CLIENT_TIMEOUT_S)
-        state["client"] = f"{os.path.basename(command[0])}, exit code {process.returncode}" + (
-            f"; {err.decode(errors='replace')[:500]}" if err else "")
-    except subprocess.TimeoutExpired:
-        process.kill()
-        state["client"] = f"did not finish within {CLIENT_TIMEOUT_S} s; stopped"
+    report = os.path.join(OUT_DIR, "step1_client.txt")
+    deadline = time.monotonic() + CLIENT_TIMEOUT_S
+    name = os.path.basename(command[0])
+    while True:  # until the client exits, or has written its last line and waits for Enter
+        if process.poll() is not None:
+            state["client"] = f"{name}, exit code {process.returncode}"
+            break
+        if client_done(report):
+            state["client"] = f"{name}, finished; its window waits for Enter"
+            break
+        if time.monotonic() > deadline:
+            process.kill()
+            state["client"] = f"{name} did not finish within {CLIENT_TIMEOUT_S} s; stopped"
+            break
+        time.sleep(0.2)
     log(f"outside client: {state['client']}")
     request_stop("the outside client finished")
 
