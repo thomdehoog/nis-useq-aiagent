@@ -34,7 +34,7 @@ if len(sys.argv) > 1 and sys.argv[1] == "--macro":  # one run of the macro, in i
 
 work = os.path.join(tempfile.mkdtemp(), "nikon-step2")
 shutil.copytree(SRC, work, ignore=shutil.ignore_patterns("results", "__pycache__"))
-names = ["GetA", "StgB", "SetC", "FailD", "CameraE", "CRASH_ME", "GetF", "RunMacroG", "ExitH"]
+names = ["GetA", "StgB", "SetC", "FailD", "CameraE", "CRASH_ME", "GetF", "RunMacroG", "ExitH", "GetPanel", "TogglePanel", "ShowThing"]
 with open(os.path.join(work, "ar_functions.txt"), "w") as handle:
     handle.write("# test list\n" + "".join(f"{n}\tTest\n" for n in names))
 src = open(os.path.join(work, "step2_calls.py")).read()
@@ -50,10 +50,12 @@ ends = {r["fn"]: r for r in records if r.get("phase") == "end"}
 order = [r["fn"] for r in records if r.get("phase") == "end"]
 for name in names:
     r = ends.get(name, {})
-    print(f"{name:<10} {r.get('result', 'MISSING'):<16} {r.get('detail', '')}")
+    print(f"{name:<12} {r.get('result', 'MISSING'):<16} {r.get('detail', '')} {r.get('changed', '')} {r.get('put_back', '')} {r.get('back_as_before', '')}")
 print("order:", order)
 print(open(os.path.join(work, "results", "step2_summary.txt")).read())
 ok = (first == 3 and second == 0 and set(ends) == set(names) and len(order) == len(names)
-      and ends["CRASH_ME"]["result"] == "crashed or hung" and order[-2:] == ["RunMacroG", "ExitH"])
+      and ends["CRASH_ME"]["result"] == "crashed or hung" and order[-2:] == ["RunMacroG", "ExitH"]
+      and ends["TogglePanel"].get("back_as_before") is True
+      and ends["ShowThing"].get("changed") == {"GetPanel": ["0", "5"]})
 print("PASS" if ok else "FAIL")
 sys.exit(0 if ok else 1)

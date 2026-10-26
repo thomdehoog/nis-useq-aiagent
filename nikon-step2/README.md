@@ -29,6 +29,13 @@ after that function, marked "crashed or hung".
   progress, and closes any window a call opens (Cancel, No, Close or OK, in that order),
   noting it in `results\step2_dialogs.jsonl`. It never touches "Confirm Interrupting Macro".
 
+## Put back
+
+After a call that ran (not a reading), every reading that runs with no arguments is read
+again; the readings it changed are noted. `Toggle*` is called a second time, and `Show*`,
+`Enable*`, `Open*`, `Start*`, `Lock*`, `Add*`, `Begin*` get their opposite (`Hide*`,
+`Disable*`, `Close*` ...). The table says what changed and whether it is back as before.
+
 ## What each function gets
 
 | Result | Meaning |

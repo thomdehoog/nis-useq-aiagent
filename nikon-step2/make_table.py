@@ -55,7 +55,10 @@ for name, section in names:
     record = calls.get(name, {})
     rows.append({"function": name, "section": section, "result": record.get("result", "not called"),
                  "detail": record.get("detail", ""), "dialog": " / ".join(dialogs.get(name, [])),
-                 "ms": record.get("ms", ""), "prototype": record.get("doc", "")})
+                 "ms": record.get("ms", ""), "prototype": record.get("doc", ""),
+                 "changed": json.dumps(record["changed"]) if record.get("changed") else "",
+                 "put_back": record.get("put_back", ""),
+                 "back_as_before": {True: "yes", False: "no"}.get(record.get("back_as_before"), "")})
 
 with open(os.path.join(OUT, "step2_functions.csv"), "w", newline="", encoding="utf-8") as handle:
     writer = csv.DictWriter(handle, fieldnames=list(rows[0]))
@@ -78,9 +81,9 @@ for section in sections:
                  + f" | {len(rs)} |")
 lines.append("| **All** | " + " | ".join(f"**{count(rows, u)}**" for u in used) + f" | **{len(rows)}** |")
 for section in sections:
-    lines += ["", f"## {section}", "", "| Function | Result | Answer | Dialog |", "|---|---|---|---|"]
+    lines += ["", f"## {section}", "", "| Function | Result | Answer | Dialog | Changed | Put back |", "|---|---|---|---|---|---|"]
     for r in (r for r in rows if r["section"] == section):
-        lines.append(f"| `{r['function']}` | {r['result']} | {cell(r['detail'])[:120]} | {cell(r['dialog'])} |")
+        lines.append(f"| `{r['function']}` | {r['result']} | {cell(r['detail'])[:120]} | {cell(r['dialog'])} | {cell(r['changed'])[:120]} | {cell(r['put_back'])} {r['back_as_before']} |")
 with open(os.path.join(OUT, "STEP2_FUNCTIONS.md"), "w", encoding="utf-8") as handle:
     handle.write("\n".join(lines) + "\n")
 print(f"{len(rows)} functions: " + ", ".join(f"{u} {count(rows, u)}" for u in used))

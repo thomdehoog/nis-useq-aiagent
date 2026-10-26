@@ -91,6 +91,8 @@ def read_done():
                     continue  # a line cut short by a crash
                 if record.get("phase") == "start":
                     started = record["fn"]
+                elif record.get("phase") == "undone":  # an undo that came back
+                    started = None if started == record["fn"] else started
                 elif record.get("phase") == "end":
                     done[record["fn"]] = record
                     if record["fn"] == started:
@@ -148,6 +150,8 @@ def call(name, section):
     if not state.get("camera") and NEEDS_CAMERA.search(name) and not READING.match(name):
         record.update(result="needs the camera", detail="not run: the camera is off")
         return record
+    if "probes" not in state and not READING.match(name):
+        make_probes()  # the state before the first call that may change something
     write({"fn": name, "phase": "start", "t": time.time()})
     started = time.perf_counter()
     try:
@@ -158,7 +162,76 @@ def call(name, section):
         needs = "number of parameters" in str(error).lower()
         record.update(result="needs arguments" if needs else "error", detail=text[:VALUE_CHARS])
     record["ms"] = round(1000 * (time.perf_counter() - started), 2)
+    if record["result"] == "ran" and not READING.match(name):
+        put_back(name, record)
     return record
+
+
+# -- put back what a call changed ----------------------------------------------------------
+PAIRS = [("Show", "Hide"), ("Hide", "Show"), ("Enable", "Disable"), ("Disable", "Enable"),
+         ("Open", "Close"), ("Start", "Stop"), ("Lock", "Unlock"), ("Unlock", "Lock"),
+         ("Add", "Remove"), ("Begin", "End")]
+
+
+def snapshot():
+    """The value of every reading that runs with no arguments and gives the same answer twice."""
+    values = {}
+    for name in state.get("probes", []):
+        try:
+            values[name] = repr(getattr(nis.mac, name)())
+        except Exception as error:  # noqa: BLE001
+            values[name] = f"error {error}"
+    return values
+
+
+def make_probes():
+    names = [n for n, r in read_done()[0].items() if r.get("result") == "ran" and READING.match(n)]
+    stable = []
+    for name in names:
+        if NEEDS_CAMERA.search(name):
+            continue
+        try:
+            if repr(getattr(nis.mac, name)()) == repr(getattr(nis.mac, name)()):
+                stable.append(name)  # a counter or a clock would look like a change every time
+        except Exception:  # noqa: BLE001
+            pass
+    state["probes"] = stable
+    state["before"] = snapshot()
+
+
+def opposite(name):
+    """The call that undoes this one, if NIS has it: Toggle* again, or Show*/Hide*, Enable*/Disable* ..."""
+    prefix = "_" if name.startswith("_") else ""
+    bare = name[len(prefix):]
+    if bare.startswith("Toggle"):
+        return name
+    for first, second in PAIRS:
+        if bare.startswith(first) and hasattr(nis.mac, prefix + second + bare[len(first):]):
+            return prefix + second + bare[len(first):]
+    return None
+
+
+def put_back(name, record):
+    """After a call that ran: note the readings it changed, undo it if possible, check again."""
+    after = snapshot()
+    changed = {k: [state["before"].get(k), v] for k, v in after.items() if state["before"].get(k) != v}
+    if changed:
+        record["changed"] = changed
+    undo = opposite(name)
+    if undo:
+        write({"fn": undo, "phase": "start", "t": time.time(), "undoing": name})
+        try:
+            getattr(nis.mac, undo)()
+            record["put_back"] = f"called {undo}"
+        except Exception as error:  # noqa: BLE001
+            record["put_back"] = f"{undo} failed: {type(error).__name__}: {error}"
+        write({"fn": undo, "phase": "undone", "for": name})
+        after = snapshot()
+        left = {k: v for k, v in after.items() if state["before"].get(k) != v}
+        record["back_as_before"] = not left
+    elif changed:
+        record["put_back"] = "no opposite call known; the change stays"
+    state["before"] = after
 
 
 # -- what the macro calls ------------------------------------------------------------------
