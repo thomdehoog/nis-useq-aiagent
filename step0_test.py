@@ -58,7 +58,7 @@ Z_STEP_UM = 1.0
 EXPOSURE_MS = 50.0
 AUTOFOCUS_RANGE_UM = 20.0
 AUTOFOCUS_SPEED = 30
-PFS_WAIT_S = 5.0
+PFS_WAIT_S = 5.0  # how long to wait for Perfect Focus to report the new status
 TIMING_REPEATS = 20
 
 # The bridge's own constants (1_nis_bridge/nis_bridge/settings.py)
@@ -213,8 +213,18 @@ def ctypes_xy():
 
 
 def call_proc_xy():
-    """nis.call_proc answers with a list: the return value, then each argument after the call."""
-    return {"raw": repr(nis.call_proc("StgGetPosXY", 0.0, 0.0))}
+    """nis.call_proc answers with a list: the return value, then each argument after the call.
+
+    The first run (2026-10-26) showed that an out-argument wants a count (int) or a sequence,
+    not a plain number; both are tried, and the answer says which one works.
+    """
+    answer = {}
+    for form, args in (("count", (1, 1)), ("sequence", ([0.0], [0.0]))):
+        try:
+            answer[form] = repr(nis.call_proc("StgGetPosXY", *args))
+        except Exception as error:  # noqa: BLE001 - the other form may still work
+            answer[form] = f"{type(error).__name__}: {error}"
+    return answer
 
 
 def mac_xy():
@@ -441,7 +451,7 @@ def timing():
     answer = {}
     routes = {"ctypes": ctypes_xy}
     if HAS_CALL_PROC:
-        routes["nis.call_proc"] = call_proc_xy
+        routes["nis.call_proc"] = lambda: nis.call_proc("StgGetPosXY", 1, 1)  # the count form
     if HAS_MAC:
         routes["nis.mac"] = mac_xy
     for route, function in routes.items():
@@ -565,13 +575,24 @@ def pfs_round_trip():
         return {"skipped": "no Perfect Focus"}
     start = W.call("Stg_GetPFSStatus")
     on = start in (1, 5, 6)
+
+    def settle(want_on):
+        """Poll the status until it says on (or off), up to PFS_WAIT_S; the first run read 1
+        (on) straight after switching off, so the status may lag behind the switch."""
+        started = time.perf_counter()
+        while True:
+            status = W.call("Stg_GetPFSStatus")
+            if (status in (1, 5, 6)) == want_on or time.perf_counter() - started > PFS_WAIT_S:
+                return {"status": status, "after_s": round(time.perf_counter() - started, 3)}
+            time.sleep(0.1)
+
     steps = {"route": W.name, "start": start,
              "Stg_SetPFSStatus": W.call("Stg_SetPFSStatus", 0 if on else 1)}
     steps["Stg_WaitForPFS"] = W.call("Stg_WaitForPFS", PFS_WAIT_S)
-    steps["read_after_set"] = W.call("Stg_GetPFSStatus")
+    steps["read_after_set"] = settle(not on)
     steps["Stg_SetPFSStatus back"] = W.call("Stg_SetPFSStatus", 1 if on else 0)
-    steps["Stg_WaitForPFS back"] = W.call("Stg_WaitForPFS", PFS_WAIT_S)
-    steps["read_after_back"] = W.call("Stg_GetPFSStatus")
+    steps["read_after_back"] = settle(on)
+    steps["put_back"] = (steps["read_after_back"]["status"] in (1, 5, 6)) == on
     return steps
 
 
@@ -616,10 +637,10 @@ if ALLOW_EXPOSURE:
     check("Camera_ExposureSet", exposure, group="writes")
 if ALLOW_NOSEPIECE:
     check("objective and back", nosepiece_round_trip, group="writes")
-if ALLOW_PFS:
-    check("Perfect Focus and back", pfs_round_trip, group="writes")
 if ALLOW_AUTOFOCUS:
     check("autofocus, then Z back", autofocus, group="writes")
+if ALLOW_PFS:
+    check("Perfect Focus and back", pfs_round_trip, group="writes")
 if ALLOW_CAPTURE:
     check("capture, save, close", capture_save_close, group="writes")
 if ALLOW_COMMAND_TEXT:
