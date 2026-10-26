@@ -11,7 +11,7 @@ mac = open(os.path.join(src, "step1.mac")).read()
 import re
 lines = re.findall(r'Python_RunString\("(.*)"\);', mac)
 first, pump_line, stop_line = lines
-first = first.replace("['C:/nikon-step1/step1_bridge.py']", repr([os.path.join(src, "step1_bridge.py")]))
+first = first.replace("'C:/nikon-step1/step1_bridge.py'", repr(os.path.join(src, "step1_bridge.py")), 1)
 # the stop file path is Windows-only; map it to a local one
 STOP_LOCAL = "/tmp/nikon-step1.stop"
 os.environ["STEP1_STOP_FILE"] = STOP_LOCAL

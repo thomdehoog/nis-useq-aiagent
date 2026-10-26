@@ -6,7 +6,7 @@ outside program is Windows PowerShell.
 
 ## Run it
 
-1. Unzip `nikon-step1.zip` on the desktop (or to `C:\nikon-step1\`).
+1. Unzip `nikon-step1.zip` on the desktop (or to `C:\nikon-step1\`). A folder inside a folder is fine.
 2. Start NIS without hardware: Win+R, then
    `"C:\Program Files\NIS-Elements\nis_ar.exe" -passive`
 3. In NIS: Macro > Run Macro From File > `step1.mac` in that folder.
