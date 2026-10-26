@@ -1,0 +1,3 @@
+2026-10-26 18:25:30	GetYeastFocusCtiterion	no answer for 1 s (hung)
+2026-10-26 18:26:46	_ManualLargeImage	no answer for 1 s (hung)
+2026-10-26 18:27:19	_StitchLargeImage	no answer for 1 s (hung)
