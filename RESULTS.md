@@ -63,3 +63,11 @@ So the bridge needs two routes: ctypes (and `nis.call_proc` for the exposure) on
 - The coverage check found 1 name in NIS's function list: the name extraction did not match
   that file's format. Fixed: it now reads 4071 functions in 20 sections, 4041 of them in the AR
   edition (350 of those with a module), and reports reachability per section.
+
+### Changed in the test after this run: no DLL
+
+Every function is now called through `nis.call_proc`, NIS's own way of calling a macro function
+by name; nothing goes through `g5_regprocs.dll` any more. The test first learns how
+`nis.call_proc` takes values handed back (a count or a sequence; for a text also a string), and
+checks what it does with an unknown name. The reachability check by name, which needed the
+DLL, is replaced by a count of NIS's function list per section.

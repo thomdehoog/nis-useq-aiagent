@@ -2,7 +2,8 @@
 
 Run on **NIS-Elements AR 6.10.02**
 on the Ti2 simulator: the version the bridge was built and tested on. It calls every NIS
-function the bridge uses, so the results can be compared with NIS 7 (branch `agent/nis-7-step0`).
+function the bridge uses through `nis.call_proc`, NIS's own way of calling a macro function by
+name, and not through a DLL. The results can be compared with NIS 7 (branch `agent/nis-7-step0`).
 
 ## Run it
 
@@ -14,25 +15,23 @@ function the bridge uses, so the results can be compared with NIS 7 (branch `age
 4. Wait until NIS responds again (a minute or two: the writes move the simulated stage).
 5. Bring back the `results` folder that appears next to the files.
 
-Optional, for the coverage check: copy NIS's own `FunctionList_6.10.02.html` next to
-`step0_test.py`. The test also looks for it under `C:\Program Files\NIS-Elements`. The list is
-Nikon's and is **not** part of this branch; neither is anything made from it. The per-function
-answer goes to `results\functions.csv`, which stays on the NIS computer.
+The test counts the functions in NIS's own `FunctionList_6.10.02.html`, by section. It finds
+it under `C:\Program Files\NIS-Elements` (or next to `step0_test.py`). The list is Nikon's and
+is **not** part of this branch.
 
 ## The results
 
 - `step0_summary.txt`: one line per check, ok or FAIL.
 - `step0_report.json`: everything in full.
 - `step0.log`: the run step by step. If NIS hangs, the last line names the call.
-- `functions.csv`: per function in NIS's list, reachable by name or not (local only, see above).
 
 ## What it calls
 
-Every NIS function in `1_nis_bridge/nis_bridge/nis_dll.py`. Each reading goes through ctypes
-on `g5_regprocs.dll` (what the bridge uses today) and through `nis.mac` (what NIS 7 uses), and
-the two answers are compared. Each write is done once: through `nis.mac` if 6.10 has it,
-otherwise through ctypes. `Camera_ExposureSet`, which the DLL does not export, is tried through
-`nis.call_proc` (the bridge today) and `nis.mac`.
+Every NIS function in `1_nis_bridge/nis_bridge/nis_dll.py`, all through `nis.call_proc`.
+A function hands values back through some of its arguments; the first run showed that
+`nis.call_proc` wants a count or a sequence there, not a plain number. The test first tries
+each form on two readings (a number: `StgGetPosXY`; a text: `Get_InfoStr`), then uses the form
+that works for everything else.
 
 | | Functions |
 |---|---|
@@ -40,8 +39,7 @@ otherwise through ctypes. `Camera_ExposureSet`, which the DLL does not export, i
 | Writes, each put back | `StgMoveXY`, `StgMoveZ`, `StgMove`, `SelectOptConf`, `Camera_ExposureSet`, `Stg_SetNosepiecePosition`, `Stg_SetPFSStatus`, `Stg_WaitForPFS`, `StgFocusInRangeEx`, `Capture`, `ImageSaveAs`, `CloseCurrentDocument` |
 | Also read, to compare with NIS 7 | `StgGetPosXY`, `StgGetPosZ`, `GetSelectedOptConf` |
 
-It also tries each of the three ways of calling (ctypes, `nis.call_proc`, `nis.mac`) on the
-same reading, and times them.
+It also checks what `nis.call_proc` does with a name that does not exist, and times a call.
 
 ## Writes
 
@@ -50,8 +48,8 @@ leaves the exposure at 50 ms (it cannot be read back without a blocking dialog).
 microscope, open `step0_test.py` in Notepad, set every `ALLOW_... = True` to `False`, and switch
 them on one at a time, with someone at the microscope.
 
-Off by default, as on NIS 7: `ALLOW_CAMERA_READ` (`Camera_ExposureGet` opened a blocking dialog
-on the 6.10 simulator) and `ALLOW_COMMAND_TEXT` (`Int_ExecuteCommand`, may hang).
+Off by default: `ALLOW_CAMERA_READ` (`Camera_ExposureGet` opened a blocking dialog on the 6.10
+simulator).
 
 ## Note by hand
 
@@ -62,16 +60,17 @@ on the 6.10 simulator) and `ALLOW_COMMAND_TEXT` (`Int_ExecuteCommand`, may hang)
 ```
 ┌──────────────────── NIS-Elements ────────────────────┐
 │                                                      │
-│ step0.mac ──► NIS's Python ──► nis.mac ──────────────┼──► microscope
-│ (a macro)     (step0_test.py)  or g5_regprocs.dll   │    (simulator)
-│                    │           (ctypes)             │
+│ step0.mac ──► NIS's Python ──► nis.call_proc ────────┼──► microscope
+│ (a macro)     (step0_test.py)  (any function,       │    (simulator)
+│                    │            by name)             │
 └────────────────────┼─────────────────────────────────┘
                      ▼
                  results\  (the report)
 ```
 
-On 6.10 the bridge reaches NIS through ctypes on `g5_regprocs.dll`, and through
-`nis.call_proc` for the one function the DLL does not export. NIS 7.01 has no
-`nis.call_proc` but has `nis.mac`, Nikon's documented route. This run shows whether 6.10
-already has `nis.mac`, and whether it gives the same answers as ctypes. If it does, the
-bridge can use `nis.mac` on both versions.
+1. **The macro** is the way in: NIS runs macros, and one line of macro starts Python.
+2. **NIS's own Python** runs our code, inside NIS.
+3. **`nis.call_proc`** calls any macro function by name, as a macro does, with the values
+   coming back. It is 6.10's door; NIS 7.01 has `nis.mac` instead. 6.10 has no `nis.mac`
+   (first run, 2026-10-26).
+4. **The microscope** (here the simulator) does what the function says.
