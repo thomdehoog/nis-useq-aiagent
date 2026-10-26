@@ -2,7 +2,7 @@
 
 Run on **NIS-Elements AR 6.10.02**
 on the Ti2 simulator: the version the bridge was built and tested on. It calls every NIS
-function the bridge uses, so the two versions can be compared function by function.
+function the bridge uses, so the results can be compared with NIS 7 (branch `agent/nis-7-step0`).
 
 ## Run it
 
