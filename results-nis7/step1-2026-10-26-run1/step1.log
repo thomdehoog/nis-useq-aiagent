@@ -1,0 +1,232 @@
+17:34:18 start: Python 3.12.4, pid 25448, nis module True
+17:34:18 listening on 127.0.0.1:54471
+17:34:18 DIALOG 17:34:18 '': Continue
+17:34:18 connection from 127.0.0.1:56375
+17:34:19 RUN   ping
+17:34:19 DONE  ping: ok
+17:34:19 RUN   Get_InfoStr
+17:34:19 DONE  Get_InfoStr: ok
+17:34:19 RUN   StgGetPosZ
+17:34:19 DONE  StgGetPosZ: ok
+17:34:19 RUN   StgGetPosXY
+17:34:19 DONE  StgGetPosXY: ok
+17:34:19 RUN   GetOptConfCount
+17:34:19 DONE  GetOptConfCount: ok
+17:34:19 RUN   Stg_GetPFSStatus
+17:34:19 DONE  Stg_GetPFSStatus: ok
+17:34:19 RUN   ThisFunctionDoesNotExist_Step1
+17:34:19 DONE  ThisFunctionDoesNotExist_Step1: AttributeError: 'Macro' object has no attribute 'ThisFunctionDoesNotExist_Step1'
+17:34:19 RUN   StgMoveZ
+17:34:19 DONE  StgMoveZ: PermissionError: StgMoveZ is not on the step 1 list of readings
+17:34:19 RUN   raise
+17:34:19 DONE  raise: RuntimeError: step 1: a deliberate Python error, to see it come back as a reply
+17:34:19 RUN   fly
+17:34:19 DONE  fly: ValueError: unknown op 'fly'; one of ping, call, raise, hold, shutdown
+17:34:19 RUN   StgGetPosZ
+17:34:19 DONE  StgGetPosZ: ok
+17:34:19 RUN   StgGetPosZ
+17:34:19 DONE  StgGetPosZ: ok
+17:34:19 RUN   StgGetPosZ
+17:34:19 DONE  StgGetPosZ: ok
+17:34:19 RUN   StgGetPosZ
+17:34:19 DONE  StgGetPosZ: ok
+17:34:19 RUN   StgGetPosZ
+17:34:19 DONE  StgGetPosZ: ok
+17:34:19 RUN   StgGetPosZ
+17:34:19 DONE  StgGetPosZ: ok
+17:34:19 RUN   StgGetPosZ
+17:34:19 DONE  StgGetPosZ: ok
+17:34:19 RUN   StgGetPosZ
+17:34:19 DONE  StgGetPosZ: ok
+17:34:19 RUN   StgGetPosZ
+17:34:19 DONE  StgGetPosZ: ok
+17:34:19 RUN   StgGetPosZ
+17:34:19 DONE  StgGetPosZ: ok
+17:34:19 RUN   StgGetPosZ
+17:34:19 DONE  StgGetPosZ: ok
+17:34:19 RUN   StgGetPosZ
+17:34:19 DONE  StgGetPosZ: ok
+17:34:19 RUN   StgGetPosZ
+17:34:19 DONE  StgGetPosZ: ok
+17:34:19 RUN   StgGetPosZ
+17:34:19 DONE  StgGetPosZ: ok
+17:34:19 RUN   StgGetPosZ
+17:34:19 DONE  StgGetPosZ: ok
+17:34:19 RUN   StgGetPosZ
+17:34:19 DONE  StgGetPosZ: ok
+17:34:19 RUN   StgGetPosZ
+17:34:19 DONE  StgGetPosZ: ok
+17:34:19 RUN   StgGetPosZ
+17:34:19 DONE  StgGetPosZ: ok
+17:34:19 RUN   StgGetPosZ
+17:34:19 DONE  StgGetPosZ: ok
+17:34:19 RUN   StgGetPosZ
+17:34:19 DONE  StgGetPosZ: ok
+17:34:19 RUN   StgGetPosZ
+17:34:19 DONE  StgGetPosZ: ok
+17:34:19 RUN   StgGetPosZ
+17:34:19 DONE  StgGetPosZ: ok
+17:34:19 RUN   StgGetPosZ
+17:34:19 DONE  StgGetPosZ: ok
+17:34:19 RUN   StgGetPosZ
+17:34:19 DONE  StgGetPosZ: ok
+17:34:19 RUN   StgGetPosZ
+17:34:19 DONE  StgGetPosZ: ok
+17:34:19 RUN   StgGetPosZ
+17:34:19 DONE  StgGetPosZ: ok
+17:34:19 RUN   StgGetPosZ
+17:34:19 DONE  StgGetPosZ: ok
+17:34:19 RUN   StgGetPosZ
+17:34:19 DONE  StgGetPosZ: ok
+17:34:19 RUN   StgGetPosZ
+17:34:19 DONE  StgGetPosZ: ok
+17:34:19 RUN   StgGetPosZ
+17:34:19 DONE  StgGetPosZ: ok
+17:34:19 RUN   StgGetPosZ
+17:34:19 DONE  StgGetPosZ: ok
+17:34:19 RUN   StgGetPosZ
+17:34:19 DONE  StgGetPosZ: ok
+17:34:19 RUN   StgGetPosZ
+17:34:19 DONE  StgGetPosZ: ok
+17:34:19 RUN   StgGetPosZ
+17:34:19 DONE  StgGetPosZ: ok
+17:34:19 RUN   StgGetPosZ
+17:34:19 DONE  StgGetPosZ: ok
+17:34:19 RUN   StgGetPosZ
+17:34:19 DONE  StgGetPosZ: ok
+17:34:19 RUN   StgGetPosZ
+17:34:19 DONE  StgGetPosZ: ok
+17:34:19 RUN   StgGetPosZ
+17:34:19 DONE  StgGetPosZ: ok
+17:34:19 RUN   StgGetPosZ
+17:34:19 DONE  StgGetPosZ: ok
+17:34:19 RUN   StgGetPosZ
+17:34:19 DONE  StgGetPosZ: ok
+17:34:19 RUN   StgGetPosZ
+17:34:19 DONE  StgGetPosZ: ok
+17:34:19 RUN   StgGetPosZ
+17:34:19 DONE  StgGetPosZ: ok
+17:34:19 RUN   StgGetPosZ
+17:34:19 DONE  StgGetPosZ: ok
+17:34:19 RUN   StgGetPosZ
+17:34:19 DONE  StgGetPosZ: ok
+17:34:19 RUN   StgGetPosZ
+17:34:19 DONE  StgGetPosZ: ok
+17:34:19 RUN   StgGetPosZ
+17:34:19 DONE  StgGetPosZ: ok
+17:34:19 RUN   StgGetPosZ
+17:34:19 DONE  StgGetPosZ: ok
+17:34:19 RUN   StgGetPosZ
+17:34:19 DONE  StgGetPosZ: ok
+17:34:19 RUN   StgGetPosZ
+17:34:19 DONE  StgGetPosZ: ok
+17:34:19 RUN   StgGetPosZ
+17:34:19 DONE  StgGetPosZ: ok
+17:34:19 RUN   StgGetPosZ
+17:34:19 DONE  StgGetPosZ: ok
+17:34:19 RUN   StgGetPosZ
+17:34:19 DONE  StgGetPosZ: ok
+17:34:19 RUN   StgGetPosZ
+17:34:19 DONE  StgGetPosZ: ok
+17:34:19 RUN   StgGetPosZ
+17:34:19 DONE  StgGetPosZ: ok
+17:34:19 RUN   StgGetPosZ
+17:34:19 DONE  StgGetPosZ: ok
+17:34:19 RUN   StgGetPosZ
+17:34:19 DONE  StgGetPosZ: ok
+17:34:19 RUN   StgGetPosZ
+17:34:19 DONE  StgGetPosZ: ok
+17:34:19 RUN   StgGetPosZ
+17:34:19 DONE  StgGetPosZ: ok
+17:34:19 RUN   StgGetPosZ
+17:34:19 DONE  StgGetPosZ: ok
+17:34:19 RUN   StgGetPosZ
+17:34:19 DONE  StgGetPosZ: ok
+17:34:19 RUN   StgGetPosZ
+17:34:19 DONE  StgGetPosZ: ok
+17:34:19 RUN   StgGetPosZ
+17:34:19 DONE  StgGetPosZ: ok
+17:34:19 RUN   StgGetPosZ
+17:34:19 DONE  StgGetPosZ: ok
+17:34:19 RUN   StgGetPosZ
+17:34:19 DONE  StgGetPosZ: ok
+17:34:20 RUN   StgGetPosZ
+17:34:20 DONE  StgGetPosZ: ok
+17:34:20 RUN   StgGetPosZ
+17:34:20 DONE  StgGetPosZ: ok
+17:34:20 RUN   StgGetPosZ
+17:34:20 DONE  StgGetPosZ: ok
+17:34:20 RUN   StgGetPosZ
+17:34:20 DONE  StgGetPosZ: ok
+17:34:20 RUN   StgGetPosZ
+17:34:20 DONE  StgGetPosZ: ok
+17:34:20 RUN   StgGetPosZ
+17:34:20 DONE  StgGetPosZ: ok
+17:34:20 RUN   StgGetPosZ
+17:34:20 DONE  StgGetPosZ: ok
+17:34:20 RUN   StgGetPosZ
+17:34:20 DONE  StgGetPosZ: ok
+17:34:20 RUN   StgGetPosZ
+17:34:20 DONE  StgGetPosZ: ok
+17:34:20 RUN   StgGetPosZ
+17:34:20 DONE  StgGetPosZ: ok
+17:34:20 RUN   StgGetPosZ
+17:34:20 DONE  StgGetPosZ: ok
+17:34:20 RUN   StgGetPosZ
+17:34:20 DONE  StgGetPosZ: ok
+17:34:20 RUN   StgGetPosZ
+17:34:20 DONE  StgGetPosZ: ok
+17:34:20 RUN   StgGetPosZ
+17:34:20 DONE  StgGetPosZ: ok
+17:34:20 RUN   StgGetPosZ
+17:34:20 DONE  StgGetPosZ: ok
+17:34:20 RUN   StgGetPosZ
+17:34:20 DONE  StgGetPosZ: ok
+17:34:20 RUN   StgGetPosZ
+17:34:20 DONE  StgGetPosZ: ok
+17:34:20 RUN   StgGetPosZ
+17:34:20 DONE  StgGetPosZ: ok
+17:34:20 RUN   StgGetPosZ
+17:34:20 DONE  StgGetPosZ: ok
+17:34:20 RUN   StgGetPosZ
+17:34:20 DONE  StgGetPosZ: ok
+17:34:20 RUN   StgGetPosZ
+17:34:20 DONE  StgGetPosZ: ok
+17:34:20 RUN   StgGetPosZ
+17:34:20 DONE  StgGetPosZ: ok
+17:34:20 RUN   StgGetPosZ
+17:34:20 DONE  StgGetPosZ: ok
+17:34:20 RUN   StgGetPosZ
+17:34:20 DONE  StgGetPosZ: ok
+17:34:20 RUN   StgGetPosZ
+17:34:20 DONE  StgGetPosZ: ok
+17:34:20 RUN   StgGetPosZ
+17:34:20 DONE  StgGetPosZ: ok
+17:34:20 RUN   StgGetPosZ
+17:34:20 DONE  StgGetPosZ: ok
+17:34:20 RUN   StgGetPosZ
+17:34:20 DONE  StgGetPosZ: ok
+17:34:20 RUN   StgGetPosZ
+17:34:20 DONE  StgGetPosZ: ok
+17:34:20 RUN   StgGetPosZ
+17:34:20 DONE  StgGetPosZ: ok
+17:34:20 RUN   StgGetPosZ
+17:34:20 DONE  StgGetPosZ: ok
+17:34:20 RUN   StgGetPosZ
+17:34:20 DONE  StgGetPosZ: ok
+17:34:20 RUN   StgGetPosZ
+17:34:20 DONE  StgGetPosZ: ok
+17:34:20 RUN   StgGetPosZ
+17:34:20 DONE  StgGetPosZ: ok
+17:34:20 RUN   StgGetPosZ
+17:34:20 DONE  StgGetPosZ: ok
+17:34:20 RUN   StgGetPosZ
+17:34:20 DONE  StgGetPosZ: ok
+17:34:20 RUN   StgGetPosZ
+17:34:20 DONE  StgGetPosZ: error: Bad number of parameters
+17:34:20 self-test done: all ok
+17:34:20 connection closed
+17:35:38 DIALOG 17:35:38 'Command Interpreter Error': Cannot Evaluate the Expression.
+
+EnableShading(2) | &OK
+17:35:48 DIALOG 17:35:48 'Confirm Interrupting Macro': &Yes | &No | Interrupt Macro Execution? | ML_ICON

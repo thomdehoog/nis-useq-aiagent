@@ -1,0 +1,35 @@
+{
+ "started": "2026-10-26 17:34:18",
+ "python": "3.12.4 (tags/v3.12.4:8e8a4ba, Jun  6 2024, 19:30:16) [MSC v.1940 64 bit (AMD64)]",
+ "platform": "Windows-11-10.0.26300-SP0",
+ "pid": 25448,
+ "nis_module": true,
+ "main_thread": 25520,
+ "pumps": 111,
+ "pumps_off_main_thread": 0,
+ "longest_gap_s": 1.032,
+ "requests": 112,
+ "replies_ok": 106,
+ "replies_error": 6,
+ "timeouts": 0,
+ "pump_errors": [],
+ "dialogs": [
+  "17:34:18 '': Continue"
+ ],
+ "self_test": [
+  "ok   ping                                          501.9 ms  {\"pid\": 25448, \"uptime_s\": 1.03, \"pumps\": 1, \"on_main_thread\": true}",
+  "ok   NIS version                                    11.3 ms  {\"return\": 1, \"values\": [1, \"7.01.03 (Build 2233)\"]}",
+  "ok   Z position                                      9.7 ms  {\"return\": 1, \"values\": [250.0, 0]}",
+  "ok   XY position (not there without hardware)        9.6 ms  {\"return\": -4, \"values\": [0.0, 0.0]}",
+  "ok   optical configurations                         10.6 ms  {\"return\": 0, \"values\": []}",
+  "ok   PFS status                                     10.4 ms  {\"return\": 0, \"values\": []}",
+  "ok   unknown function                                9.8 ms  \"AttributeError: 'Macro' object has no attribute 'ThisFunctionDoesNotExist_Step1'\"",
+  "ok   function not on the list (a move)              10.6 ms  \"PermissionError: StgMoveZ is not on the step 1 list of readings\"",
+  "ok   Python error                                   10.2 ms  \"RuntimeError: step 1: a deliberate Python error, to see it come back as a reply\"",
+  "ok   unknown op                                     10.1 ms  \"ValueError: unknown op 'fly'; one of ping, call, raise, hold, shutdown\"",
+  "ok   broken request                                          bad request: Expecting value: line 1 column 1 (char 0)",
+  "ok   100 x Z position, round trip: median 11.0 ms, max 11.5 ms",
+  "ok   wrong arguments                                10.4 ms  \"error: Bad number of parameters\""
+ ],
+ "stopped_by": null
+}

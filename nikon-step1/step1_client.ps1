@@ -1,4 +1,5 @@
-# Step 1, the outside half: a program that is not NIS sends requests to step1_bridge.py inside NIS.
+# Step 1, the outside half, by hand or as the fallback: step1_bridge.py starts step1_client.py
+# with NIS's own python.exe, and uses this only when NIS has none.
 # Windows PowerShell only, so no Python is needed on this computer. Start it with
 # step1_client.cmd while step1.mac runs in NIS. The answers go to results\step1_client.txt.
 #

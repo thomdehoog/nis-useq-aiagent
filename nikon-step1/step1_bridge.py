@@ -32,8 +32,8 @@ import json
 import os
 import platform
 import queue
-import socket
 import socketserver
+import subprocess
 import sys
 import threading
 import time
@@ -45,12 +45,14 @@ OUT_DIR = os.path.join(HERE, "results")
 HOST = "127.0.0.1"  # this computer only
 PORT = 54471  # not the bridge's 54470, so the two never meet
 STOP_FILE = os.environ.get("STEP1_STOP_FILE", r"C:\Users\Public\nikon-step1.stop")  # loop ends when it exists
-MAX_RUN_S = 900  # the loop ends by itself after 15 minutes
+MAX_RUN_S = 300  # the loop ends by itself after 5 minutes, whatever happens
 PUMP_WAIT_S = 0.05  # how long one pass of the macro loop waits for a request
 REQUEST_TIMEOUT_S = 30.0  # a request not started by then is answered "timeout" and never run
 MAX_HOLD_S = 5.0  # the longest "hold" (keeps NIS's thread busy, to see if NIS freezes)
 SELF_TEST = True  # run the checks from a thread inside NIS's Python at start
 WATCH_DIALOGS = True  # note every dialog window NIS opens (only notes; never clicks)
+AUTO_CLIENT = True  # after the self-test, start the outside client (step1_client.py) by itself
+CLIENT_TIMEOUT_S = 180  # if the client has not finished by then, it is stopped, and so is the run
 
 # Only these NIS functions may be called in step 1: readings, nothing that moves or captures.
 READS = {
@@ -60,6 +62,12 @@ READS = {
 }
 UNKNOWN = "ThisFunctionDoesNotExist_Step1"  # let through on purpose: how nis.mac says "no such"
 PTR_TYPES = {"byte", "char", "char8", "double", "dword", "int", "int64", "long", "short", "word"}
+
+sys.path.insert(0, HERE) if HERE not in sys.path else None
+import importlib  # noqa: E402
+import step1_checks as checks  # noqa: E402
+
+checks = importlib.reload(checks)  # a second run picks up an edited file
 
 try:
     import nis  # exists only inside NIS-Elements
@@ -77,7 +85,7 @@ state = {
     "main_thread": None,  # the thread start() ran on: NIS's own
     "pumps": 0, "pumps_off_main_thread": 0, "longest_gap_s": 0.0,
     "requests": 0, "replies_ok": 0, "replies_error": 0, "timeouts": 0,
-    "pump_errors": [], "dialogs": [], "self_test": [], "stopped_by": None,
+    "pump_errors": [], "dialogs": [], "self_test": [], "client": None, "stopped_by": None,
 }
 _jobs = queue.Queue()
 _server = None
@@ -85,6 +93,7 @@ _t0 = time.monotonic()
 _last_pump = None
 _stop_requested = False
 _stopped = False
+_self_test_thread = None  # also runs the outside client; stop() waits for it a little
 
 
 def log(text):
@@ -176,9 +185,7 @@ def answer(line):
         state["replies_error"] += 1
         return {"ok": False, "error": f"bad request: {error}"}
     if request.get("op") == "shutdown":
-        global _stop_requested
-        _stop_requested = True
-        state["stopped_by"] = "shutdown request"
+        request_stop("shutdown request from the client")
         return {"ok": True, "answer": {"stopping": True}}
     job = Job(request)
     _jobs.put(job)
@@ -220,7 +227,7 @@ class Server(socketserver.ThreadingTCPServer):
 # -- the three calls the macro makes ------------------------------------------------------
 def start():
     """Open the server (the macro's first line)."""
-    global _server, _last_pump
+    global _server, _last_pump, _self_test_thread
     state["main_thread"] = threading.get_ident()
     main = sys.modules["__main__"].__dict__
     old = main.pop("_step1_server", None)  # left by an earlier run stopped with the Stop button
@@ -248,7 +255,8 @@ def start():
     if WATCH_DIALOGS and sys.platform == "win32":
         threading.Thread(target=watch_dialogs, name="step1-dialogs", daemon=True).start()
     if SELF_TEST:
-        threading.Thread(target=self_test, name="step1-self-test", daemon=True).start()
+        _self_test_thread = threading.Thread(target=self_test, name="step1-self-test", daemon=True)
+        _self_test_thread.start()
     save()
     if nis is not None:
         nis.log(f"step 1: listening on port {PORT}")
@@ -297,6 +305,8 @@ def stop():
         _server.server_close()
         sys.modules["__main__"].__dict__.pop("_step1_server", None)
         _server = None
+    if _self_test_thread is not None:
+        _self_test_thread.join(timeout=10)  # the client checks the server closed, then ends
     state["finished"] = time.strftime("%Y-%m-%d %H:%M:%S")
     state["run_s"] = round(time.monotonic() - _t0, 1)
     state["pumps_per_s"] = round(state["pumps"] / max(state["run_s"], 0.1), 1)
@@ -320,76 +330,85 @@ def write_summary():
         f"timeouts {s['timeouts']}",
         f"pump errors: {len(s['pump_errors'])}  {s['pump_errors'][:3]}",
         f"dialogs seen: {len(s['dialogs'])}",
+        f"outside client (see step1_client.txt): {s['client']}",
     ] + [f"   {d}" for d in s["dialogs"]] + ["", "self-test (from inside NIS's Python):"]
     lines += s["self_test"] or ["   did not run"]
     with open(os.path.join(OUT_DIR, "step1_summary.txt"), "w", encoding="utf-8") as handle:
         handle.write("\n".join(lines) + "\n")
 
 
-# -- the checks, as a client would send them ----------------------------------------------
-# (name, request, should the reply be ok?) step1_client.ps1 sends the same.
-CHECKS = [
-    ("ping", {"op": "ping"}, True),
-    ("NIS version", {"op": "call", "fn": "Get_InfoStr", "args": [1, {"ptr": "char"}]}, True),
-    ("Z position", {"op": "call", "fn": "StgGetPosZ", "args": [{"ptr": "double"}, 0]}, True),
-    ("XY position (not there without hardware)",
-     {"op": "call", "fn": "StgGetPosXY", "args": [{"ptr": "double"}, {"ptr": "double"}]}, True),
-    ("optical configurations", {"op": "call", "fn": "GetOptConfCount", "args": []}, True),
-    ("PFS status", {"op": "call", "fn": "Stg_GetPFSStatus", "args": []}, True),
-    ("unknown function", {"op": "call", "fn": UNKNOWN, "args": []}, False),
-    ("function not on the list (a move)", {"op": "call", "fn": "StgMoveZ", "args": [0, 0]}, False),
-    ("Python error", {"op": "raise"}, False),
-    ("unknown op", {"op": "fly"}, False),
-]
-# Last, because it hands NIS's own code a wrong value: if anything crashes NIS, it is this.
-LAST_CHECKS = [
-    ("wrong arguments", {"op": "call", "fn": "StgGetPosZ", "args": ["text"]}, False),
-]
-
-
+# -- the self-test, and the outside client ------------------------------------------------
 def self_test():
-    """Run CHECKS from a thread, through the socket, like a program outside NIS would."""
+    """Run the checks from a thread, through the socket, as a program outside NIS would."""
     time.sleep(0.5)
     out = state["self_test"]
     try:
-        with socket.create_connection((HOST, PORT), timeout=REQUEST_TIMEOUT_S + 5) as sock:
-            stream = sock.makefile("rwb")
-
-            def send(raw):
-                stream.write(raw.encode("utf-8") + b"\n")
-                stream.flush()
-                return json.loads(stream.readline())
-
-            def check(name, request, want_ok):
-                started = time.perf_counter()
-                reply = send(json.dumps(request))
-                ms = round(1000 * (time.perf_counter() - started), 1)
-                passed = reply.get("ok") is want_ok
-                text = json.dumps(reply.get("answer", reply.get("error")), default=repr)[:200]
-                out.append(f"{'ok  ' if passed else 'FAIL'} {name:<42} {ms:>8} ms  {text}")
-                save()
-
-            for name, request, want_ok in CHECKS:
-                check(name, request, want_ok)
-            reply = send("this is not json")
-            out.append(f"{'ok  ' if reply.get('ok') is False else 'FAIL'} {'broken request':<42}"
-                       f"{'':>12}  {reply.get('error')}")
-            times = []
-            for _ in range(100):
-                started = time.perf_counter()
-                send(json.dumps(CHECKS[2][1]))
-                times.append(1000 * (time.perf_counter() - started))
-            times.sort()
-            out.append(f"ok   100 x Z position, round trip: median {times[50]:.1f} ms, "
-                       f"max {times[-1]:.1f} ms")
-            save()
-            for name, request, want_ok in LAST_CHECKS:
-                check(name, request, want_ok)
+        checks.run(PORT, out, on_line=lambda _: save())
     except Exception as error:  # noqa: BLE001
         out.append(f"FAIL self-test stopped: {type(error).__name__}: {error}")
     log("self-test done: " + ("all ok" if all(x.startswith("ok") for x in out) else "see summary"))
     save()
     write_summary()
+    if AUTO_CLIENT:
+        run_client()
+
+
+def request_stop(reason):
+    global _stop_requested
+    if state["stopped_by"] is None:
+        state["stopped_by"] = reason
+    _stop_requested = True
+
+
+def python_exe():
+    """NIS's own python.exe, if NIS ships one; None if not."""
+    names = ("python.exe", "python3.exe", "python", "python3")
+    folders = [os.path.dirname(sys.executable), sys.base_prefix, sys.prefix,
+               os.path.join(sys.base_prefix, "Scripts")]
+    if os.path.basename(sys.executable).lower().startswith("python"):
+        return sys.executable
+    for folder in folders:
+        for name in names:
+            path = os.path.join(folder, name)
+            if os.path.isfile(path):
+                return path
+    return None
+
+
+def run_client():
+    """Start the outside client as its own program, wait for it, then end the run.
+
+    First choice: step1_client.py with NIS's own python.exe. Without one: step1_client.ps1
+    with Windows PowerShell. The client ends the run with a shutdown request; if it cannot,
+    this does.
+    """
+    python = python_exe()
+    state["client_python_search"] = {"sys.executable": sys.executable, "base_prefix": sys.base_prefix,
+                                     "found": python}
+    if python:
+        command = [python, "-I", os.path.join(HERE, "step1_client.py"), str(PORT)]
+    else:
+        command = ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass",
+                   "-File", os.path.join(HERE, "step1_client.ps1")]
+    log("starting the outside client: " + " ".join(command))
+    try:
+        process = subprocess.Popen(command, cwd=HERE, stdout=subprocess.DEVNULL,
+                                   stderr=subprocess.PIPE, stdin=subprocess.DEVNULL,
+                                   creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
+    except OSError as error:
+        state["client"] = f"could not start {command[0]}: {error}"
+        log(state["client"])
+        request_stop("the outside client could not be started")
+        return
+    try:
+        _, err = process.communicate(timeout=CLIENT_TIMEOUT_S)
+        state["client"] = f"{os.path.basename(command[0])}, exit code {process.returncode}" + (
+            f"; {err.decode(errors='replace')[:500]}" if err else "")
+    except subprocess.TimeoutExpired:
+        process.kill()
+        state["client"] = f"did not finish within {CLIENT_TIMEOUT_S} s; stopped"
+    log(f"outside client: {state['client']}")
+    request_stop("the outside client finished")
 
 
 # -- dialogs: does NIS show one? -----------------------------------------------------------
