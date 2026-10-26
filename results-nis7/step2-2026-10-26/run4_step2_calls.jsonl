@@ -1,0 +1,332 @@
+{"fn": "-", "phase": "run", "version": "2026-10-26 step 2", "file": "C:\\Users\\t.de/Desktop\\nikon-step2_7\\nikon-step2\\step2_calls.py", "python": "3.12.4 (tags/v3.12.4:8e8a4ba, Jun  6 2024, 19:30:16) [MSC v.1940 64 bit (AMD64)]", "pid": 6408, "time": "2026-10-26 18:23:57", "camera": false, "already_done": 0, "to_do": 3667, "crashed_last_time": null}
+{"fn": "GetCameraName", "section": "Acquire", "phase": "end", "result": "not reachable", "detail": "AttributeError: 'Macro' object has no attribute 'GetCameraName'"}
+{"fn": "GetCameraResolution", "section": "Acquire", "phase": "end", "result": "not reachable", "detail": "AttributeError: 'Macro' object has no attribute 'GetCameraResolution'"}
+{"fn": "GetCurrentCameraDriverName", "section": "Acquire", "phase": "end", "result": "not reachable", "detail": "AttributeError: 'Macro' object has no attribute 'GetCurrentCameraDriverName'"}
+{"fn": "GetCurrentCameraName", "section": "Acquire", "phase": "end", "result": "not reachable", "detail": "AttributeError: 'Macro' object has no attribute 'GetCurrentCameraName'"}
+{"fn": "GetFollowExposureMode", "section": "Acquire", "phase": "end", "result": "not reachable", "detail": "AttributeError: 'Macro' object has no attribute 'GetFollowExposureMode'"}
+{"fn": "GetActiveGrabber", "section": "Acquire", "phase": "end", "result": "not reachable", "detail": "AttributeError: 'Macro' object has no attribute 'GetActiveGrabber'"}
+{"fn": "GetActiveGrabberCount", "section": "Acquire", "phase": "end", "result": "not reachable", "detail": "AttributeError: 'Macro' object has no attribute 'GetActiveGrabberCount'"}
+{"fn": "GetShadingEnabled", "section": "Acquire", "phase": "end", "result": "not reachable", "detail": "AttributeError: 'Macro' object has no attribute 'GetShadingEnabled'"}
+{"fn": "IsShadingMapAvailable", "section": "Acquire", "phase": "end", "result": "not reachable", "detail": "AttributeError: 'Macro' object has no attribute 'IsShadingMapAvailable'"}
+{"fn": "GetActivePFIForTriggering", "phase": "start", "t": 1793035437.1642299}
+{"fn": "GetActivePFIForTriggering", "section": "Acquire", "phase": "end", "result": "needs arguments", "detail": "error: Bad number of parameters", "ms": 0.02}
+{"fn": "GetDistortionEnabled", "section": "Acquire", "phase": "end", "result": "not reachable", "detail": "AttributeError: 'Macro' object has no attribute 'GetDistortionEnabled'"}
+{"fn": "GetShadingDefined", "section": "Acquire", "phase": "end", "result": "not reachable", "detail": "AttributeError: 'Macro' object has no attribute 'GetShadingDefined'"}
+{"fn": "IsDistortionMapAvailable", "phase": "start", "t": 1793035437.1801875}
+{"fn": "IsDistortionMapAvailable", "section": "Acquire", "phase": "end", "result": "needs arguments", "detail": "error: Bad number of parameters", "ms": 0.01}
+{"fn": "IsPatternDefined", "phase": "start", "t": 1793035437.1871686}
+{"fn": "IsPatternDefined", "section": "Acquire", "phase": "end", "result": "needs arguments", "detail": "error: Bad number of parameters", "ms": 0.01}
+{"fn": "Stg_GalvoXY_GetScanningTime", "section": "Acquire", "phase": "end", "result": "not reachable", "detail": "AttributeError: 'Macro' object has no attribute 'Stg_GalvoXY_GetScanningTime'"}
+{"fn": "GetOptConfCount", "phase": "start", "t": 1793035437.198139}
+{"fn": "GetOptConfCount", "section": "Acquire", "phase": "end", "result": "ran", "detail": "0", "ms": 0.02}
+{"fn": "GetOptConfName", "phase": "start", "t": 1793035437.2051203}
+{"fn": "GetOptConfName", "section": "Acquire", "phase": "end", "result": "needs arguments", "detail": "error: Bad number of parameters", "ms": 0.01}
+{"fn": "GetSelectedOptConf", "phase": "start", "t": 1793035437.2240696}
+{"fn": "GetSelectedOptConf", "section": "Acquire", "phase": "end", "result": "needs arguments", "detail": "error: Bad number of parameters", "ms": 0.01}
+{"fn": "Stg_IsStatusStored", "phase": "start", "t": 1793035437.234043}
+{"fn": "Stg_IsStatusStored", "section": "Acquire", "phase": "end", "result": "needs arguments", "detail": "error: Bad number of parameters", "ms": 0.01}
+{"fn": "GetLightPathCount", "phase": "start", "t": 1793035437.244017}
+{"fn": "GetLightPathCount", "section": "Acquire", "phase": "end", "result": "ran", "detail": "5", "ms": 0.87}
+{"fn": "GetLightPathIndexName", "phase": "start", "t": 1793035437.25399}
+{"fn": "GetLightPathIndexName", "section": "Acquire", "phase": "end", "result": "needs arguments", "detail": "error: Bad number of parameters", "ms": 0.01}
+{"fn": "GetCurrentLightPathName", "phase": "start", "t": 1793035437.260971}
+{"fn": "GetCurrentLightPathName", "section": "Acquire", "phase": "end", "result": "needs arguments", "detail": "error: Bad number of parameters", "ms": 0.01}
+{"fn": "IsClipboardOK", "phase": "start", "t": 1793035437.2709444}
+{"fn": "IsClipboardOK", "section": "AdvancedAPI", "phase": "end", "result": "ran", "detail": "0", "ms": 0.03}
+{"fn": "GetOCRImageText", "phase": "start", "t": 1793035437.290892}
+{"fn": "GetOCRImageText", "section": "AdvancedAPI", "phase": "end", "result": "needs arguments", "detail": "error: Bad number of parameters", "ms": 0.01}
+{"fn": "GetOCRInfo", "phase": "start", "t": 1793035437.2978723}
+{"fn": "GetOCRInfo", "section": "AdvancedAPI", "phase": "end", "result": "needs arguments", "detail": "error: Bad number of parameters", "ms": 0.01}
+{"fn": "Get_BValue", "phase": "start", "t": 1793035437.3048546}
+{"fn": "Get_BValue", "section": "AdvancedAPI", "phase": "end", "result": "needs arguments", "detail": "error: Bad number of parameters", "ms": 0.01}
+{"fn": "Get_BinaryValue", "phase": "start", "t": 1793035437.310838}
+{"fn": "Get_BinaryValue", "section": "AdvancedAPI", "phase": "end", "result": "needs arguments", "detail": "error: Bad number of parameters", "ms": 0.01}
+{"fn": "Get_GValue", "phase": "start", "t": 1793035437.317819}
+{"fn": "Get_GValue", "section": "AdvancedAPI", "phase": "end", "result": "needs arguments", "detail": "error: Bad number of parameters", "ms": 0.01}
+{"fn": "Get_Histogram", "phase": "start", "t": 1793035437.3238032}
+{"fn": "Get_Histogram", "section": "AdvancedAPI", "phase": "end", "result": "needs arguments", "detail": "error: Bad number of parameters", "ms": 0.01}
+{"fn": "Get_PixelValue", "phase": "start", "t": 1793035437.3307843}
+{"fn": "Get_PixelValue", "section": "AdvancedAPI", "phase": "end", "result": "needs arguments", "detail": "error: Bad number of parameters", "ms": 0.01}
+{"fn": "Get_Profile", "phase": "start", "t": 1793035437.336769}
+{"fn": "Get_Profile", "section": "AdvancedAPI", "phase": "end", "result": "needs arguments", "detail": "error: Bad number of parameters", "ms": 0.01}
+{"fn": "Get_RValue", "phase": "start", "t": 1793035437.35472}
+{"fn": "Get_RValue", "section": "AdvancedAPI", "phase": "end", "result": "needs arguments", "detail": "error: Bad number of parameters", "ms": 0.01}
+{"fn": "GetROICount", "phase": "start", "t": 1793035437.3607047}
+{"fn": "GetROICount", "section": "Analysis", "phase": "end", "result": "ran", "detail": "None", "ms": 0.01}
+{"fn": "GetROIIdFromIndex", "phase": "start", "t": 1793035437.3676856}
+{"fn": "GetROIIdFromIndex", "section": "Analysis", "phase": "end", "result": "needs arguments", "detail": "error: Bad number of parameters", "ms": 0.01}
+{"fn": "GetROIIndexFromID", "phase": "start", "t": 1793035437.3776588}
+{"fn": "GetROIIndexFromID", "section": "Analysis", "phase": "end", "result": "needs arguments", "detail": "error: Bad number of parameters", "ms": 0.01}
+{"fn": "GetROIInfo", "phase": "start", "t": 1793035437.3846402}
+{"fn": "GetROIInfo", "section": "Analysis", "phase": "end", "result": "needs arguments", "detail": "error: Bad number of parameters", "ms": 0.01}
+{"fn": "GetROIPos", "phase": "start", "t": 1793035437.3906248}
+{"fn": "GetROIPos", "section": "Analysis", "phase": "end", "result": "needs arguments", "detail": "error: Bad number of parameters", "ms": 0.01}
+{"fn": "GetSelectedROIs", "phase": "start", "t": 1793035437.3976057}
+{"fn": "GetSelectedROIs", "section": "Analysis", "phase": "end", "result": "needs arguments", "detail": "error: Bad number of parameters", "ms": 0.01}
+{"fn": "GetCurrentFilterMeasurementDate", "section": "Applications", "phase": "end", "result": "not reachable", "detail": "AttributeError: 'Macro' object has no attribute 'GetCurrentFilterMeasurementDate'"}
+{"fn": "GetGrayImageFromBinLayer", "phase": "start", "t": 1793035437.4205453}
+{"fn": "GetGrayImageFromBinLayer", "section": "Binary", "phase": "end", "result": "needs arguments", "detail": "error: Bad number of parameters", "ms": 0.01}
+{"fn": "GetOtsuThreshold", "phase": "start", "t": 1793035437.4275255}
+{"fn": "GetOtsuThreshold", "section": "Binary", "phase": "end", "result": "ran", "detail": "-1", "ms": 0.03}
+{"fn": "GetCalibrationViewUnit", "phase": "start", "t": 1793035437.4335098}
+{"fn": "GetCalibrationViewUnit", "section": "Calibration", "phase": "end", "result": "needs arguments", "detail": "error: Bad number of parameters", "ms": 0.01}
+{"fn": "Get_CalibrationAngleMatrix", "phase": "start", "t": 1793035437.440491}
+{"fn": "Get_CalibrationAngleMatrix", "section": "Calibration", "phase": "end", "result": "needs arguments", "detail": "error: Bad number of parameters", "ms": 0.01}
+{"fn": "Get_CurrentCalibration", "phase": "start", "t": 1793035437.4464755}
+{"fn": "Get_CurrentCalibration", "section": "Calibration", "phase": "end", "result": "needs arguments", "detail": "error: Bad number of parameters", "ms": 0.01}
+{"fn": "Get_ImageCalibration", "phase": "start", "t": 1793035437.4524598}
+{"fn": "Get_ImageCalibration", "section": "Calibration", "phase": "end", "result": "needs arguments", "detail": "error: Bad number of parameters", "ms": 0.01}
+{"fn": "Stg_GetAnalyzerState", "phase": "start", "t": 1793035437.4594407}
+{"fn": "Stg_GetAnalyzerState", "section": "Device", "phase": "end", "result": "ran", "detail": "0", "ms": 0.03}
+{"fn": "Stg_IsAnalyzerPresent", "phase": "start", "t": 1793035437.4664216}
+{"fn": "Stg_IsAnalyzerPresent", "section": "Device", "phase": "end", "result": "ran", "detail": "0", "ms": 0.02}
+{"fn": "Stg_GetAperturePosition", "phase": "start", "t": 1793035437.484453}
+{"fn": "Stg_GetAperturePosition", "section": "Device", "phase": "end", "result": "needs arguments", "detail": "error: Bad number of parameters", "ms": 0.01}
+{"fn": "Stg_GetApertureStepPosition", "phase": "start", "t": 1793035437.4914348}
+{"fn": "Stg_GetApertureStepPosition", "section": "Device", "phase": "end", "result": "needs arguments", "detail": "error: Bad number of parameters", "ms": 0.01}
+{"fn": "Stg_GetApertureSteps", "phase": "start", "t": 1793035437.4974186}
+{"fn": "Stg_GetApertureSteps", "section": "Device", "phase": "end", "result": "needs arguments", "detail": "error: Bad number of parameters", "ms": 0.01}
+{"fn": "Stg_IsAperturePresent", "phase": "start", "t": 1793035437.5043998}
+{"fn": "Stg_IsAperturePresent", "section": "Device", "phase": "end", "result": "needs arguments", "detail": "error: Bad number of parameters", "ms": 0.01}
+{"fn": "Stg_GetLastBarCode", "phase": "start", "t": 1793035437.5103834}
+{"fn": "Stg_GetLastBarCode", "section": "Device", "phase": "end", "result": "needs arguments", "detail": "error: Bad number of parameters", "ms": 0.01}
+{"fn": "Stg_GetCSUShutterState", "phase": "start", "t": 1793035437.5173645}
+{"fn": "Stg_GetCSUShutterState", "section": "Device", "phase": "end", "result": "ran", "detail": "0", "ms": 0.02}
+{"fn": "Stg_GetDiskSpeed", "phase": "start", "t": 1793035437.523349}
+{"fn": "Stg_GetDiskSpeed", "section": "Device", "phase": "end", "result": "ran", "detail": "7298712", "ms": 0.14}
+{"fn": "Stg_GetRelayLensPosition", "phase": "start", "t": 1793035437.5303302}
+{"fn": "Stg_GetRelayLensPosition", "section": "Device", "phase": "end", "result": "needs arguments", "detail": "error: Bad number of parameters", "ms": 0.01}
+{"fn": "Stg_GetCondenserPosition", "phase": "start", "t": 1793035437.548282}
+{"fn": "Stg_GetCondenserPosition", "section": "Device", "phase": "end", "result": "ran", "detail": "0", "ms": 0.01}
+{"fn": "Stg_GetCondenserPositions", "phase": "start", "t": 1793035437.5552633}
+{"fn": "Stg_GetCondenserPositions", "section": "Device", "phase": "end", "result": "ran", "detail": "0", "ms": 0.01}
+{"fn": "Stg_IsCondenserPresent", "phase": "start", "t": 1793035437.561248}
+{"fn": "Stg_IsCondenserPresent", "section": "Device", "phase": "end", "result": "ran", "detail": "0", "ms": 0.01}
+{"fn": "Stg_CorrectionCollar_GetDescription", "phase": "start", "t": 1793035437.5682292}
+{"fn": "Stg_CorrectionCollar_GetDescription", "section": "Device", "phase": "end", "result": "needs arguments", "detail": "error: Bad number of parameters", "ms": 0.01}
+{"fn": "Stg_CorrectionCollar_GetPosition", "phase": "start", "t": 1793035437.57521}
+{"fn": "Stg_CorrectionCollar_GetPosition", "section": "Device", "phase": "end", "result": "needs arguments", "detail": "error: Bad number of parameters", "ms": 0.01}
+{"fn": "Stg_GetDMDActivePatternId", "phase": "start", "t": 1793035437.5811944}
+{"fn": "Stg_GetDMDActivePatternId", "section": "Device", "phase": "end", "result": "needs arguments", "detail": "error: Bad number of parameters", "ms": 0.01}
+{"fn": "Stg_GetDMDAssociatedLightId", "phase": "start", "t": 1793035437.5881765}
+{"fn": "Stg_GetDMDAssociatedLightId", "section": "Device", "phase": "end", "result": "needs arguments", "detail": "error: Bad number of parameters", "ms": 0.01}
+{"fn": "Stg_GetDMDAssociatedShutterCount", "phase": "start", "t": 1793035437.5951564}
+{"fn": "Stg_GetDMDAssociatedShutterCount", "section": "Device", "phase": "end", "result": "needs arguments", "detail": "error: Bad number of parameters", "ms": 0.01}
+{"fn": "Stg_GetDMDAssociatedShutterId", "phase": "start", "t": 1793035437.614106}
+{"fn": "Stg_GetDMDAssociatedShutterId", "section": "Device", "phase": "end", "result": "needs arguments", "detail": "error: Bad number of parameters", "ms": 0.01}
+{"fn": "Stg_GetDMDAssociatedShuttersOpenState", "phase": "start", "t": 1793035437.6210873}
+{"fn": "Stg_GetDMDAssociatedShuttersOpenState", "section": "Device", "phase": "end", "result": "needs arguments", "detail": "error: Bad number of parameters", "ms": 0.01}
+{"fn": "Stg_GetDMDAssociatedSwitcherId", "section": "Device", "phase": "end", "result": "not reachable", "detail": "AttributeError: 'Macro' object has no attribute 'Stg_GetDMDAssociatedSwitcherId'"}
+{"fn": "Stg_GetDMDAssociatedSwitcherPosition", "section": "Device", "phase": "end", "result": "not reachable", "detail": "AttributeError: 'Macro' object has no attribute 'Stg_GetDMDAssociatedSwitcherPosition'"}
+{"fn": "Stg_GetDMDCalibrated", "phase": "start", "t": 1793035437.636048}
+{"fn": "Stg_GetDMDCalibrated", "section": "Device", "phase": "end", "result": "needs arguments", "detail": "error: Bad number of parameters", "ms": 0.01}
+{"fn": "Stg_GetDMDDeviceCount", "phase": "start", "t": 1793035437.643029}
+{"fn": "Stg_GetDMDDeviceCount", "section": "Device", "phase": "end", "result": "ran", "detail": "0", "ms": 0.02}
+{"fn": "Stg_GetDMDDeviceName", "phase": "start", "t": 1793035437.6490123}
+{"fn": "Stg_GetDMDDeviceName", "section": "Device", "phase": "end", "result": "needs arguments", "detail": "error: Bad number of parameters", "ms": 0.01}
+{"fn": "Stg_GetDMDPatternCount", "phase": "start", "t": 1793035437.6559947}
+{"fn": "Stg_GetDMDPatternCount", "section": "Device", "phase": "end", "result": "needs arguments", "detail": "error: Bad number of parameters", "ms": 0.01}
+{"fn": "Stg_GetDMDPatternId", "phase": "start", "t": 1793035437.6619785}
+{"fn": "Stg_GetDMDPatternId", "section": "Device", "phase": "end", "result": "needs arguments", "detail": "error: Bad number of parameters", "ms": 0.01}
+{"fn": "Stg_GetDMDPatternIdByName", "phase": "start", "t": 1793035437.680927}
+{"fn": "Stg_GetDMDPatternIdByName", "section": "Device", "phase": "end", "result": "needs arguments", "detail": "error: Bad number of parameters", "ms": 0.01}
+{"fn": "Stg_GetDMDPatternName", "phase": "start", "t": 1793035437.687909}
+{"fn": "Stg_GetDMDPatternName", "section": "Device", "phase": "end", "result": "needs arguments", "detail": "error: Bad number of parameters", "ms": 0.01}
+{"fn": "Stg_Filter_GetCount", "phase": "start", "t": 1793035437.6938927}
+{"fn": "Stg_Filter_GetCount", "section": "Device", "phase": "end", "result": "ran", "detail": "0", "ms": 0.02}
+{"fn": "Stg_Filter_GetName", "phase": "start", "t": 1793035437.700874}
+{"fn": "Stg_Filter_GetName", "section": "Device", "phase": "end", "result": "needs arguments", "detail": "error: Bad number of parameters", "ms": 0.01}
+{"fn": "Stg_Filter_GetPosition", "phase": "start", "t": 1793035437.706858}
+{"fn": "Stg_Filter_GetPosition", "section": "Device", "phase": "end", "result": "needs arguments", "detail": "error: Bad number of parameters", "ms": 0.01}
+{"fn": "Stg_Filter_GetPositionCount", "phase": "start", "t": 1793035437.7138393}
+{"fn": "Stg_Filter_GetPositionCount", "section": "Device", "phase": "end", "result": "needs arguments", "detail": "error: Bad number of parameters", "ms": 0.01}
+{"fn": "Stg_Filter_GetPositionName", "phase": "start", "t": 1793035437.7198238}
+{"fn": "Stg_Filter_GetPositionName", "section": "Device", "phase": "end", "result": "needs arguments", "detail": "error: Bad number of parameters", "ms": 0.01}
+{"fn": "Stg_Filter_GetSpeed", "section": "Device", "phase": "end", "result": "not reachable", "detail": "AttributeError: 'Macro' object has no attribute 'Stg_Filter_GetSpeed'"}
+{"fn": "Stg_Filter_GetSpeedSteps", "section": "Device", "phase": "end", "result": "not reachable", "detail": "AttributeError: 'Macro' object has no attribute 'Stg_Filter_GetSpeedSteps'"}
+{"fn": "Stg_Filter_GetStepSpeed", "section": "Device", "phase": "end", "result": "not reachable", "detail": "AttributeError: 'Macro' object has no attribute 'Stg_Filter_GetStepSpeed'"}
+{"fn": "Stg_GetFilterName", "phase": "start", "t": 1793035437.7507405}
+{"fn": "Stg_GetFilterName", "section": "Device", "phase": "end", "result": "needs arguments", "detail": "error: Bad number of parameters", "ms": 0.01}
+{"fn": "Stg_GetFilterPosition", "phase": "start", "t": 1793035437.7567246}
+{"fn": "Stg_GetFilterPosition", "section": "Device", "phase": "end", "result": "needs arguments", "detail": "error: Bad number of parameters", "ms": 0.01}
+{"fn": "Stg_GetFilterPositions", "phase": "start", "t": 1793035437.7627084}
+{"fn": "Stg_GetFilterPositions", "section": "Device", "phase": "end", "result": "needs arguments", "detail": "error: Bad number of parameters", "ms": 0.01}
+{"fn": "Stg_GetFilterSpeed", "section": "Device", "phase": "end", "result": "not reachable", "detail": "AttributeError: 'Macro' object has no attribute 'Stg_GetFilterSpeed'"}
+{"fn": "Stg_GetFilterSpeedSteps", "section": "Device", "phase": "end", "result": "not reachable", "detail": "AttributeError: 'Macro' object has no attribute 'Stg_GetFilterSpeedSteps'"}
+{"fn": "Stg_GetFilterStepSpeed", "section": "Device", "phase": "end", "result": "not reachable", "detail": "AttributeError: 'Macro' object has no attribute 'Stg_GetFilterStepSpeed'"}
+{"fn": "Stg_IsFilterPresent", "phase": "start", "t": 1793035437.7836525}
+{"fn": "Stg_IsFilterPresent", "section": "Device", "phase": "end", "result": "needs arguments", "detail": "error: Bad number of parameters", "ms": 0.01}
+{"fn": "Stg_HTIRF_GetAngle", "section": "Device", "phase": "end", "result": "not reachable", "detail": "AttributeError: 'Macro' object has no attribute 'Stg_HTIRF_GetAngle'"}
+{"fn": "Stg_HTIRF_GetDirection", "section": "Device", "phase": "end", "result": "not reachable", "detail": "AttributeError: 'Macro' object has no attribute 'Stg_HTIRF_GetDirection'"}
+{"fn": "Stg_HTIRF_GetFocus", "section": "Device", "phase": "end", "result": "not reachable", "detail": "AttributeError: 'Macro' object has no attribute 'Stg_HTIRF_GetFocus'"}
+{"fn": "Stg_HTIRF_GetX", "section": "Device", "phase": "end", "result": "not reachable", "detail": "AttributeError: 'Macro' object has no attribute 'Stg_HTIRF_GetX'"}
+{"fn": "Stg_HTIRF_GetY", "section": "Device", "phase": "end", "result": "not reachable", "detail": "AttributeError: 'Macro' object has no attribute 'Stg_HTIRF_GetY'"}
+{"fn": "Stg_HTIRF_IsGradationND", "section": "Device", "phase": "end", "result": "not reachable", "detail": "AttributeError: 'Macro' object has no attribute 'Stg_HTIRF_IsGradationND'"}
+{"fn": "Stg_HTIRF_IsLambdaQP", "section": "Device", "phase": "end", "result": "not reachable", "detail": "AttributeError: 'Macro' object has no attribute 'Stg_HTIRF_IsLambdaQP'"}
+{"fn": "Stg_NSTORM_GetZoom", "section": "Device", "phase": "end", "result": "not reachable", "detail": "AttributeError: 'Macro' object has no attribute 'Stg_NSTORM_GetZoom'"}
+{"fn": "Stg_HeatStage_GetCount", "phase": "start", "t": 1793035437.848479}
+{"fn": "Stg_HeatStage_GetCount", "section": "Device", "phase": "end", "result": "ran", "detail": "0", "ms": 0.03}
+{"fn": "Stg_HeatStage_GetCurrentTemperature", "phase": "start", "t": 1793035437.8544633}
+{"fn": "Stg_HeatStage_GetCurrentTemperature", "section": "Device", "phase": "end", "result": "needs arguments", "detail": "error: Bad number of parameters", "ms": 0.01}
+{"fn": "Stg_HeatStage_GetName", "phase": "start", "t": 1793035437.872415}
+{"fn": "Stg_HeatStage_GetName", "section": "Device", "phase": "end", "result": "needs arguments", "detail": "error: Bad number of parameters", "ms": 0.01}
+{"fn": "Stg_HeatStage_GetStatus", "phase": "start", "t": 1793035437.8793967}
+{"fn": "Stg_HeatStage_GetStatus", "section": "Device", "phase": "end", "result": "needs arguments", "detail": "error: Bad number of parameters", "ms": 0.01}
+{"fn": "Stg_Incubator_GetCurrentGas", "phase": "start", "t": 1793035437.8853812}
+{"fn": "Stg_Incubator_GetCurrentGas", "section": "Device", "phase": "end", "result": "needs arguments", "detail": "error: Bad number of parameters", "ms": 0.01}
+{"fn": "Stg_Incubator_GetCurrentHumidity", "phase": "start", "t": 1793035437.891499}
+{"fn": "Stg_Incubator_GetCurrentHumidity", "section": "Device", "phase": "end", "result": "needs arguments", "detail": "error: Bad number of parameters", "ms": 0.01}
+{"fn": "Stg_Incubator_GetCurrentPressure", "phase": "start", "t": 1793035437.8984818}
+{"fn": "Stg_Incubator_GetCurrentPressure", "section": "Device", "phase": "end", "result": "needs arguments", "detail": "error: Bad number of parameters", "ms": 0.01}
+{"fn": "Stg_Incubator_GetPressureRange", "phase": "start", "t": 1793035437.9044662}
+{"fn": "Stg_Incubator_GetPressureRange", "section": "Device", "phase": "end", "result": "needs arguments", "detail": "error: Bad number of parameters", "ms": 0.01}
+{"fn": "Stg_Incubator_GetTargetGas", "phase": "start", "t": 1793035437.9114485}
+{"fn": "Stg_Incubator_GetTargetGas", "section": "Device", "phase": "end", "result": "needs arguments", "detail": "error: Bad number of parameters", "ms": 0.01}
+{"fn": "Stg_Incubator_GetTargetHumidity", "phase": "start", "t": 1793035437.9184287}
+{"fn": "Stg_Incubator_GetTargetHumidity", "section": "Device", "phase": "end", "result": "needs arguments", "detail": "error: Bad number of parameters", "ms": 0.01}
+{"fn": "Stg_Incubator_GetTargetPressure", "phase": "start", "t": 1793035437.9363804}
+{"fn": "Stg_Incubator_GetTargetPressure", "section": "Device", "phase": "end", "result": "needs arguments", "detail": "error: Bad number of parameters", "ms": 0.01}
+{"fn": "Stg_LUNB_GetCylindricalLensMounted", "section": "Device", "phase": "end", "result": "not reachable", "detail": "AttributeError: 'Macro' object has no attribute 'Stg_LUNB_GetCylindricalLensMounted'"}
+{"fn": "Stg_LUNB_GetCylindricalLensPosition", "section": "Device", "phase": "end", "result": "not reachable", "detail": "AttributeError: 'Macro' object has no attribute 'Stg_LUNB_GetCylindricalLensPosition'"}
+{"fn": "Stg_LUNB_GetRelayLensMounted", "section": "Device", "phase": "end", "result": "not reachable", "detail": "AttributeError: 'Macro' object has no attribute 'Stg_LUNB_GetRelayLensMounted'"}
+{"fn": "Stg_LUNB_GetRelayLensPosition", "section": "Device", "phase": "end", "result": "not reachable", "detail": "AttributeError: 'Macro' object has no attribute 'Stg_LUNB_GetRelayLensPosition'"}
+{"fn": "Stg_GetLaserOutputModality", "section": "Device", "phase": "end", "result": "not reachable", "detail": "AttributeError: 'Macro' object has no attribute 'Stg_GetLaserOutputModality'"}
+{"fn": "Stg_GetLaserOutputNumPorts", "phase": "start", "t": 1793035437.965303}
+{"fn": "Stg_GetLaserOutputNumPorts", "section": "Device", "phase": "end", "result": "ran", "detail": "0", "ms": 0.02}
+{"fn": "Stg_GetLaserOutputPortUsed", "phase": "start", "t": 1793035437.9712877}
+{"fn": "Stg_GetLaserOutputPortUsed", "section": "Device", "phase": "end", "result": "needs arguments", "detail": "error: Bad number of parameters", "ms": 0.01}
+{"fn": "Stg_GetLaserOutputPortUsedEx", "phase": "start", "t": 1793035437.9782686}
+{"fn": "Stg_GetLaserOutputPortUsedEx", "section": "Device", "phase": "end", "result": "needs arguments", "detail": "error: Bad number of parameters", "ms": 0.01}
+{"fn": "Stg_GetLightIrisIntensity", "phase": "start", "t": 1793035437.9852498}
+{"fn": "Stg_GetLightIrisIntensity", "section": "Device", "phase": "end", "result": "needs arguments", "detail": "error: Bad number of parameters", "ms": 0.01}
+{"fn": "Stg_GetLightIrisIntensitySteps", "phase": "start", "t": 1793035438.0041995}
+{"fn": "Stg_GetLightIrisIntensitySteps", "section": "Device", "phase": "end", "result": "needs arguments", "detail": "error: Bad number of parameters", "ms": 0.01}
+{"fn": "Stg_GetLightIrisSteps", "phase": "start", "t": 1793035438.0101833}
+{"fn": "Stg_GetLightIrisSteps", "section": "Device", "phase": "end", "result": "needs arguments", "detail": "error: Bad number of parameters", "ms": 0.01}
+{"fn": "Stg_GetLightState", "phase": "start", "t": 1793035438.0171654}
+{"fn": "Stg_GetLightState", "section": "Device", "phase": "end", "result": "needs arguments", "detail": "error: Bad number of parameters", "ms": 0.01}
+{"fn": "Stg_GetLightStepVoltage", "phase": "start", "t": 1793035438.0241458}
+{"fn": "Stg_GetLightStepVoltage", "section": "Device", "phase": "end", "result": "needs arguments", "detail": "error: Bad number of parameters", "ms": 0.01}
+{"fn": "Stg_GetLightVoltage", "phase": "start", "t": 1793035438.0311284}
+{"fn": "Stg_GetLightVoltage", "section": "Device", "phase": "end", "result": "needs arguments", "detail": "error: Bad number of parameters", "ms": 0.01}
+{"fn": "Stg_GetLightVoltageSteps", "phase": "start", "t": 1793035438.0401037}
+{"fn": "Stg_GetLightVoltageSteps", "section": "Device", "phase": "end", "result": "needs arguments", "detail": "error: Bad number of parameters", "ms": 0.01}
+{"fn": "Stg_IsLightPresent", "phase": "start", "t": 1793035438.0470848}
+{"fn": "Stg_IsLightPresent", "section": "Device", "phase": "end", "result": "needs arguments", "detail": "error: Bad number of parameters", "ms": 0.01}
+{"fn": "Stg_Light_GetCount", "phase": "start", "t": 1793035438.0773787}
+{"fn": "Stg_Light_GetCount", "section": "Device", "phase": "end", "result": "ran", "detail": "0", "ms": 0.03}
+{"fn": "Stg_Light_GetIrisIntensity", "phase": "start", "t": 1793035438.0863547}
+{"fn": "Stg_Light_GetIrisIntensity", "section": "Device", "phase": "end", "result": "needs arguments", "detail": "error: Bad number of parameters", "ms": 0.01}
+{"fn": "Stg_Light_GetIrisSteps", "phase": "start", "t": 1793035438.0933359}
+{"fn": "Stg_Light_GetIrisSteps", "section": "Device", "phase": "end", "result": "needs arguments", "detail": "error: Bad number of parameters", "ms": 0.01}
+{"fn": "Stg_Light_GetNDFilterControllable", "phase": "start", "t": 1793035438.102312}
+{"fn": "Stg_Light_GetNDFilterControllable", "section": "Device", "phase": "end", "result": "needs arguments", "detail": "error: Bad number of parameters", "ms": 0.02}
+{"fn": "Stg_Light_GetNDFilterPosition", "phase": "start", "t": 1793035438.1102912}
+{"fn": "Stg_Light_GetNDFilterPosition", "section": "Device", "phase": "end", "result": "needs arguments", "detail": "error: Bad number of parameters", "ms": 0.02}
+{"fn": "Stg_Light_GetNDFilterStepPosition", "phase": "start", "t": 1793035438.1187303}
+{"fn": "Stg_Light_GetNDFilterStepPosition", "section": "Device", "phase": "end", "result": "needs arguments", "detail": "error: Bad number of parameters", "ms": 0.01}
+{"fn": "Stg_Light_GetNDFilterSteps", "phase": "start", "t": 1793035438.1257112}
+{"fn": "Stg_Light_GetNDFilterSteps", "section": "Device", "phase": "end", "result": "needs arguments", "detail": "error: Bad number of parameters", "ms": 0.01}
+{"fn": "Stg_Light_GetName", "phase": "start", "t": 1793035438.165604}
+{"fn": "Stg_Light_GetName", "section": "Device", "phase": "end", "result": "needs arguments", "detail": "error: Bad number of parameters", "ms": 0.01}
+{"fn": "Stg_Light_GetRemoteSwitch", "phase": "start", "t": 1793035438.1725855}
+{"fn": "Stg_Light_GetRemoteSwitch", "section": "Device", "phase": "end", "result": "needs arguments", "detail": "error: Bad number of parameters", "ms": 0.01}
+{"fn": "Stg_Light_GetState", "phase": "start", "t": 1793035438.1795669}
+{"fn": "Stg_Light_GetState", "section": "Device", "phase": "end", "result": "needs arguments", "detail": "error: Bad number of parameters", "ms": 0.01}
+{"fn": "Stg_Light_GetStepIrisIntensity", "phase": "start", "t": 1793035438.1855507}
+{"fn": "Stg_Light_GetStepIrisIntensity", "section": "Device", "phase": "end", "result": "needs arguments", "detail": "error: Bad number of parameters", "ms": 0.01}
+{"fn": "Stg_Light_GetStepVoltage", "phase": "start", "t": 1793035438.1925323}
+{"fn": "Stg_Light_GetStepVoltage", "section": "Device", "phase": "end", "result": "needs arguments", "detail": "error: Bad number of parameters", "ms": 0.01}
+{"fn": "Stg_Light_GetVoltage", "phase": "start", "t": 1793035438.1995137}
+{"fn": "Stg_Light_GetVoltage", "section": "Device", "phase": "end", "result": "needs arguments", "detail": "error: Bad number of parameters", "ms": 0.01}
+{"fn": "Stg_Light_GetVoltageSteps", "phase": "start", "t": 1793035438.2064955}
+{"fn": "Stg_Light_GetVoltageSteps", "section": "Device", "phase": "end", "result": "needs arguments", "detail": "error: Bad number of parameters", "ms": 0.01}
+{"fn": "Stg_Light_IsIrisControllable", "phase": "start", "t": 1793035438.2124789}
+{"fn": "Stg_Light_IsIrisControllable", "section": "Device", "phase": "end", "result": "needs arguments", "detail": "error: Bad number of parameters", "ms": 0.01}
+{"fn": "Stg_Light_IsVoltageControllable", "phase": "start", "t": 1793035438.246388}
+{"fn": "Stg_Light_IsVoltageControllable", "section": "Device", "phase": "end", "result": "needs arguments", "detail": "error: Bad number of parameters", "ms": 0.01}
+{"fn": "Stg_GetLightPathPosition", "phase": "start", "t": 1793035438.2533703}
+{"fn": "Stg_GetLightPathPosition", "section": "Device", "phase": "end", "result": "ran", "detail": "0", "ms": 0.02}
+{"fn": "Stg_GetLightPathPositions", "phase": "start", "t": 1793035438.2603507}
+{"fn": "Stg_GetLightPathPositions", "section": "Device", "phase": "end", "result": "ran", "detail": "0", "ms": 0.01}
+{"fn": "Stg_IsLightPathPresent", "phase": "start", "t": 1793035438.267332}
+{"fn": "Stg_IsLightPathPresent", "section": "Device", "phase": "end", "result": "ran", "detail": "0", "ms": 0.01}
+{"fn": "Stg_GetMicroscopeSleep", "phase": "start", "t": 1793035438.2733161}
+{"fn": "Stg_GetMicroscopeSleep", "section": "Device", "phase": "end", "result": "ran", "detail": "0", "ms": 0.02}
+{"fn": "Stg_GetPinConfiguredForTTLOutput", "section": "Device", "phase": "end", "result": "not reachable", "detail": "AttributeError: 'Macro' object has no attribute 'Stg_GetPinConfiguredForTTLOutput'"}
+{"fn": "Stg_GetPinConfiguredForTTLOutputPulse", "section": "Device", "phase": "end", "result": "not reachable", "detail": "AttributeError: 'Macro' object has no attribute 'Stg_GetPinConfiguredForTTLOutputPulse'"}
+{"fn": "Stg_GetPinTTLOutputState", "section": "Device", "phase": "end", "result": "not reachable", "detail": "AttributeError: 'Macro' object has no attribute 'Stg_GetPinTTLOutputState'"}
+{"fn": "Stg_IsMicroscopePresent", "phase": "start", "t": 1793035438.2932625}
+{"fn": "Stg_IsMicroscopePresent", "section": "Device", "phase": "end", "result": "ran", "detail": "0", "ms": 0.01}
+{"fn": "Stg_GetMultiLaserCount", "phase": "start", "t": 1793035438.3142064}
+{"fn": "Stg_GetMultiLaserCount", "section": "Device", "phase": "end", "result": "ran", "detail": "0", "ms": 0.01}
+{"fn": "Stg_GetMultiLaserLineNDFilter", "phase": "start", "t": 1793035438.3211887}
+{"fn": "Stg_GetMultiLaserLineNDFilter", "section": "Device", "phase": "end", "result": "needs arguments", "detail": "error: Bad number of parameters", "ms": 0.01}
+{"fn": "Stg_GetMultiLaserLineName", "phase": "start", "t": 1793035438.327172}
+{"fn": "Stg_GetMultiLaserLineName", "section": "Device", "phase": "end", "result": "needs arguments", "detail": "error: Bad number of parameters", "ms": 0.01}
+{"fn": "Stg_GetMultiLaserLineUsed", "phase": "start", "t": 1793035438.3341534}
+{"fn": "Stg_GetMultiLaserLineUsed", "section": "Device", "phase": "end", "result": "needs arguments", "detail": "error: Bad number of parameters", "ms": 0.01}
+{"fn": "Stg_GetMultiLaserModality", "section": "Device", "phase": "end", "result": "not reachable", "detail": "AttributeError: 'Macro' object has no attribute 'Stg_GetMultiLaserModality'"}
+{"fn": "Stg_GetMultiLaserName", "phase": "start", "t": 1793035438.3451238}
+{"fn": "Stg_GetMultiLaserName", "section": "Device", "phase": "end", "result": "needs arguments", "detail": "error: Bad number of parameters", "ms": 0.01}
+{"fn": "Stg_GetMultiLaserNumLines", "phase": "start", "t": 1793035438.3511078}
+{"fn": "Stg_GetMultiLaserNumLines", "section": "Device", "phase": "end", "result": "needs arguments", "detail": "error: Bad number of parameters", "ms": 0.01}
+{"fn": "Stg_GetMultiLaserOpMode", "phase": "start", "t": 1793035438.35809}
+{"fn": "Stg_GetMultiLaserOpMode", "section": "Device", "phase": "end", "result": "needs arguments", "detail": "error: Bad number of parameters", "ms": 0.01}
+{"fn": "Stg_GetMultiLaserPower", "phase": "start", "t": 1793035438.364074}
+{"fn": "Stg_GetMultiLaserPower", "section": "Device", "phase": "end", "result": "needs arguments", "detail": "error: Bad number of parameters", "ms": 0.01}
+{"fn": "Stg_GetMultiLaserPowerSteps", "phase": "start", "t": 1793035438.3830225}
+{"fn": "Stg_GetMultiLaserPowerSteps", "section": "Device", "phase": "end", "result": "needs arguments", "detail": "error: Bad number of parameters", "ms": 0.01}
+{"fn": "Stg_GetMultiLaserStepPower", "phase": "start", "t": 1793035438.390004}
+{"fn": "Stg_GetMultiLaserStepPower", "section": "Device", "phase": "end", "result": "needs arguments", "detail": "error: Bad number of parameters", "ms": 0.01}
+{"fn": "Stg_GetMultiLaserWavelength", "phase": "start", "t": 1793035438.3959882}
+{"fn": "Stg_GetMultiLaserWavelength", "section": "Device", "phase": "end", "result": "needs arguments", "detail": "error: Bad number of parameters", "ms": 0.01}
+{"fn": "Stg_GetNDFilterPosition", "phase": "start", "t": 1793035438.4029694}
+{"fn": "Stg_GetNDFilterPosition", "section": "Device", "phase": "end", "result": "ran", "detail": "0.0", "ms": 0.02}
+{"fn": "Stg_GetNDFilterStepPosition", "phase": "start", "t": 1793035438.4089541}
+{"fn": "Stg_GetNDFilterStepPosition", "section": "Device", "phase": "end", "result": "needs arguments", "detail": "error: Bad number of parameters", "ms": 0.01}
+{"fn": "Stg_GetNDFilterSteps", "phase": "start", "t": 1793035438.4159348}
+{"fn": "Stg_GetNDFilterSteps", "section": "Device", "phase": "end", "result": "ran", "detail": "0", "ms": 0.02}
+{"fn": "Stg_IsNDFilterPresent", "phase": "start", "t": 1793035438.4219189}
+{"fn": "Stg_IsNDFilterPresent", "section": "Device", "phase": "end", "result": "ran", "detail": "0", "ms": 0.01}
+{"fn": "Stg_GetObjectiveNameFromCode", "phase": "start", "t": 1793035438.4288998}
+{"fn": "Stg_GetObjectiveNameFromCode", "section": "Device", "phase": "end", "result": "needs arguments", "detail": "error: Bad number of parameters", "ms": 0.01}
+{"fn": "Stg_GetNosepieceObjectiveCode", "phase": "start", "t": 1793035438.4478493}
+{"fn": "Stg_GetNosepieceObjectiveCode", "section": "Device", "phase": "end", "result": "needs arguments", "detail": "error: Bad number of parameters", "ms": 0.01}
+{"fn": "Stg_GetNosepieceObjectiveName", "phase": "start", "t": 1793035438.454831}
+{"fn": "Stg_GetNosepieceObjectiveName", "section": "Device", "phase": "end", "result": "needs arguments", "detail": "error: Bad number of parameters", "ms": 0.01}
+{"fn": "Stg_GetNosepieceObjectiveRefractiveIndex", "phase": "start", "t": 1793035438.4608154}
+{"fn": "Stg_GetNosepieceObjectiveRefractiveIndex", "section": "Device", "phase": "end", "result": "needs arguments", "detail": "error: Bad number of parameters", "ms": 0.01}
+{"fn": "Stg_GetNosepiecePosition", "phase": "start", "t": 1793035438.4667985}
+{"fn": "Stg_GetNosepiecePosition", "section": "Device", "phase": "end", "result": "ran", "detail": "0", "ms": 0.02}
+{"fn": "Stg_GetNosepiecePositions", "phase": "start", "t": 1793035438.47378}
+{"fn": "Stg_GetNosepiecePositions", "section": "Device", "phase": "end", "result": "ran", "detail": "0", "ms": 0.01}
+{"fn": "Stg_IsNosepiecePresent", "phase": "start", "t": 1793035438.4797645}
+{"fn": "Stg_IsNosepiecePresent", "section": "Device", "phase": "end", "result": "ran", "detail": "0", "ms": 0.01}
+{"fn": "StgGetPFSPlanePoints", "phase": "start", "t": 1793035438.4857485}
+{"fn": "StgGetPFSPlanePoints", "section": "Device", "phase": "end", "result": "ran", "detail": "0", "ms": 0.01}
+{"fn": "StgIsPFSPlaneValid", "phase": "start", "t": 1793035438.4927294}
+{"fn": "StgIsPFSPlaneValid", "section": "Device", "phase": "end", "result": "ran", "detail": "0", "ms": 0.04}
+{"fn": "Stg_GetPFSLEDSwitch", "section": "Device", "phase": "end", "result": "not reachable", "detail": "AttributeError: 'Macro' object has no attribute 'Stg_GetPFSLEDSwitch'"}
+{"fn": "Stg_GetPFSLensOffsetPosition", "phase": "start", "t": 1793035438.5172005}
+{"fn": "Stg_GetPFSLensOffsetPosition", "section": "Device", "phase": "end", "result": "ran", "detail": "0", "ms": 0.02}
+{"fn": "Stg_GetPFSStatus", "phase": "start", "t": 1793035438.5241804}
+{"fn": "Stg_GetPFSStatus", "section": "Device", "phase": "end", "result": "ran", "detail": "0", "ms": 0.03}
+{"fn": "Stg_IsPFSPresent", "phase": "start", "t": 1793035438.5371468}
+{"fn": "Stg_IsPFSPresent", "section": "Device", "phase": "end", "result": "ran", "detail": "0", "ms": 0.02}
+{"fn": "Stg_GetPatternDeviceName", "section": "Device", "phase": "end", "result": "not reachable", "detail": "AttributeError: 'Macro' object has no attribute 'Stg_GetPatternDeviceName'"}
+{"fn": "Stg_GetPatternId", "section": "Device", "phase": "end", "result": "not reachable", "detail": "AttributeError: 'Macro' object has no attribute 'Stg_GetPatternId'"}
+{"fn": "Stg_GetPatternIdByName", "section": "Device", "phase": "end", "result": "not reachable", "detail": "AttributeError: 'Macro' object has no attribute 'Stg_GetPatternIdByName'"}
+{"fn": "Stg_GetPatternName", "section": "Device", "phase": "end", "result": "not reachable", "detail": "AttributeError: 'Macro' object has no attribute 'Stg_GetPatternName'"}
+{"fn": "Stg_GetPatternState", "section": "Device", "phase": "end", "result": "not reachable", "detail": "AttributeError: 'Macro' object has no attribute 'Stg_GetPatternState'"}
+{"fn": "Stg_Perfusion_GetState", "phase": "start", "t": 1793035438.609952}
+{"fn": "Stg_Perfusion_GetState", "section": "Device", "phase": "end", "result": "ran", "detail": "0", "ms": 0.04}
+{"fn": "Stg_GetShutterAperture", "phase": "start", "t": 1793035438.6189282}
+{"fn": "Stg_GetShutterAperture", "section": "Device", "phase": "end", "result": "needs arguments", "detail": "error: Bad number of parameters", "ms": 0.02}
+{"fn": "Stg_GetShutterApertureSteps", "phase": "start", "t": 1793035438.6269069}
+{"fn": "Stg_GetShutterApertureSteps", "section": "Device", "phase": "end", "result": "needs arguments", "detail": "error: Bad number of parameters", "ms": 0.02}
+{"fn": "Stg_GetShutterCount", "phase": "start", "t": 1793035438.6338875}
+{"fn": "Stg_GetShutterCount", "section": "Device", "phase": "end", "result": "ran", "detail": "0", "ms": 0.02}
+{"fn": "Stg_GetShutterName", "phase": "start", "t": 1793035438.7326238}
+{"fn": "Stg_GetShutterName", "section": "Device", "phase": "end", "result": "needs arguments", "detail": "error: Bad number of parameters", "ms": 0.02}
+{"fn": "Stg_GetShutterSpeed", "section": "Device", "phase": "end", "result": "not reachable", "detail": "AttributeError: 'Macro' object has no attribute 'Stg_GetShutterSpeed'"}

@@ -106,11 +106,17 @@ def write(record):
 
 
 def show(**fields):
+    """Tell the watch window what runs now. Never stops the run: the window may hold the file."""
     fields["t"] = time.time()
     tmp = CURRENT + ".tmp"
-    with open(tmp, "w", encoding="utf-8") as handle:
-        json.dump(fields, handle, default=repr)
-    os.replace(tmp, CURRENT)
+    for _ in range(5):
+        try:
+            with open(tmp, "w", encoding="utf-8") as handle:
+                json.dump(fields, handle, default=repr)
+            os.replace(tmp, CURRENT)
+            return
+        except OSError:  # the watch window is reading it this very moment (Access is denied)
+            time.sleep(0.005)
 
 
 def short(value):
