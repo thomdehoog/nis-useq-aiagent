@@ -1,0 +1,839 @@
+function,group,kind,section,reachable_without_hardware,step2,step2_answer
+CameraCmd_AutoExposure,Camera,action,Acquire,no,not reachable,AttributeError: 'Macro' object has no attribute 'CameraCmd_AutoExposure'
+CameraCmd_AutoWhite,Camera,action,Acquire,no,not reachable,AttributeError: 'Macro' object has no attribute 'CameraCmd_AutoWhite'
+CameraCmd_AverageReset,Camera,set,Acquire,no,not reachable,AttributeError: 'Macro' object has no attribute 'CameraCmd_AverageReset'
+CameraCmd_OnePushWB,Camera,action,Acquire,no,not reachable,AttributeError: 'Macro' object has no attribute 'CameraCmd_OnePushWB'
+CameraCmd_SetDefaults,Camera,set,Acquire,no,not reachable,AttributeError: 'Macro' object has no attribute 'CameraCmd_SetDefaults'
+CameraCmd_TurnFanOff,Camera,set,Acquire,no,not reachable,AttributeError: 'Macro' object has no attribute 'CameraCmd_TurnFanOff'
+CameraCmd_TurnFanOn,Camera,set,Acquire,no,not reachable,AttributeError: 'Macro' object has no attribute 'CameraCmd_TurnFanOn'
+CameraGet_Average,Camera,read,Acquire,no,not reachable,AttributeError: 'Macro' object has no attribute 'CameraGet_Average'
+CameraGet_AverageCH,Camera,read,Acquire,no,not reachable,AttributeError: 'Macro' object has no attribute 'CameraGet_AverageCH'
+CameraGet_AverageToQuality,Camera,read,Acquire,no,not reachable,AttributeError: 'Macro' object has no attribute 'CameraGet_AverageToQuality'
+CameraGet_AverageToQualityCH,Camera,read,Acquire,no,not reachable,AttributeError: 'Macro' object has no attribute 'CameraGet_AverageToQualityCH'
+CameraGet_Exposure,Camera,read,Acquire,no,not reachable,AttributeError: 'Macro' object has no attribute 'CameraGet_Exposure'
+CameraGet_FileName,Camera,read,Acquire,no,not reachable,AttributeError: 'Macro' object has no attribute 'CameraGet_FileName'
+CameraGet_FlexibleHeight,Camera,read,Acquire,no,not reachable,AttributeError: 'Macro' object has no attribute 'CameraGet_FlexibleHeight'
+CameraGet_FrameDuration,Camera,read,Acquire,no,not reachable,AttributeError: 'Macro' object has no attribute 'CameraGet_FrameDuration'
+CameraGet_HWTrgInEnabled,Camera,read,Acquire,no,not reachable,AttributeError: 'Macro' object has no attribute 'CameraGet_HWTrgInEnabled'
+CameraGet_HWTrgOutEnabled,Camera,read,Acquire,no,not reachable,AttributeError: 'Macro' object has no attribute 'CameraGet_HWTrgOutEnabled'
+CameraGet_Integrate,Camera,read,Acquire,no,not reachable,AttributeError: 'Macro' object has no attribute 'CameraGet_Integrate'
+CameraGet_IntegrateCH,Camera,read,Acquire,no,not reachable,AttributeError: 'Macro' object has no attribute 'CameraGet_IntegrateCH'
+CameraGet_IntegrateToQualityCH,Camera,read,Acquire,no,not reachable,AttributeError: 'Macro' object has no attribute 'CameraGet_IntegrateToQualityCH'
+CameraGet_Negate,Camera,read,Acquire,no,not reachable,AttributeError: 'Macro' object has no attribute 'CameraGet_Negate'
+CameraGet_Rotate,Camera,read,Acquire,no,not reachable,AttributeError: 'Macro' object has no attribute 'CameraGet_Rotate'
+CameraGet_StimulationTime,Camera,read,Acquire,no,not reachable,AttributeError: 'Macro' object has no attribute 'CameraGet_StimulationTime'
+CameraGet_ToRGB,Camera,read,Acquire,no,not reachable,AttributeError: 'Macro' object has no attribute 'CameraGet_ToRGB'
+CameraGet_UseDriverMetadata,Camera,read,Acquire,no,not reachable,AttributeError: 'Macro' object has no attribute 'CameraGet_UseDriverMetadata'
+CameraSet_Average,Camera,set,Acquire,no,not reachable,AttributeError: 'Macro' object has no attribute 'CameraSet_Average'
+CameraSet_AverageCH,Camera,set,Acquire,no,not reachable,AttributeError: 'Macro' object has no attribute 'CameraSet_AverageCH'
+CameraSet_AverageToQuality,Camera,set,Acquire,no,not reachable,AttributeError: 'Macro' object has no attribute 'CameraSet_AverageToQuality'
+CameraSet_AverageToQualityCH,Camera,set,Acquire,no,not reachable,AttributeError: 'Macro' object has no attribute 'CameraSet_AverageToQualityCH'
+CameraSet_Exposure,Camera,set,Acquire,no,not reachable,AttributeError: 'Macro' object has no attribute 'CameraSet_Exposure'
+CameraSet_FileName,Camera,set,Acquire,no,not reachable,AttributeError: 'Macro' object has no attribute 'CameraSet_FileName'
+CameraSet_FlexibleHeight,Camera,set,Acquire,no,not reachable,AttributeError: 'Macro' object has no attribute 'CameraSet_FlexibleHeight'
+CameraSet_FlipH,Camera,set,Acquire,no,not reachable,AttributeError: 'Macro' object has no attribute 'CameraSet_FlipH'
+CameraSet_FlipV,Camera,set,Acquire,no,not reachable,AttributeError: 'Macro' object has no attribute 'CameraSet_FlipV'
+CameraSet_FrameDuration,Camera,set,Acquire,no,not reachable,AttributeError: 'Macro' object has no attribute 'CameraSet_FrameDuration'
+CameraSet_HWTrgInEnabled,Camera,set,Acquire,no,not reachable,AttributeError: 'Macro' object has no attribute 'CameraSet_HWTrgInEnabled'
+CameraSet_HWTrgOutEnabled,Camera,set,Acquire,no,not reachable,AttributeError: 'Macro' object has no attribute 'CameraSet_HWTrgOutEnabled'
+CameraSet_Integrate,Camera,set,Acquire,no,not reachable,AttributeError: 'Macro' object has no attribute 'CameraSet_Integrate'
+CameraSet_IntegrateCH,Camera,set,Acquire,no,not reachable,AttributeError: 'Macro' object has no attribute 'CameraSet_IntegrateCH'
+CameraSet_IntegrateToQualityCH,Camera,set,Acquire,no,not reachable,AttributeError: 'Macro' object has no attribute 'CameraSet_IntegrateToQualityCH'
+CameraSet_Negate,Camera,set,Acquire,no,not reachable,AttributeError: 'Macro' object has no attribute 'CameraSet_Negate'
+CameraSet_Rotate,Camera,set,Acquire,no,not reachable,AttributeError: 'Macro' object has no attribute 'CameraSet_Rotate'
+CameraSet_StimulationTime,Camera,set,Acquire,no,not reachable,AttributeError: 'Macro' object has no attribute 'CameraSet_StimulationTime'
+CameraSet_ToRGB,Camera,set,Acquire,no,not reachable,AttributeError: 'Macro' object has no attribute 'CameraSet_ToRGB'
+CameraSet_UseDriverMetadata,Camera,set,Acquire,no,not reachable,AttributeError: 'Macro' object has no attribute 'CameraSet_UseDriverMetadata'
+CameraFormatGet,Camera,read,Acquire,no,not reachable,AttributeError: 'Macro' object has no attribute 'CameraFormatGet'
+CameraFormatSet,Camera,set,Acquire,no,not reachable,AttributeError: 'Macro' object has no attribute 'CameraFormatSet'
+CameraSettings_Load,Camera,set,Acquire,no,not reachable,AttributeError: 'Macro' object has no attribute 'CameraSettings_Load'
+CameraSettings_Remove,Camera,set,Acquire,no,not reachable,AttributeError: 'Macro' object has no attribute 'CameraSettings_Remove'
+CameraSettings_RemoveAll,Camera,set,Acquire,no,not reachable,AttributeError: 'Macro' object has no attribute 'CameraSettings_RemoveAll'
+CameraSettings_Save,Camera,set,Acquire,no,not reachable,AttributeError: 'Macro' object has no attribute 'CameraSettings_Save'
+CameraUpdateGUI,Camera,action,Acquire,no,not reachable,AttributeError: 'Macro' object has no attribute 'CameraUpdateGUI'
+Camera_AngleGet,Camera,read,Acquire,no,not reachable,AttributeError: 'Macro' object has no attribute 'Camera_AngleGet'
+Camera_AverageGet,Camera,read,Acquire,no,not reachable,AttributeError: 'Macro' object has no attribute 'Camera_AverageGet'
+Camera_AverageSet,Camera,set,Acquire,no,not reachable,AttributeError: 'Macro' object has no attribute 'Camera_AverageSet'
+Camera_ExposureGet,Camera,read,Acquire,no,not reachable,AttributeError: 'Macro' object has no attribute 'Camera_ExposureGet'
+Camera_ExposureSet,Camera,set,Acquire,no,not reachable,AttributeError: 'Macro' object has no attribute 'Camera_ExposureSet'
+Camera_GainRGet,Camera,read,Acquire,no,not reachable,AttributeError: 'Macro' object has no attribute 'Camera_GainRGet'
+Camera_GainRSet,Camera,set,Acquire,no,not reachable,AttributeError: 'Macro' object has no attribute 'Camera_GainRSet'
+Camera_GainBGet,Camera,read,Acquire,no,not reachable,AttributeError: 'Macro' object has no attribute 'Camera_GainBGet'
+Camera_GainBSet,Camera,set,Acquire,no,not reachable,AttributeError: 'Macro' object has no attribute 'Camera_GainBSet'
+Camera_IntegrateGet,Camera,read,Acquire,no,not reachable,AttributeError: 'Macro' object has no attribute 'Camera_IntegrateGet'
+Camera_IntegrateSet,Camera,set,Acquire,no,not reachable,AttributeError: 'Macro' object has no attribute 'Camera_IntegrateSet'
+Camera_RelayLensGet,Light path and optics,read,Acquire,no,not reachable,AttributeError: 'Macro' object has no attribute 'Camera_RelayLensGet'
+Camera_RelayLensSet,Light path and optics,set,Acquire,no,not reachable,AttributeError: 'Macro' object has no attribute 'Camera_RelayLensSet'
+Camera_RotateGet,Camera,read,Acquire,no,not reachable,AttributeError: 'Macro' object has no attribute 'Camera_RotateGet'
+Camera_RotateSet,Camera,set,Acquire,no,not reachable,AttributeError: 'Macro' object has no attribute 'Camera_RotateSet'
+Camera_SensorModeGet,Camera,read,Acquire,no,not reachable,AttributeError: 'Macro' object has no attribute 'Camera_SensorModeGet'
+Camera_SensorModeSet,Camera,set,Acquire,no,not reachable,AttributeError: 'Macro' object has no attribute 'Camera_SensorModeSet'
+Camera_TemperatureGet,Camera,read,Acquire,no,not reachable,AttributeError: 'Macro' object has no attribute 'Camera_TemperatureGet'
+Camera_TriggerModeGet,Camera,read,Acquire,no,not reachable,AttributeError: 'Macro' object has no attribute 'Camera_TriggerModeGet'
+Camera_TriggerModeSet,Camera,set,Acquire,no,not reachable,AttributeError: 'Macro' object has no attribute 'Camera_TriggerModeSet'
+ChangeFollowExposureMode,Camera,set,Acquire,no,not reachable,AttributeError: 'Macro' object has no attribute 'ChangeFollowExposureMode'
+EnableFocusCriterium,Focus,set,Acquire,no,not reachable,AttributeError: 'Macro' object has no attribute 'EnableFocusCriterium'
+GetFollowExposureMode,Camera,read,Acquire,no,not reachable,AttributeError: 'Macro' object has no attribute 'GetFollowExposureMode'
+LockCameraMagnification,Light path and optics,set,Acquire,yes,needs arguments,error: Bad number of parameters
+ResetFocusCriteriumMax,Focus,set,Acquire,no,not reachable,AttributeError: 'Macro' object has no attribute 'ResetFocusCriteriumMax'
+_CameraSetAverageToQuality,Camera,dialog,Acquire,no,not reachable,AttributeError: 'Macro' object has no attribute '_CameraSetAverageToQuality'
+Capture,Acquisition,action,Acquire,yes,needs the camera,not run: the camera is off
+CaptureEx,Acquisition,action,Acquire,yes,needs the camera,not run: the camera is off
+CaptureExWithName,Acquisition,action,Acquire,yes,needs the camera,not run: the camera is off
+CaptureFast,Acquisition,action,Acquire,no,not reachable,AttributeError: 'Macro' object has no attribute 'CaptureFast'
+FineGrab,Acquisition,action,Acquire,no,not reachable,AttributeError: 'Macro' object has no attribute 'FineGrab'
+_CaptureHDR,Acquisition,dialog,Acquire,yes,needs the camera,not run: the camera is off
+_CaptureZStack,Acquisition,dialog,Acquire,yes,needs the camera,not run: the camera is off
+_Grabbing,Acquisition,dialog,Acquire,yes,needs the camera,not run: the camera is off
+Experiment_RunAutoBrightnessAndFocusOnAllChannels,Focus,action,Acquire,no,not reachable,AttributeError: 'Macro' object has no attribute 'Experiment_RunAutoBrightnessAndFocusOnAllChannels'
+MCHCapturingAuto,Acquisition,action,Acquire,yes,not called,
+MCHCapturingCapture,Acquisition,action,Acquire,yes,not called,
+MCHCapturingFinish,Acquisition,action,Acquire,yes,not called,
+MCHCapturingLive,Acquisition,action,Acquire,yes,not called,
+MCHCapturingNew,Acquisition,action,Acquire,yes,not called,
+MCHCapturingOpen,Acquisition,set,Acquire,yes,not called,
+MCHCapturingSetPlane,Acquisition,set,Acquire,yes,not called,
+_MCHCapturingSetup,Acquisition,dialog,Acquire,yes,not called,
+TrigAcq_AddChannel,Camera,action,Acquire,yes,not called,
+TrigAcq_AddLine,Camera,action,Acquire,yes,not called,
+TrigAcq_AddLineEx,Camera,action,Acquire,yes,not called,
+TrigAcq_DeleteAllItems,Camera,action,Acquire,yes,not called,
+TrigAcq_DeleteChannel,Camera,action,Acquire,yes,not called,
+TrigAcq_DeleteLine,Camera,action,Acquire,yes,not called,
+TrigAcq_GetChannel,Camera,read,Acquire,yes,not called,
+TrigAcq_GetLine,Camera,read,Acquire,yes,not called,
+TrigAcq_GetParameters,Camera,read,Acquire,yes,not called,
+TrigAcq_GetUsedCustomDevices,Camera,read,Acquire,yes,not called,
+TrigAcq_ModifyChannel,Camera,action,Acquire,yes,not called,
+TrigAcq_ModifyLine,Camera,action,Acquire,yes,not called,
+TrigAcq_SelectDevice,Camera,set,Acquire,yes,not called,
+TrigAcq_SelectDeviceEx,Camera,set,Acquire,yes,not called,
+TrigAcq_SetParameters,Camera,set,Acquire,yes,not called,
+TrigAcq_UseCustomDevices,Camera,action,Acquire,yes,not called,
+_TriggeredAcquisition,Triggers and stimulation,dialog,Acquire,yes,not called,
+AutoCapture2,Acquisition,action,Acquire,no,not called,
+CapturePreview2,Acquisition,action,Acquire,no,not called,
+FineGrab2,Acquisition,action,Acquire,no,not called,
+Freeze2,Acquisition,action,Acquire,no,not called,
+LiveSync2,Acquisition,action,Acquire,no,not called,
+_DefineCameraLightPath,Light path and optics,dialog,Acquire,no,not called,
+RAMCapturing,Acquisition,action,Acquire,no,not called,
+RAMCapturingEnable,Acquisition,set,Acquire,no,not called,
+RAMCapturingSetFrames,Acquisition,set,Acquire,no,not called,
+RAMCapturingSetTime,Acquisition,set,Acquire,no,not called,
+_RAMCapturingSettings,Acquisition,dialog,Acquire,no,not called,
+ROISet,Camera,set,Acquire,no,not called,
+ROISetLargeFOV,Camera,set,Acquire,no,not called,
+ROISetOptimalFOV,Camera,set,Acquire,no,not called,
+_LoadCameraROIFromFile,Camera,dialog,Acquire,no,not called,
+_SaveCameraROIToFile,Camera,dialog,Acquire,no,not called,
+GetActivePFIForTriggering,Triggers and stimulation,read,Acquire,yes,needs arguments,error: Bad number of parameters
+SetActivePFIForTriggering,Triggers and stimulation,set,Acquire,yes,not called,
+Acquire,Acquisition,action,Acquire,no,not called,
+AcquireEx,Acquisition,action,Acquire,no,not called,
+_Acquire,Acquisition,dialog,Acquire,no,not called,
+AutoCapture,Acquisition,action,Acquire,yes,not called,
+AutoCaptureAndStore,Acquisition,set,Acquire,yes,not called,
+CapturePreview,Acquisition,action,Acquire,no,not called,
+CapturePreviewNoMsgLoop,Acquisition,action,Acquire,no,not called,
+CapturePreviewSync,Acquisition,action,Acquire,no,not called,
+Freeze,Acquisition,action,Acquire,no,not called,
+Freeze_LiveOrND,Acquisition,action,Acquire,yes,not called,
+Live,Acquisition,action,Acquire,no,not called,
+LiveSync,Acquisition,action,Acquire,no,not called,
+AddPattern,Triggers and stimulation,action,Acquire,yes,not called,
+AddPatternEx,Triggers and stimulation,action,Acquire,yes,not called,
+IsPatternDefined,Triggers and stimulation,read,Acquire,yes,needs arguments,error: Bad number of parameters
+MatchCameraROI,Camera,action,Acquire,yes,not called,
+RemovePattern,Triggers and stimulation,action,Acquire,yes,not called,
+SelectPattern,Triggers and stimulation,set,Acquire,yes,not called,
+_SelectActiveStimOptConf,Optical configurations,dialog,Acquire,no,not called,
+AddOptConf,Optical configurations,action,Acquire,yes,not called,
+BackupOptConf,Optical configurations,action,Acquire,yes,not called,
+DeleteOptConf,Optical configurations,action,Acquire,yes,not called,
+DeleteOptConfs,Optical configurations,action,Acquire,yes,not called,
+EnableSelectOCFromFilter,Filters and turrets,set,Acquire,yes,not called,
+GetOptConfCount,Optical configurations,read,Acquire,yes,ran,0
+GetOptConfName,Optical configurations,read,Acquire,yes,needs arguments,error: Bad number of parameters
+GetSelectedOptConf,Optical configurations,read,Acquire,yes,needs arguments,error: Bad number of parameters
+RestoreOptConf,Optical configurations,set,Acquire,yes,not called,
+RestoreOptConfEx,Optical configurations,set,Acquire,yes,not called,
+SelectOptConf,Optical configurations,set,Acquire,yes,not called,
+SelectOptConf_HWOnly,Optical configurations,set,Acquire,yes,not called,
+SetSaveExposure,Camera,set,Acquire,yes,not called,
+SetSaveExposureSetting,Camera,set,Acquire,yes,not called,
+UnselectOptConf,Optical configurations,action,Acquire,yes,not called,
+_AddOptConf,Optical configurations,dialog,Acquire,yes,not called,
+_AddOptConfForFluo,Optical configurations,dialog,Acquire,yes,not called,
+_BackupOptConf,Optical configurations,dialog,Acquire,yes,not called,
+_ExploreOptConf,Optical configurations,dialog,Acquire,yes,not called,
+_OptConfSelStimulDevice,Optical configurations,dialog,Acquire,no,not called,
+_ProbesAndFilters,Filters and turrets,dialog,Acquire,yes,not called,
+_RestoreOptConf,Optical configurations,dialog,Acquire,yes,not called,
+_ShutterSelStimulDevice,Shutters,dialog,Acquire,no,not called,
+_JoystickManager,Stage XY and Z,dialog,Acquire,yes,not called,
+Mosaic_SetPattern,Triggers and stimulation,set,Acquire,no,not called,
+DeleteLightPathLastUsed,Light path and optics,action,Acquire,yes,not called,
+GetLightPathCount,Light path and optics,read,Acquire,yes,ran,5
+GetLightPathIndexName,Light path and optics,read,Acquire,yes,needs arguments,error: Bad number of parameters
+GetCurrentLightPathName,Light path and optics,read,Acquire,yes,needs arguments,error: Bad number of parameters
+SelectLightPath,Light path and optics,set,Acquire,yes,not called,
+GetCalibrationViewUnit,Calibration,read,Calibration,yes,needs arguments,error: Bad number of parameters
+Get_CalibrationAngleMatrix,Calibration,read,Calibration,yes,needs arguments,error: Bad number of parameters
+Get_CurrentCalibration,Calibration,read,Calibration,yes,needs arguments,error: Bad number of parameters
+Get_ImageCalibration,Calibration,read,Calibration,yes,needs arguments,error: Bad number of parameters
+SaveImageCalibration,Calibration,action,Calibration,yes,not called,
+SetCalibrationViewPrecision,Calibration,set,Calibration,yes,not called,
+SetCalibrationViewUnit,Calibration,set,Calibration,yes,not called,
+_Stg_CalibrateAnalogInput,Triggers and stimulation,dialog,Device,yes,not called,
+Stg_CalibratedAnalogOutputWrite,Calibration,action,Device,yes,not called,
+_Stg_CalibrateAnalogOutput,Triggers and stimulation,dialog,Device,yes,not called,
+Stg_AnalogInputRead,Triggers and stimulation,action,Device,yes,not called,
+Stg_AnalogOutputRead,Triggers and stimulation,action,Device,yes,not called,
+Stg_AnalogOutputWrite,Triggers and stimulation,action,Device,yes,not called,
+Stg_GetAnalyzerState,Light path and optics,read,Device,yes,ran,0
+Stg_IsAnalyzerPresent,Light path and optics,read,Device,yes,ran,0
+Stg_SetAnalyzerState,Light path and optics,set,Device,yes,not called,
+Stg_GetAperturePosition,Light path and optics,read,Device,yes,needs arguments,error: Bad number of parameters
+Stg_GetApertureStepPosition,Light path and optics,read,Device,yes,needs arguments,error: Bad number of parameters
+Stg_GetApertureSteps,Light path and optics,read,Device,yes,needs arguments,error: Bad number of parameters
+Stg_IsAperturePresent,Light path and optics,read,Device,yes,needs arguments,error: Bad number of parameters
+Stg_SetAperturePosition,Light path and optics,set,Device,yes,not called,
+Stg_GetLastBarCode,Stage XY and Z,read,Device,yes,needs arguments,error: Bad number of parameters
+Stg_GetCSUShutterState,Shutters,read,Device,yes,ran,0
+Stg_GetDiskSpeed,Confocal and spinning disk,read,Device,yes,ran,7298712
+Stg_GetRelayLensPosition,Light path and optics,read,Device,yes,needs arguments,error: Bad number of parameters
+Stg_SetCSUShutterState,Shutters,set,Device,yes,not called,
+Stg_SetDiskSpeed,Confocal and spinning disk,set,Device,yes,not called,
+Stg_SetRelayLensPosition,Light path and optics,set,Device,yes,not called,
+Stg_SyncDiskSpeed,Confocal and spinning disk,action,Device,yes,not called,
+Stg_GetCondenserPosition,Light path and optics,read,Device,yes,ran,0
+Stg_GetCondenserPositions,Light path and optics,read,Device,yes,ran,0
+Stg_IsCondenserPresent,Light path and optics,read,Device,yes,ran,0
+Stg_SetCondenserPosition,Light path and optics,set,Device,yes,not called,
+A1ApplyStimulationSettings,Confocal and spinning disk,set,Device,no,not called,
+A1AutoGain,Confocal and spinning disk,action,Device,no,not called,
+A1AutoGainSimple,Confocal and spinning disk,action,Device,no,not called,
+A1AutoOffset,Confocal and spinning disk,action,Device,no,not called,
+A1Capture1DZ,Confocal and spinning disk,action,Device,no,not called,
+A1Capture1DZ_IntensityCorr,Confocal and spinning disk,action,Device,no,not called,
+A1EnableIRLaserCOMPortConnection,Confocal and spinning disk,set,Device,no,not called,
+A1IRLaserAutoAlign,Confocal and spinning disk,action,Device,no,not called,
+A1Live1DZ,Confocal and spinning disk,action,Device,no,not called,
+A1Live1DZ_IntensityCorr,Confocal and spinning disk,action,Device,no,not called,
+A1SetOutputPort,Confocal and spinning disk,set,Device,no,not called,
+A1ShowSetupGUI,Confocal and spinning disk,dialog,Device,no,not called,
+A1TestSWTrigger,Confocal and spinning disk,action,Device,no,not called,
+A1VAASGetParams,Confocal and spinning disk,read,Device,no,not called,
+A1VAASSetParams,Confocal and spinning disk,set,Device,no,not called,
+C2SwitchLever,Confocal and spinning disk,set,Device,no,not called,
+LineChannelSeriesSetup,Confocal and spinning disk,dialog,Device,no,not called,
+_A1AutoGain,Confocal and spinning disk,dialog,Device,no,not called,
+_A1AutoGain_Setup,Confocal and spinning disk,dialog,Device,no,not called,
+AxNSPARC_CheckNSPARCAlignment,Confocal and spinning disk,action,Device,no,not called,
+AxNSPARC_RunNSPARCAlignment,Confocal and spinning disk,action,Device,no,not called,
+ConfocalAX_MeasureCurrentIlluminationPower,Confocal and spinning disk,action,Device,no,not called,
+ConfocalAX_MeasureIlluminationPower,Confocal and spinning disk,action,Device,no,not called,
+Stg_CorrectionCollar_GetDescription,Objectives and nosepiece,read,Device,yes,needs arguments,error: Bad number of parameters
+Stg_CorrectionCollar_GetPosition,Objectives and nosepiece,read,Device,yes,needs arguments,error: Bad number of parameters
+Stg_CorrectionCollar_SetPosition,Objectives and nosepiece,set,Device,yes,not called,
+Stg_SetDisk_On_Off,Confocal and spinning disk,set,Device,yes,not called,
+VCS_SetFocusLens,Focus,set,Device,no,not called,
+VCS_GetFocusLens,Focus,read,Device,no,not called,
+Stg_DMD_AppendRoiAsPattern,Triggers and stimulation,action,Device,yes,not called,
+Stg_GetDMDActivePatternId,Triggers and stimulation,read,Device,yes,needs arguments,error: Bad number of parameters
+Stg_GetDMDAssociatedLightId,Light sources,read,Device,yes,needs arguments,error: Bad number of parameters
+Stg_GetDMDAssociatedShutterCount,Shutters,read,Device,yes,needs arguments,error: Bad number of parameters
+Stg_GetDMDAssociatedShutterId,Shutters,read,Device,yes,needs arguments,error: Bad number of parameters
+Stg_GetDMDAssociatedShuttersOpenState,Shutters,read,Device,yes,needs arguments,error: Bad number of parameters
+Stg_GetDMDAssociatedSwitcherId,Triggers and stimulation,read,Device,no,not reachable,AttributeError: 'Macro' object has no attribute 'Stg_GetDMDAssociatedSwitcherId'
+Stg_GetDMDAssociatedSwitcherPosition,Triggers and stimulation,read,Device,no,not reachable,AttributeError: 'Macro' object has no attribute 'Stg_GetDMDAssociatedSwitcherPosition'
+Stg_GetDMDCalibrated,Triggers and stimulation,read,Device,yes,needs arguments,error: Bad number of parameters
+Stg_GetDMDDeviceCount,Triggers and stimulation,read,Device,yes,ran,0
+Stg_GetDMDDeviceName,Triggers and stimulation,read,Device,yes,needs arguments,error: Bad number of parameters
+Stg_GetDMDPatternCount,Triggers and stimulation,read,Device,yes,needs arguments,error: Bad number of parameters
+Stg_GetDMDPatternId,Triggers and stimulation,read,Device,yes,needs arguments,error: Bad number of parameters
+Stg_GetDMDPatternIdByName,Triggers and stimulation,read,Device,yes,needs arguments,error: Bad number of parameters
+Stg_GetDMDPatternName,Triggers and stimulation,read,Device,yes,needs arguments,error: Bad number of parameters
+Stg_SetDMDActivePatternId,Triggers and stimulation,set,Device,yes,not called,
+Stg_SetDMDAssociatedShuttersOpenState,Shutters,set,Device,yes,not called,
+Stg_Filter_GetCount,Filters and turrets,read,Device,yes,ran,0
+Stg_Filter_GetName,Filters and turrets,read,Device,yes,needs arguments,error: Bad number of parameters
+Stg_Filter_GetPosition,Filters and turrets,read,Device,yes,needs arguments,error: Bad number of parameters
+Stg_Filter_GetPositionCount,Filters and turrets,read,Device,yes,needs arguments,error: Bad number of parameters
+Stg_Filter_GetPositionName,Filters and turrets,read,Device,yes,needs arguments,error: Bad number of parameters
+Stg_Filter_GetSpeed,Filters and turrets,read,Device,no,not reachable,AttributeError: 'Macro' object has no attribute 'Stg_Filter_GetSpeed'
+Stg_Filter_GetSpeedSteps,Filters and turrets,read,Device,no,not reachable,AttributeError: 'Macro' object has no attribute 'Stg_Filter_GetSpeedSteps'
+Stg_Filter_GetStepSpeed,Filters and turrets,read,Device,no,not reachable,AttributeError: 'Macro' object has no attribute 'Stg_Filter_GetStepSpeed'
+Stg_Filter_SetPosition,Filters and turrets,set,Device,yes,not called,
+Stg_Filter_SetPositionName,Filters and turrets,set,Device,yes,not called,
+Stg_Filter_SetSpeed,Filters and turrets,set,Device,no,not called,
+Stg_GetFilterName,Filters and turrets,read,Device,yes,needs arguments,error: Bad number of parameters
+Stg_GetFilterPosition,Filters and turrets,read,Device,yes,needs arguments,error: Bad number of parameters
+Stg_GetFilterPositions,Filters and turrets,read,Device,yes,needs arguments,error: Bad number of parameters
+Stg_GetFilterSpeed,Filters and turrets,read,Device,no,not reachable,AttributeError: 'Macro' object has no attribute 'Stg_GetFilterSpeed'
+Stg_GetFilterSpeedSteps,Filters and turrets,read,Device,no,not reachable,AttributeError: 'Macro' object has no attribute 'Stg_GetFilterSpeedSteps'
+Stg_GetFilterStepSpeed,Filters and turrets,read,Device,no,not reachable,AttributeError: 'Macro' object has no attribute 'Stg_GetFilterStepSpeed'
+Stg_IsFilterPresent,Filters and turrets,read,Device,yes,needs arguments,error: Bad number of parameters
+Stg_SetFilterName,Filters and turrets,set,Device,yes,not called,
+Stg_SetFilterPosition,Filters and turrets,set,Device,yes,not called,
+Stg_SetFilterSpeed,Filters and turrets,set,Device,no,not called,
+Stg_HTIRF_GetAngle,Light path and optics,read,Device,no,not reachable,AttributeError: 'Macro' object has no attribute 'Stg_HTIRF_GetAngle'
+Stg_HTIRF_SetAlignmentName,Light path and optics,set,Device,no,not called,
+Stg_HTIRF_SetAngle,Light path and optics,set,Device,no,not called,
+Stg_HTIRF_GetDirection,Light path and optics,read,Device,no,not reachable,AttributeError: 'Macro' object has no attribute 'Stg_HTIRF_GetDirection'
+Stg_HTIRF_SetDirection,Light path and optics,set,Device,no,not called,
+Stg_HTIRF_GetFocus,Focus,read,Device,no,not reachable,AttributeError: 'Macro' object has no attribute 'Stg_HTIRF_GetFocus'
+Stg_HTIRF_SetFocus,Focus,set,Device,no,not called,
+Stg_HTIRF_GetX,Light path and optics,read,Device,no,not reachable,AttributeError: 'Macro' object has no attribute 'Stg_HTIRF_GetX'
+Stg_HTIRF_SetX,Light path and optics,set,Device,no,not called,
+Stg_HTIRF_GetY,Light path and optics,read,Device,no,not reachable,AttributeError: 'Macro' object has no attribute 'Stg_HTIRF_GetY'
+Stg_HTIRF_SetY,Light path and optics,set,Device,no,not called,
+Stg_HTIRF_IsGradationND,Light path and optics,read,Device,no,not reachable,AttributeError: 'Macro' object has no attribute 'Stg_HTIRF_IsGradationND'
+Stg_HTIRF_IsLambdaQP,Light path and optics,read,Device,no,not reachable,AttributeError: 'Macro' object has no attribute 'Stg_HTIRF_IsLambdaQP'
+Stg_HTIRF_SetXYFocus,Focus,set,Device,no,not called,
+Stg_HTIRF_SetXY,Light path and optics,set,Device,no,not called,
+Stg_NSTORM_GetZoom,Light path and optics,read,Device,no,not reachable,AttributeError: 'Macro' object has no attribute 'Stg_NSTORM_GetZoom'
+Stg_NSTORM_SetZoom,Light path and optics,set,Device,no,not called,
+Stg_HeatStageContinueCooling,Incubation and environment,action,Device,yes,not called,
+Stg_HeatStageContinueHeating,Incubation and environment,action,Device,yes,not called,
+Stg_HeatStageGetCurrentTemperature,Incubation and environment,read,Device,yes,not called,
+Stg_HeatStageGetStatus,Incubation and environment,read,Device,yes,not called,
+Stg_HeatStageHoldCurrentTemperature,Incubation and environment,set,Device,yes,not called,
+Stg_HeatStageIsPresent,Incubation and environment,action,Device,yes,not called,
+Stg_HeatStageSetTemperature,Incubation and environment,set,Device,yes,not called,
+Stg_HeatStageSetTemperatureRate,Incubation and environment,set,Device,yes,not called,
+Stg_HeatStageStartHeatingCooling,Incubation and environment,action,Device,yes,not called,
+Stg_HeatStageStopHeatingCooling,Incubation and environment,action,Device,yes,not called,
+Stg_HeatStage_ContinueCooling,Incubation and environment,action,Device,yes,not called,
+Stg_HeatStage_ContinueHeating,Incubation and environment,action,Device,yes,not called,
+Stg_HeatStage_GetCount,Incubation and environment,read,Device,yes,ran,0
+Stg_HeatStage_GetCurrentTemperature,Incubation and environment,read,Device,yes,needs arguments,error: Bad number of parameters
+Stg_HeatStage_GetName,Incubation and environment,read,Device,yes,needs arguments,error: Bad number of parameters
+Stg_HeatStage_GetStatus,Incubation and environment,read,Device,yes,needs arguments,error: Bad number of parameters
+Stg_HeatStage_HoldCurrentTemperature,Incubation and environment,set,Device,yes,not called,
+Stg_HeatStage_SetTemperature,Incubation and environment,set,Device,yes,not called,
+Stg_HeatStage_SetTemperatureRate,Incubation and environment,set,Device,yes,not called,
+Stg_HeatStage_StartHeatingCooling,Incubation and environment,action,Device,yes,not called,
+Stg_HeatStage_StopHeatingCooling,Incubation and environment,action,Device,yes,not called,
+Stg_Incubator_GetCurrentGas,Incubation and environment,read,Device,yes,needs arguments,error: Bad number of parameters
+Stg_Incubator_GetCurrentHumidity,Incubation and environment,read,Device,yes,needs arguments,error: Bad number of parameters
+Stg_Incubator_GetCurrentPressure,Incubation and environment,read,Device,yes,needs arguments,error: Bad number of parameters
+Stg_Incubator_GetPressureRange,Incubation and environment,read,Device,yes,needs arguments,error: Bad number of parameters
+Stg_Incubator_GetTargetGas,Incubation and environment,read,Device,yes,needs arguments,error: Bad number of parameters
+Stg_Incubator_GetTargetHumidity,Incubation and environment,read,Device,yes,needs arguments,error: Bad number of parameters
+Stg_Incubator_GetTargetPressure,Incubation and environment,read,Device,yes,needs arguments,error: Bad number of parameters
+Stg_Incubator_SetAtmosphericPressure,Incubation and environment,set,Device,yes,not called,
+Stg_Incubator_SetTargetGas,Incubation and environment,set,Device,yes,not called,
+Stg_Incubator_SetTargetHumidity,Incubation and environment,set,Device,yes,not called,
+Stg_Incubator_SetTargetPressure,Incubation and environment,set,Device,yes,not called,
+Stg_Incubator_SetVacuumPressure,Incubation and environment,set,Device,yes,not called,
+Stg_LUNB_GetCylindricalLensMounted,Light path and optics,read,Device,no,not reachable,AttributeError: 'Macro' object has no attribute 'Stg_LUNB_GetCylindricalLensMounted'
+Stg_LUNB_GetCylindricalLensPosition,Light path and optics,read,Device,no,not reachable,AttributeError: 'Macro' object has no attribute 'Stg_LUNB_GetCylindricalLensPosition'
+Stg_LUNB_GetRelayLensMounted,Light path and optics,read,Device,no,not reachable,AttributeError: 'Macro' object has no attribute 'Stg_LUNB_GetRelayLensMounted'
+Stg_LUNB_GetRelayLensPosition,Light path and optics,read,Device,no,not reachable,AttributeError: 'Macro' object has no attribute 'Stg_LUNB_GetRelayLensPosition'
+Stg_LUNB_SetCylindricalLensPosition,Light path and optics,set,Device,no,not called,
+Stg_LUNB_SetRelayLensPosition,Light path and optics,set,Device,no,not called,
+Stg_GetLaserOutputModality,Light sources,read,Device,no,not reachable,AttributeError: 'Macro' object has no attribute 'Stg_GetLaserOutputModality'
+Stg_GetLaserOutputNumPorts,Light sources,read,Device,yes,ran,0
+Stg_GetLaserOutputPortUsed,Light sources,read,Device,yes,needs arguments,error: Bad number of parameters
+Stg_GetLaserOutputPortUsedEx,Light sources,read,Device,yes,needs arguments,error: Bad number of parameters
+Stg_SetLaserOutputPortUsed,Light sources,set,Device,yes,not called,
+Stg_SetLaserOutputPortUsedEx,Light sources,set,Device,yes,not called,
+Stg_GetLightIrisIntensity,Light sources,read,Device,yes,needs arguments,error: Bad number of parameters
+Stg_GetLightIrisIntensitySteps,Light sources,read,Device,yes,needs arguments,error: Bad number of parameters
+Stg_GetLightIrisSteps,Light sources,read,Device,yes,needs arguments,error: Bad number of parameters
+Stg_GetLightState,Light sources,read,Device,yes,needs arguments,error: Bad number of parameters
+Stg_GetLightStepVoltage,Light sources,read,Device,yes,needs arguments,error: Bad number of parameters
+Stg_GetLightVoltage,Light sources,read,Device,yes,needs arguments,error: Bad number of parameters
+Stg_GetLightVoltageSteps,Light sources,read,Device,yes,needs arguments,error: Bad number of parameters
+Stg_IsLightPresent,Light sources,read,Device,yes,needs arguments,error: Bad number of parameters
+Stg_Light_GetCount,Light sources,read,Device,yes,ran,0
+Stg_Light_GetIrisIntensity,Light sources,read,Device,yes,needs arguments,error: Bad number of parameters
+Stg_Light_GetIrisSteps,Light sources,read,Device,yes,needs arguments,error: Bad number of parameters
+Stg_Light_GetNDFilterControllable,Light sources,read,Device,yes,needs arguments,error: Bad number of parameters
+Stg_Light_GetNDFilterPosition,Light sources,read,Device,yes,needs arguments,error: Bad number of parameters
+Stg_Light_GetNDFilterStepPosition,Light sources,read,Device,yes,needs arguments,error: Bad number of parameters
+Stg_Light_GetNDFilterSteps,Light sources,read,Device,yes,needs arguments,error: Bad number of parameters
+Stg_Light_GetName,Light sources,read,Device,yes,needs arguments,error: Bad number of parameters
+Stg_Light_GetRemoteSwitch,Light sources,read,Device,yes,needs arguments,error: Bad number of parameters
+Stg_Light_GetState,Light sources,read,Device,yes,needs arguments,error: Bad number of parameters
+Stg_Light_GetStepIrisIntensity,Light sources,read,Device,yes,needs arguments,error: Bad number of parameters
+Stg_Light_GetStepVoltage,Light sources,read,Device,yes,needs arguments,error: Bad number of parameters
+Stg_Light_GetVoltage,Light sources,read,Device,yes,needs arguments,error: Bad number of parameters
+Stg_Light_GetVoltageSteps,Light sources,read,Device,yes,needs arguments,error: Bad number of parameters
+Stg_Light_IsIrisControllable,Light sources,read,Device,yes,needs arguments,error: Bad number of parameters
+Stg_Light_IsVoltageControllable,Light sources,read,Device,yes,needs arguments,error: Bad number of parameters
+Stg_Light_SetIrisIntensity,Light sources,set,Device,yes,not called,
+Stg_Light_SetNDFilterPosition,Light sources,set,Device,yes,not called,
+Stg_Light_SetRemoteSwitch,Light sources,set,Device,yes,not called,
+Stg_Light_SetState,Light sources,set,Device,yes,not called,
+Stg_Light_SetVoltage,Light sources,set,Device,yes,not called,
+Stg_SetLightIrisIntensity,Light sources,set,Device,yes,not called,
+Stg_SetLightState,Light sources,set,Device,yes,not called,
+Stg_SetLightVoltage,Light sources,set,Device,yes,not called,
+Stg_GetLightPathPosition,Light path and optics,read,Device,yes,ran,0
+Stg_GetLightPathPositions,Light path and optics,read,Device,yes,ran,0
+Stg_IsLightPathPresent,Light path and optics,read,Device,yes,ran,0
+Stg_SetLightPathPosition,Light path and optics,set,Device,yes,not called,
+Stg_Bioluminescence_Mode,Light path and optics,action,Device,no,not called,
+Stg_CaptureSlidePreview,Stage XY and Z,action,Device,no,not called,
+Stg_CloseMicroscopeDoor,Microscope,set,Device,no,not called,
+Stg_DisplayLED,Light sources,action,Device,no,not called,
+Stg_EnableMicControlPad,Microscope,set,Device,yes,not called,
+Stg_GetMicroscopeSleep,Microscope,read,Device,yes,ran,0
+Stg_GetPinConfiguredForTTLOutput,Triggers and stimulation,read,Device,no,not reachable,AttributeError: 'Macro' object has no attribute 'Stg_GetPinConfiguredForTTLOutput'
+Stg_GetPinConfiguredForTTLOutputPulse,Triggers and stimulation,read,Device,no,not reachable,AttributeError: 'Macro' object has no attribute 'Stg_GetPinConfiguredForTTLOutputPulse'
+Stg_GetPinTTLOutputState,Triggers and stimulation,read,Device,no,not reachable,AttributeError: 'Macro' object has no attribute 'Stg_GetPinTTLOutputState'
+Stg_IsMicroscopePresent,Microscope,read,Device,yes,ran,0
+Stg_MicroscopeMuteSound,Microscope,action,Device,no,not called,
+Stg_MicroscopeOperationSound,Microscope,action,Device,no,not called,
+Stg_MicroscopeSleep,Microscope,action,Device,yes,not called,
+Stg_OpenMicroscopeDoor,Microscope,set,Device,no,not called,
+Stg_SetBlockMicroscopeAccessories,Microscope,set,Device,no,not called,
+Stg_SetPinTTLOutputPulse,Triggers and stimulation,set,Device,no,not called,
+Stg_SetPinTTLOutputState,Triggers and stimulation,set,Device,no,not called,
+Stg_ShutdownMicroscope,Microscope,action,Device,no,not called,
+Stg_ToggleMicControlPad,Microscope,set,Device,yes,not called,
+Stg_TriggerInternalCamera,Camera,action,Device,no,not called,
+Stg_GetMultiLaserCount,Light sources,read,Device,yes,ran,0
+Stg_GetMultiLaserLineNDFilter,Light sources,read,Device,yes,needs arguments,error: Bad number of parameters
+Stg_GetMultiLaserLineName,Light sources,read,Device,yes,needs arguments,error: Bad number of parameters
+Stg_GetMultiLaserLineUsed,Light sources,read,Device,yes,needs arguments,error: Bad number of parameters
+Stg_GetMultiLaserModality,Light sources,read,Device,no,not reachable,AttributeError: 'Macro' object has no attribute 'Stg_GetMultiLaserModality'
+Stg_GetMultiLaserName,Light sources,read,Device,yes,needs arguments,error: Bad number of parameters
+Stg_GetMultiLaserNumLines,Light sources,read,Device,yes,needs arguments,error: Bad number of parameters
+Stg_GetMultiLaserOpMode,Light sources,read,Device,yes,needs arguments,error: Bad number of parameters
+Stg_GetMultiLaserPower,Light sources,read,Device,yes,needs arguments,error: Bad number of parameters
+Stg_GetMultiLaserPowerSteps,Light sources,read,Device,yes,needs arguments,error: Bad number of parameters
+Stg_GetMultiLaserStepPower,Light sources,read,Device,yes,needs arguments,error: Bad number of parameters
+Stg_GetMultiLaserWavelength,Light sources,read,Device,yes,needs arguments,error: Bad number of parameters
+Stg_RemoveInterlock,Microscope,action,Device,yes,not called,
+Stg_SetMultiLaserLineAltSeq,Light sources,set,Device,yes,not called,
+Stg_SetMultiLaserLineNDFilter,Light sources,set,Device,yes,not called,
+Stg_SetMultiLaserLineName,Light sources,set,Device,yes,not called,
+Stg_SetMultiLaserLineUsed,Light sources,set,Device,yes,not called,
+Stg_SetMultiLaserOpMode,Light sources,set,Device,yes,not called,
+Stg_SetMultiLaserPower,Light sources,set,Device,yes,not called,
+Stg_SetMultiLaserWavelength,Light sources,set,Device,yes,not called,
+Stg_StartMultiLaserAdvancedAltSeq,Light sources,action,Device,yes,not called,
+Stg_StartMultiLaserAdvancedAltSeqEx,Light sources,action,Device,yes,not called,
+Stg_StopMultiLaserAdvancedAltSeq,Light sources,action,Device,yes,not called,
+_Stg_CalibrateMultiLaserLine,Light sources,dialog,Device,yes,not called,
+Stg_GetNDFilterPosition,Filters and turrets,read,Device,yes,ran,0.0
+Stg_GetNDFilterStepPosition,Filters and turrets,read,Device,yes,needs arguments,error: Bad number of parameters
+Stg_GetNDFilterSteps,Filters and turrets,read,Device,yes,ran,0
+Stg_IsNDFilterPresent,Filters and turrets,read,Device,yes,ran,0
+Stg_SetNDFilterPosition,Filters and turrets,set,Device,yes,not called,
+Stg_GetObjectiveNameFromCode,Objectives and nosepiece,read,Device,yes,needs arguments,error: Bad number of parameters
+Stg_GetNosepieceObjectiveCode,Objectives and nosepiece,read,Device,yes,needs arguments,error: Bad number of parameters
+Stg_GetNosepieceObjectiveName,Objectives and nosepiece,read,Device,yes,needs arguments,error: Bad number of parameters
+Stg_GetNosepieceObjectiveRefractiveIndex,Objectives and nosepiece,read,Device,yes,needs arguments,error: Bad number of parameters
+Stg_GetNosepiecePosition,Objectives and nosepiece,read,Device,yes,ran,0
+Stg_GetNosepiecePositions,Objectives and nosepiece,read,Device,yes,ran,0
+Stg_IsNosepiecePresent,Objectives and nosepiece,read,Device,yes,ran,0
+Stg_Nosepiece_EnableRotation,Objectives and nosepiece,set,Device,no,not called,
+Stg_SetNosepieceObjective,Objectives and nosepiece,set,Device,yes,not called,
+Stg_SetNosepieceObjectiveName,Objectives and nosepiece,set,Device,yes,not called,
+Stg_SetNosepiecePosition,Objectives and nosepiece,set,Device,yes,not called,
+_Stg_NosepieceSetup,Objectives and nosepiece,dialog,Device,yes,not called,
+Stg_DropOil,Objectives and nosepiece,action,Device,yes,not called,
+StgFocusPFS,Focus,action,Device,yes,not called,
+StgGetPFSPlanePoints,Focus,read,Device,yes,ran,0
+StgIsPFSPlaneValid,Focus,read,Device,yes,ran,0
+StgResetPFSPlane,Focus,set,Device,yes,not called,
+StgUsePFSPlane,Focus,action,Device,yes,not called,
+Stg_GetPFSLEDSwitch,Focus,read,Device,no,not reachable,AttributeError: 'Macro' object has no attribute 'Stg_GetPFSLEDSwitch'
+Stg_GetPFSLensOffsetPosition,Focus,read,Device,yes,ran,0
+Stg_GetPFSStatus,Focus,read,Device,yes,ran,0
+Stg_IsPFSPresent,Focus,read,Device,yes,ran,0
+Stg_PFSEnableSignalOutput,Focus,set,Device,yes,not called,
+Stg_PFSFindOffset,Focus,action,Device,yes,not called,
+Stg_PFSGetDishType,Focus,read,Device,yes,not called,
+Stg_PFSGetDishTypeChangeable,Focus,read,Device,yes,not called,
+Stg_PFSInsertExtractDM,Focus,action,Device,yes,not called,
+Stg_PFSIsDMInserted,Focus,read,Device,yes,not called,
+Stg_PFSIsDMMotorized,Focus,read,Device,yes,not called,
+Stg_PFSIsSignalOutputEnabled,Focus,read,Device,yes,not called,
+Stg_PFSSetDishType,Focus,set,Device,yes,not called,
+Stg_PFSSetLEDPower,Focus,set,Device,no,not called,
+Stg_PFSSignalOutputTest,Focus,action,Device,yes,not called,
+Stg_SetPFSFocus,Focus,set,Device,yes,not called,
+Stg_SetPFSLEDSwitch,Focus,set,Device,no,not called,
+Stg_SetPFSLensOffsetPosition,Focus,set,Device,yes,not called,
+Stg_SetPFSStatus,Focus,set,Device,yes,not called,
+Stg_WaitForPFS,Focus,action,Device,yes,not called,
+_StgSetupPFSFocus,Focus,dialog,Device,yes,not called,
+Stg_GetPatternDeviceName,Triggers and stimulation,read,Device,no,not reachable,AttributeError: 'Macro' object has no attribute 'Stg_GetPatternDeviceName'
+Stg_GetPatternId,Triggers and stimulation,read,Device,no,not reachable,AttributeError: 'Macro' object has no attribute 'Stg_GetPatternId'
+Stg_GetPatternIdByName,Triggers and stimulation,read,Device,no,not reachable,AttributeError: 'Macro' object has no attribute 'Stg_GetPatternIdByName'
+Stg_GetPatternName,Triggers and stimulation,read,Device,no,not reachable,AttributeError: 'Macro' object has no attribute 'Stg_GetPatternName'
+Stg_GetPatternState,Triggers and stimulation,read,Device,no,not reachable,AttributeError: 'Macro' object has no attribute 'Stg_GetPatternState'
+Stg_Perfusion_Clean,Incubation and environment,action,Device,yes,not called,
+Stg_Perfusion_Dispence_mL,Incubation and environment,action,Device,yes,not called,
+Stg_Perfusion_GetState,Incubation and environment,read,Device,yes,ran,0
+Stg_Perfusion_LoadCalibrationFromXML,Calibration,action,Device,yes,not called,
+Stg_Perfusion_Purge_mL,Incubation and environment,set,Device,yes,not called,
+Stg_Perfusion_SetSolvent,Incubation and environment,set,Device,yes,not called,
+PiezoXYGetPosition,Stage XY and Z,read,Device,yes,not called,
+PiezoXYMoveToHomePosition,Stage XY and Z,set,Device,yes,not called,
+PiezoXYMoveToXYPosition,Stage XY and Z,set,Device,yes,not called,
+Stg_CloseFirstShutter,Shutters,set,Device,yes,not called,
+Stg_GetShutterAperture,Shutters,read,Device,yes,needs arguments,error: Bad number of parameters
+Stg_GetShutterApertureSteps,Shutters,read,Device,yes,needs arguments,error: Bad number of parameters
+Stg_GetShutterCount,Shutters,read,Device,yes,ran,0
+Stg_GetShutterName,Shutters,read,Device,yes,needs arguments,error: Bad number of parameters
+Stg_GetShutterSpeed,Shutters,read,Device,no,not reachable,AttributeError: 'Macro' object has no attribute 'Stg_GetShutterSpeed'
+Stg_GetShutterSpeedSteps,Shutters,read,Device,no,not reachable,AttributeError: 'Macro' object has no attribute 'Stg_GetShutterSpeedSteps'
+Stg_GetShutterState,Shutters,read,Device,yes,needs arguments,error: Bad number of parameters
+Stg_GetShutterStateEx,Shutters,read,Device,yes,needs arguments,error: Bad number of parameters
+Stg_GetShutterStepAperture,Shutters,read,Device,yes,needs arguments,error: Bad number of parameters
+Stg_GetShutterStepSpeed,Shutters,read,Device,no,not reachable,AttributeError: 'Macro' object has no attribute 'Stg_GetShutterStepSpeed'
+Stg_IsShutterPresent,Shutters,read,Device,yes,needs arguments,error: Bad number of parameters
+Stg_OpenFirstShutter,Shutters,set,Device,yes,not called,
+Stg_SetShutterAperture,Shutters,set,Device,yes,not called,
+Stg_SetShutterSpeed,Shutters,set,Device,no,not called,
+Stg_SetShutterState,Shutters,set,Device,yes,not called,
+Stg_SetShutterStateEx,Shutters,set,Device,yes,not called,
+Stg_ToggleFirstShutter,Shutters,set,Device,yes,not called,
+_Stg_FiltersShutters,Shutters,dialog,Device,yes,not called,
+_Stg_RenameShutter,Shutters,dialog,Device,yes,not called,
+Stg_AllowSlideLoaderCassetteManipulation,Stage XY and Z,action,Device,yes,not called,
+Stg_GetBarCode,Stage XY and Z,read,Device,yes,needs arguments,error: Bad number of parameters
+Stg_GetBarCodeEx,Stage XY and Z,read,Device,yes,needs arguments,error: Bad number of parameters
+Stg_GetCassetteCount,Stage XY and Z,read,Device,yes,ran,0
+Stg_GetLoadedSlide,Stage XY and Z,read,Device,yes,needs arguments,error: Bad number of parameters
+Stg_GetSlideCount,Stage XY and Z,read,Device,yes,needs arguments,error: Bad number of parameters
+Stg_GetSlideLoaderHolderCapacity,Stage XY and Z,read,Device,yes,ran,0
+Stg_InitializeSlideLoader,Stage XY and Z,action,Device,yes,not called,
+Stg_IsBarCodeScanned,Stage XY and Z,read,Device,yes,needs arguments,error: Bad number of parameters
+Stg_IsCassettePresent,Stage XY and Z,read,Device,yes,needs arguments,error: Bad number of parameters
+Stg_IsCassetteScanned,Stage XY and Z,read,Device,yes,needs arguments,error: Bad number of parameters
+Stg_IsSlideLoaded,Stage XY and Z,read,Device,yes,ran,0
+Stg_IsSlideLoaderCassetteManipulationAllowed,Stage XY and Z,read,Device,yes,ran,0
+Stg_IsSlideLoaderInitialized,Stage XY and Z,read,Device,yes,ran,0
+Stg_IsSlidePresent,Stage XY and Z,read,Device,yes,needs arguments,error: Bad number of parameters
+Stg_IsSlidePresentEx,Stage XY and Z,read,Device,yes,ran,0
+Stg_LoadSlideFrom,Stage XY and Z,action,Device,yes,not called,
+Stg_LoadSlideToPreparationPosition,Stage XY and Z,action,Device,yes,not called,
+Stg_PreScanBarCode,Stage XY and Z,action,Device,yes,not called,
+Stg_ScanCassette,Stage XY and Z,action,Device,yes,not called,
+Stg_SetSlidePresent,Stage XY and Z,set,Device,yes,not called,
+Stg_SlideLoaderGetHwStatus,Stage XY and Z,read,Device,yes,not called,
+Stg_SlideloaderCheckStageEmpty,Stage XY and Z,action,Device,yes,not called,
+Stg_SlideLoaderMoveAtVelocity,Stage XY and Z,set,Device,yes,not called,
+Stg_SlideLoaderShowError,Stage XY and Z,action,Device,yes,not called,
+Stg_SlideLoaderWarmInitAvailable,Stage XY and Z,action,Device,yes,not called,
+Stg_StopSlideLoader,Stage XY and Z,action,Device,yes,not called,
+Stg_TransferSlide,Stage XY and Z,action,Device,yes,not called,
+Stg_UnloadSlide,Stage XY and Z,action,Device,yes,not called,
+Stg_UnloadSlideTo,Stage XY and Z,action,Device,yes,not called,
+_Stg_InitializeSlideLoader,Stage XY and Z,dialog,Device,yes,not called,
+Stg_StimDev_AddPatternFromImage,Triggers and stimulation,action,Device,no,not called,
+Stg_GetTIRFMirror,Light path and optics,read,Device,yes,ran,0
+Stg_SetTIRFMirror,Light path and optics,set,Device,yes,not called,
+Stg_SetTIRFMouseWheel,Light path and optics,set,Device,yes,not called,
+Stg_GetTIRFAngleEx,Light path and optics,read,Device,yes,needs arguments,error: Bad number of parameters
+Stg_GetTIRFDirectionEx,Light path and optics,read,Device,yes,needs arguments,error: Bad number of parameters
+Stg_GetTIRFFocusEx,Focus,read,Device,yes,needs arguments,error: Bad number of parameters
+Stg_GetTIRFPosition,Light path and optics,read,Device,yes,ran,0.0
+Stg_GetTIRFPositionEx,Light path and optics,read,Device,yes,needs arguments,error: Bad number of parameters
+Stg_SetTIRFAngleEx,Light path and optics,set,Device,yes,not called,
+Stg_SetTIRFDirectionEx,Light path and optics,set,Device,yes,not called,
+Stg_SetTIRFFocusEx,Focus,set,Device,yes,not called,
+Stg_SetTIRFPosition,Light path and optics,set,Device,yes,not called,
+Stg_SetTIRFPositionEx,Light path and optics,set,Device,yes,not called,
+Stg_DIOReadInputs,Triggers and stimulation,action,Device,yes,not called,
+Stg_GetLineIndex,Microscope,read,Device,yes,needs arguments,error: Bad number of parameters
+Stg_GetTTLStatus,Triggers and stimulation,read,Device,yes,needs arguments,error: Bad number of parameters
+Stg_TTLInputRead,Triggers and stimulation,action,Device,yes,not called,
+Stg_PulseTTL,Triggers and stimulation,action,Device,yes,not called,
+Stg_TTLOutputDoAction,Triggers and stimulation,action,Device,yes,not called,
+Stg_TTLOutputDoActionAsync,Triggers and stimulation,action,Device,yes,not called,
+Stg_TTLOutputGetControlMode,Triggers and stimulation,read,Device,yes,not called,
+Stg_TTLOutputGetControlModePulses,Triggers and stimulation,read,Device,yes,not called,
+Stg_TTLOutputGetPulseActiveState,Triggers and stimulation,read,Device,yes,not called,
+Stg_TTLOutputGetPulseTime,Triggers and stimulation,read,Device,yes,not called,
+Stg_TTLOutputPulse,Triggers and stimulation,action,Device,yes,not called,
+Stg_TTLOutputPulseAsync,Triggers and stimulation,action,Device,yes,not called,
+Stg_TTLOutputPulsesTrain,Triggers and stimulation,action,Device,yes,not called,
+Stg_TTLOutputPulsesTrainAbort,Triggers and stimulation,action,Device,yes,not called,
+Stg_TTLOutputPulsesTrainAsync,Triggers and stimulation,action,Device,yes,not called,
+Stg_TTLOutputPulsesTrainFinished,Triggers and stimulation,action,Device,yes,not called,
+Stg_TTLOutputSetControlMode,Triggers and stimulation,set,Device,yes,not called,
+Stg_TTLOutputSetPulseActiveState,Triggers and stimulation,set,Device,yes,not called,
+Stg_TTLOutputSetPulseTime,Triggers and stimulation,set,Device,yes,not called,
+Stg_TTLOutputWrite,Triggers and stimulation,action,Device,yes,not called,
+Stg_WriteTTL,Triggers and stimulation,action,Device,yes,not called,
+Stg_WID_Abort,Incubation and environment,action,Device,no,not called,
+Stg_WID_AllowAutomaticReplenishment,Incubation and environment,action,Device,no,not called,
+Stg_WID_Discharge,Incubation and environment,action,Device,no,not called,
+Stg_WID_GetLastReplenishmentTime,Incubation and environment,read,Device,no,not reachable,AttributeError: 'Macro' object has no attribute 'Stg_WID_GetLastReplenishmentTime'
+Stg_WID_GetObjectiveWet,Objectives and nosepiece,read,Device,no,not reachable,AttributeError: 'Macro' object has no attribute 'Stg_WID_GetObjectiveWet'
+Stg_WID_GetReplenishmentRemainingTimeInSeconds,Incubation and environment,read,Device,no,not reachable,AttributeError: 'Macro' object has no attribute 'Stg_WID_GetReplenishmentRemainingTimeInSeconds'
+Stg_WID_GetReplenishmentTimePeriodInSeconds,Incubation and environment,read,Device,no,not reachable,AttributeError: 'Macro' object has no attribute 'Stg_WID_GetReplenishmentTimePeriodInSeconds'
+Stg_WID_GetWaterInitiated,Incubation and environment,read,Device,no,not reachable,AttributeError: 'Macro' object has no attribute 'Stg_WID_GetWaterInitiated'
+Stg_WID_Initiate,Incubation and environment,action,Device,no,not called,
+Stg_WID_Replenish,Incubation and environment,action,Device,no,not called,
+Stg_WID_WaitForFinish,Incubation and environment,action,Device,no,not called,
+PI_GcsCommand,Stage XY and Z,action,Device,yes,not called,
+StgCalibrateXYAutomatic,Calibration,action,Device,yes,not called,
+StgEnableJoystickXY,Stage XY and Z,set,Device,yes,not called,
+StgGetInitValuesXY,Stage XY and Z,read,Device,yes,needs arguments,error: Bad number of parameters
+StgGetPosXY,Stage XY and Z,read,Device,yes,needs arguments,error: Bad number of parameters
+StgGetRelativeMovements,Stage XY and Z,read,Device,yes,needs arguments,error: Bad number of parameters
+StgInitiateXY,Stage XY and Z,action,Device,yes,not called,
+StgMoveXY,Stage XY and Z,set,Device,yes,not called,
+StgMoveXYScan,Stage XY and Z,set,Device,yes,not called,
+StgMoveXYToRoi,Stage XY and Z,set,Device,yes,not called,
+StgSetRelativeMovements,Stage XY and Z,set,Device,yes,not called,
+StgSetTrigger,Triggers and stimulation,set,Device,yes,not called,
+StgToggleJoystickXY,Stage XY and Z,set,Device,yes,not called,
+StgXY_DrawCircleAsync_Start,Stage XY and Z,action,Device,yes,not called,
+StgXY_DrawCircleAsync_Stop,Stage XY and Z,action,Device,yes,not called,
+StgXY_DrawCircleAsync_WaitAngle,Stage XY and Z,action,Device,yes,not called,
+StgXY_GetBlockAxis,Stage XY and Z,read,Device,yes,needs arguments,error: Bad number of parameters
+StgXY_GetBlockAxisSupported,Stage XY and Z,read,Device,yes,needs arguments,error: Bad number of parameters
+StgXY_GetJoystickSpeed,Stage XY and Z,read,Device,yes,ran,-4.0
+StgXY_GetJoystickSpeedSteps,Stage XY and Z,read,Device,yes,ran,-4
+StgXY_GetLimits,Stage XY and Z,read,Device,yes,needs arguments,error: Bad number of parameters
+StgXY_GetMotorSpeed,Stage XY and Z,read,Device,yes,ran,-4.0
+StgXY_GetMotorSpeedSteps,Stage XY and Z,read,Device,yes,ran,-4
+StgXY_GetPrecision,Stage XY and Z,read,Device,yes,ran,-4.0
+StgXY_GetSettleTime,Stage XY and Z,read,Device,yes,ran,-4.0
+StgXY_GetSpeedRamp,Stage XY and Z,read,Device,yes,ran,-4
+StgXY_GetSpeedRampSteps,Stage XY and Z,read,Device,yes,ran,-4
+StgXY_GetSpeedVector,Stage XY and Z,read,Device,yes,needs arguments,error: Bad number of parameters
+StgXY_GetStepJoystickSpeed,Stage XY and Z,read,Device,yes,needs arguments,error: Bad number of parameters
+StgXY_GetStepMotorSpeed,Stage XY and Z,read,Device,yes,needs arguments,error: Bad number of parameters
+StgXY_IsJoystickSpeedControllable,Stage XY and Z,read,Device,yes,ran,0
+StgXY_IsMotorSpeedControllable,Stage XY and Z,read,Device,yes,ran,0
+StgXY_IsPrecisionControllable,Stage XY and Z,read,Device,yes,ran,0
+StgXY_IsPresent,Stage XY and Z,read,Device,yes,ran,0
+StgXY_IsSettleTimeControllable,Stage XY and Z,read,Device,yes,ran,0
+StgXY_IsSpeedRampControllable,Stage XY and Z,read,Device,yes,ran,0
+StgXY_IsSpeedVectorControllable,Stage XY and Z,read,Device,yes,ran,0
+StgXY_IsVirtualJoystickSupported,Stage XY and Z,read,Device,yes,ran,0
+StgXY_MoveVirtualJoystickAtSpeed,Stage XY and Z,set,Device,yes,not called,
+StgXY_SetBlockAxis,Stage XY and Z,set,Device,yes,not called,
+StgXY_IsInLoadingPosition,Stage XY and Z,read,Device,yes,needs arguments,error: Bad number of parameters
+StgXY_SetJoystickSpeed,Stage XY and Z,set,Device,yes,not called,
+StgXY_MoveToAcquisitionPosition,Stage XY and Z,set,Device,yes,not called,
+StgXY_MoveToLoadingPosition,Stage XY and Z,set,Device,yes,not called,
+StgXY_SetLimits,Stage XY and Z,set,Device,yes,not called,
+StgXY_SetMotorSpeed,Stage XY and Z,set,Device,yes,not called,
+StgXY_SetPrecision,Stage XY and Z,set,Device,yes,not called,
+StgXY_SetSettleTime,Stage XY and Z,set,Device,yes,not called,
+StgXY_SetSpeedRamp,Stage XY and Z,set,Device,yes,not called,
+StgXY_SetSpeedVector,Stage XY and Z,set,Device,yes,not called,
+_StgConfigXY,Stage XY and Z,dialog,Device,yes,not called,
+StgEnableJoystick,Stage XY and Z,set,Device,yes,not called,
+StgGetList,Stage XY and Z,read,Device,yes,needs arguments,error: Bad number of parameters
+StgGetListEx,Stage XY and Z,read,Device,yes,needs arguments,error: Bad number of parameters
+StgGetPos,Stage XY and Z,read,Device,yes,needs arguments,error: Bad number of parameters
+StgInitiate,Stage XY and Z,action,Device,yes,not called,
+StgJoystickOff,Stage XY and Z,action,Device,yes,not called,
+StgJoystickOn,Stage XY and Z,action,Device,yes,not called,
+StgMove,Stage XY and Z,set,Device,yes,not called,
+StgMoveXYZScan,Stage XY and Z,set,Device,yes,not called,
+StgScanFocus,Focus,action,Device,yes,not called,
+StgToggleJoystick,Stage XY and Z,set,Device,yes,not called,
+Stg_LinearActuator_GetDescription,Stage XY and Z,read,Device,yes,needs arguments,error: Bad number of parameters
+Stg_LinearActuator_GetPosition,Stage XY and Z,read,Device,yes,needs arguments,error: Bad number of parameters
+Stg_LinearActuator_SetPosition,Stage XY and Z,set,Device,yes,not called,
+Stg_LoadLastFocusSurfacePoints,Focus,action,Device,yes,not called,
+Stg_RemoveFocusSurfacePoints,Focus,action,Device,yes,not called,
+_StgConfig,Stage XY and Z,dialog,Device,yes,not called,
+_StgInitiate,Stage XY and Z,dialog,Device,yes,not called,
+RunAutoFocusLong,Focus,action,Device,yes,not called,
+RunAutoFocusShort,Focus,action,Device,no,not called,
+RunAutoFocusSmartRange,Focus,action,Device,yes,not called,
+RunFastAutoFocus,Focus,action,Device,yes,not called,
+StgEnableJoystickZ,Stage XY and Z,set,Device,yes,not called,
+StgFocus,Focus,action,Device,yes,not called,
+StgFocusAdaptive,Focus,action,Device,yes,not called,
+StgFocusAdaptiveTwoPasses,Focus,action,Device,yes,not called,
+StgFocusCriteria,Focus,action,Device,yes,not called,
+StgFocusInRange,Focus,action,Device,yes,not called,
+StgFocusInRangeEx,Focus,action,Device,yes,not called,
+StgFocusInRangeExTwoPasses,Focus,action,Device,yes,not called,
+StgFocusInRangeTwoPasses,Focus,action,Device,yes,not called,
+StgFocusPlane,Focus,action,Device,yes,not called,
+StgFocusSetCriterion,Focus,set,Device,yes,not called,
+StgFocusSetCriterionDialog,Focus,dialog,Device,yes,not called,
+StgGetAbsPosZ,Stage XY and Z,read,Device,yes,needs arguments,error: Bad number of parameters
+StgGetFocusPlanePosition,Focus,read,Device,yes,needs arguments,error: Bad number of parameters
+StgGetFocusPlaneType,Focus,read,Device,yes,ran,0
+StgGetPosZ,Stage XY and Z,read,Device,yes,needs arguments,error: Bad number of parameters
+StgInitiateZ,Stage XY and Z,action,Device,yes,not called,
+StgIsFocusPlaneValid,Focus,read,Device,yes,ran,0
+StgMoveMainZ,Stage XY and Z,set,Device,yes,not called,
+StgMovePiezoZ,Stage XY and Z,set,Device,yes,not called,
+StgMovePiezoZToHomeKeepZ,Stage XY and Z,set,Device,yes,not called,
+StgMovePiezoZToHomePosition,Stage XY and Z,set,Device,yes,not called,
+StgMoveZ,Stage XY and Z,set,Device,yes,not called,
+StgMoveZNamed,Stage XY and Z,set,Device,yes,not called,
+StgSetFocusPlane,Focus,set,Device,yes,not called,
+StgSetupFocus,Focus,dialog,Device,yes,not called,
+StgSetupFocusAdaptiveTwoPasses,Focus,dialog,Device,yes,not called,
+StgSetupFocusContinuousTwoPasses,Focus,dialog,Device,yes,not called,
+StgSetupFocusEx,Focus,dialog,Device,yes,not called,
+StgSetupFocusOffset,Focus,dialog,Device,yes,not called,
+StgSetupFocusTwoPasses,Focus,dialog,Device,yes,not called,
+StgToggleJoystickZ,Stage XY and Z,set,Device,yes,not called,
+StgZ_AutoFocus,Stage XY and Z,action,Device,yes,not called,
+StgZ_Escape,Stage XY and Z,action,Device,yes,not called,
+StgZ_GetActiveZ,Stage XY and Z,read,Device,yes,ran,0
+StgZ_GetEscape,Stage XY and Z,read,Device,yes,ran,0
+StgZ_GetJoystickSpeed,Stage XY and Z,read,Device,yes,ran,-3.0
+StgZ_GetJoystickSpeedSteps,Stage XY and Z,read,Device,yes,ran,-3
+StgZ_GetJoystickZStep,Stage XY and Z,read,Device,yes,ran,5.0
+StgZ_GetLimits,Stage XY and Z,read,Device,yes,needs arguments,error: Bad number of parameters
+StgZ_GetLimitsMultiple,Stage XY and Z,read,Device,yes,needs arguments,error: Bad number of parameters
+StgZ_GetMotorSpeed,Stage XY and Z,read,Device,yes,ran,-3.0
+StgZ_GetMotorSpeedSteps,Stage XY and Z,read,Device,yes,ran,-3
+StgZ_GetPiezoDevice,Stage XY and Z,read,Device,yes,ran,0
+StgZ_GetReferencePosition,Stage XY and Z,read,Device,yes,needs arguments,error: Bad number of parameters
+StgZ_GetSpeedRamp,Stage XY and Z,read,Device,yes,ran,-3
+StgZ_GetSpeedRampSteps,Stage XY and Z,read,Device,yes,ran,-3
+StgZ_GetStepJoystickSpeed,Stage XY and Z,read,Device,yes,needs arguments,error: Bad number of parameters
+StgZ_GetStepMotorSpeed,Stage XY and Z,read,Device,yes,needs arguments,error: Bad number of parameters
+StgZ_IsJoystickSpeedControllable,Stage XY and Z,read,Device,yes,ran,-1
+StgZ_IsMotorSpeedControllable,Stage XY and Z,read,Device,yes,ran,-1
+StgZ_IsPresent,Stage XY and Z,read,Device,yes,needs arguments,error: Bad number of parameters
+StgZ_IsSpeedRampControllable,Stage XY and Z,read,Device,yes,ran,-1
+StgZ_IsVirtualJoystickSupported,Stage XY and Z,read,Device,yes,ran,-1
+StgZ_MoveVirtualJoystickAtSpeed,Stage XY and Z,set,Device,yes,not called,
+StgZ_Refocus,Stage XY and Z,action,Device,yes,not called,
+StgZ_SetActiveZ,Stage XY and Z,set,Device,yes,not called,
+StgZ_SetJoystickSpeed,Stage XY and Z,set,Device,yes,not called,
+StgZ_SetJoystickZStep,Stage XY and Z,set,Device,yes,not called,
+StgZ_SetKeepPosition,Stage XY and Z,set,Device,yes,not called,
+StgZ_SetLimits,Stage XY and Z,set,Device,yes,not called,
+StgZ_SetMotorSpeed,Stage XY and Z,set,Device,yes,not called,
+StgZ_SetSpeedRamp,Stage XY and Z,set,Device,yes,not called,
+Stg_EnableMouseJoystickZ,Stage XY and Z,set,Device,yes,not called,
+Stg_IsMouseJoystickZ,Stage XY and Z,read,Device,yes,ran,1
+Stg_ToggleMouseJoystickZ,Stage XY and Z,set,Device,yes,not called,
+_SetupFastAutoFocus,Focus,dialog,Device,yes,not called,
+_StgConfigZ,Stage XY and Z,dialog,Device,yes,not called,
+_StgInitiateZ,Stage XY and Z,dialog,Device,yes,not called,
+_StgSetupFocus,Focus,dialog,Device,yes,not called,
+_StgSetupFocusPlane,Focus,dialog,Device,yes,not called,
+_Stg_SetupMouseJoystickZ,Stage XY and Z,dialog,Device,yes,not called,
+Stg_GetZoomPosition,Light path and optics,read,Device,yes,ran,1.0
+Stg_GetZoomStepPosition,Light path and optics,read,Device,yes,needs arguments,error: Bad number of parameters
+Stg_GetZoomSteps,Light path and optics,read,Device,yes,ran,0
+Stg_IsZoomManual,Light path and optics,read,Device,yes,ran,1
+Stg_IsZoomPresent,Light path and optics,read,Device,yes,ran,0
+Stg_LoadZoomCorrection,Light path and optics,action,Device,yes,not called,
+Stg_SetZoomPosition,Light path and optics,set,Device,yes,not called,
+Stg_ShowZoomConfig,Light path and optics,action,Device,no,not called,
+_Stg_ShowZoomConfig,Light path and optics,dialog,Device,no,not called,
+_ObjectiveClearance,Objectives and nosepiece,dialog,Device,yes,not called,
+_ObjectivesXYOffset,Objectives and nosepiece,dialog,Device,yes,not called,
+AddObjective,Objectives and nosepiece,action,Device,yes,not called,
+ApplyObjectivesXYOffset,Objectives and nosepiece,action,Device,yes,not called,
+AddObjectiveEx,Objectives and nosepiece,action,Device,yes,not called,
+BackupObjectives,Objectives and nosepiece,action,Device,yes,not called,
+ChangeObjective,Objectives and nosepiece,set,Device,yes,not called,
+DeleteObjective,Objectives and nosepiece,action,Device,yes,not called,
+DeleteObjectives,Objectives and nosepiece,action,Device,yes,not called,
+GetCurrentObjMagnification,Light path and optics,read,Device,yes,ran,0.0
+GetCurrentObjName,Objectives and nosepiece,read,Device,yes,needs arguments,error: Bad number of parameters
+GetObjMagnification,Light path and optics,read,Device,yes,needs arguments,error: Bad number of parameters
+GetObjType,Objectives and nosepiece,read,Device,yes,needs arguments,error: Bad number of parameters
+RestoreObjectives,Objectives and nosepiece,set,Device,yes,not called,
+RestoreObjectivesEx,Objectives and nosepiece,set,Device,yes,not called,
+_BackupObjectives,Objectives and nosepiece,dialog,Device,yes,not called,
+_CalibrateObjective,Objectives and nosepiece,dialog,Device,yes,not called,
+_CalibrateObjective2,Objectives and nosepiece,dialog,Device,yes,not called,
+_CalibrateObjective3,Objectives and nosepiece,dialog,Device,yes,not called,
+_ExploreObjectives,Objectives and nosepiece,dialog,Device,yes,not called,
+_QuickCalibration,Calibration,dialog,Device,yes,not called,
+_RestoreObjectives,Objectives and nosepiece,dialog,Device,yes,not called,
+GetOpenedDocumentList,Image documents and files,read,ImageDocument,yes,needs arguments,error: Bad number of parameters
+CloseAllDocuments,Image documents and files,action,ImageDocument,yes,not called,
+CloseAllDocumentsButCurrent,Image documents and files,action,ImageDocument,yes,not called,
+CloseCurrentDocument,Image documents and files,action,ImageDocument,yes,not called,
+_CloseAllDocuments,Image documents and files,dialog,ImageDocument,yes,not called,
+_CloseAllDocumentsButCurrent,Image documents and files,dialog,ImageDocument,yes,not called,
+_CloseCurrentDocument,Image documents and files,dialog,ImageDocument,yes,not called,
+DeleteCurrentImage,Image documents and files,action,ImageDocument,yes,not called,
+Get_ImageInfo,Image documents and files,read,ImageDocument,yes,needs arguments,error: Bad number of parameters
+ImageOpen,Image documents and files,set,ImageDocument,yes,not called,
+OpenDocument,Image documents and files,action,ImageDocument,yes,not called,
+_ImageOpen,Image documents and files,dialog,ImageDocument,yes,not called,
+ImageReload,Image documents and files,action,ImageDocument,yes,not called,
+ImageSave,Image documents and files,action,ImageDocument,yes,not called,
+ImageSaveAs,Image documents and files,action,ImageDocument,yes,not called,
+ImageSaveAsEx,Image documents and files,action,ImageDocument,yes,not called,
+SaveAll,Image documents and files,action,ImageDocument,yes,not called,
+SaveCurrentDocument,Image documents and files,action,ImageDocument,yes,not called,
+_ImageSave,Image documents and files,dialog,ImageDocument,yes,not called,
+_ImageSaveAs,Image documents and files,dialog,ImageDocument,yes,not called,
+ImageSaveNext,Image documents and files,action,ImageDocument,yes,not called,
+ImageSaveNextSuppressDialog,Image documents and files,dialog,ImageDocument,yes,not called,
+_ImageSaveNextSettings,Image documents and files,dialog,ImageDocument,yes,not called,
+SetCaptureCreatesNewDoc,Image documents and files,set,ImageDocument,yes,not called,
+SetMaxMemoryImageSize,Image documents and files,set,ImageDocument,yes,not called,
+GetFreeDiskSpace,Image documents and files,read,ImageDocument,yes,needs arguments,error: Bad number of parameters
+Get_FileSize,Image documents and files,read,ImageDocument,yes,needs arguments,error: Bad number of parameters
+Get_FileTitle,Image documents and files,read,ImageDocument,yes,needs arguments,error: Bad number of parameters
+Get_Filename,Image documents and files,read,ImageDocument,yes,needs arguments,error: Bad number of parameters
+GetFileAbsTime,Image documents and files,read,ImageDocument,yes,ran,-1.0
+ImageReuseCameraROI,Image documents and files,action,ImageDocument,yes,not called,
+ImageReuseCameraSettings,Image documents and files,set,ImageDocument,yes,not called,
+ImageReuseDeviceSettings,Image documents and files,set,ImageDocument,yes,not called,
+ImageReuseExperiment,Image documents and files,action,ImageDocument,yes,not called,
+ImageReuseOptConf,Image documents and files,action,ImageDocument,yes,not called,
+ImageReuseStimulationSettings,Image documents and files,set,ImageDocument,yes,not called,
+ND_DefineExperiment,Acquisition,action,ND,yes,not called,
+ND_PauseExperiment,Acquisition,action,ND,yes,not called,
+ND_ResumeExperiment,Acquisition,action,ND,yes,not called,
+ND_RunExperiment,Acquisition,action,ND,yes,not called,
+ND_RunExperimentNoProgressBar,Acquisition,action,ND,yes,not called,
+ND_RunExperimentWithZIntensityCorrection,Acquisition,action,ND,yes,not called,
+ND_RunMultipointSet,Acquisition,set,ND,yes,not called,
+ND_RunNDAdvanced,Acquisition,action,ND,yes,not called,
+ND_GetLambdaChannel,Acquisition,read,ND,yes,not called,
+ND_IsInExperimentCapture,Acquisition,read,ND,yes,not called,
+ND_RunLambdaExp,Acquisition,action,ND,yes,not called,
+ND_SetLambdaExp,Acquisition,set,ND,yes,not called,
+ND_SetLambdaRepresentation,Acquisition,set,ND,yes,not called,
+ND_GetMultipointEnabled,Acquisition,read,ND,yes,not called,
+ND_GetMultipointName,Acquisition,read,ND,yes,not called,
+ND_RunMultipointExp,Acquisition,action,ND,yes,not called,
+ND_SetLambdaEnabled,Acquisition,set,ND,yes,not called,
+ND_SetMultipointEnabled,Acquisition,set,ND,yes,not called,
+ND_SetMultiPoints,Acquisition,set,ND,yes,not called,
+ND_SetMultiPointsEx,Acquisition,set,ND,yes,not called,
+ND_SetMultipointExp,Acquisition,set,ND,yes,not called,
+ND_SetTimeEnabled,Acquisition,set,ND,yes,not called,
+_ND_CaptureMultipointManually,Acquisition,dialog,ND,yes,not called,
+ND_RunSequentialStimulationExp,Acquisition,action,ND,yes,not called,
+ND_RunSimultaneousStimulationExp,Acquisition,action,ND,yes,not called,
+ND_GetTimeExp,Acquisition,read,ND,yes,not called,
+ND_GetTimeExpPhase,Acquisition,read,ND,yes,not called,
+ND_GetTimeLapsePhaseCount,Acquisition,read,ND,yes,not called,
+ND_GetTimePhase,Acquisition,read,ND,yes,not called,
+ND_GetTimePhaseSchedule,Acquisition,read,ND,yes,not called,
+ND_RunTimeExp,Acquisition,action,ND,yes,not called,
+ND_SetTimeExp,Acquisition,set,ND,yes,not called,
+ND_SetTimeExpPhase,Acquisition,set,ND,yes,not called,
+_ND_CaptureTimelapseManually,Acquisition,dialog,ND,yes,not called,
+ND_GetZSeriesExp,Acquisition,read,ND,yes,not called,
+ND_GetZSeriesType,Acquisition,read,ND,yes,not called,
+ND_RunZSeriesExp,Acquisition,action,ND,yes,not called,
+ND_SetZSeriesExp,Acquisition,set,ND,yes,not called,
+ND_RunZSeriesExpWithZIntensityCorrection,Acquisition,action,ND,yes,not called,
+ND_SetZSeriesType,Acquisition,set,ND,yes,not called,
+_ND_CaptureZManually,Acquisition,dialog,ND,yes,not called,
+ND_CustomCapture,Acquisition,action,ND,yes,not called,
+_SetTempFilesPathForNextSession,Image documents and files,dialog,System,yes,not called,
+Get_Info,Microscope,read,System,yes,needs arguments,error: Bad number of parameters
+Get_InfoStr,Microscope,read,System,yes,needs arguments,error: Bad number of parameters
+ClearLog,Microscope,set,System,yes,not called,
+DeviceCommunicationLog,Microscope,action,System,yes,not called,
+GetDeviceCommunicationLog,Microscope,read,System,yes,ran,1
+Get_Calibration,Calibration,read,System,yes,needs arguments,error: Bad number of parameters
