@@ -202,10 +202,11 @@ def main():
             last_fn, fn_since = fn, now
         if now - last_print > 1.0:
             last_print = now
-            line = f"[{current.get('i', 0)}/{current.get('n', '?')}] {fn or ''}"
-            if fn and now - fn_since > 5:
-                line += f"   <- running {int(now - fn_since)} s"
-            print(f"{line:<60} {counts_text(current.get('counts', {}))}", flush=True)
+            line = f"[{current.get('i', 0)}/{current.get('n', '?')}] now: {fn or '-'}"
+            if fn and now - fn_since > 2:
+                line += f" (reachable, running in NIS {int(now - fn_since)} s; NIS restarts at {HANG_S} s)"
+            print(line, flush=True)
+            print(f"      so far: {counts_text(current.get('counts', {}))}", flush=True)
         if fn and not current.get("done") and now - fn_since > HANG_S:
             restart(exe, f"no answer for {HANG_S} s (hung)", fn)
             return
