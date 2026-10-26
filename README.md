@@ -24,6 +24,17 @@ is **not** part of this branch.
 - `step0_summary.txt`: one line per check, ok or FAIL.
 - `step0_report.json`: everything in full.
 - `step0.log`: the run step by step. If NIS hangs, the last line names the call.
+- `functions_reachable.csv`: every function in NIS's list, and whether `nis.call_proc`
+  reaches it. Made from Nikon's list, so it stays out of the repository like the list.
+
+## Every function in the list: reachable?
+
+Last in the run. 6.10 has no `nis.mac` to look a name up without calling it, so each name is
+called with one argument that no NIS function can take. If `nis.call_proc` refuses the
+argument, it found the function and ran nothing ("yes"). If it answers as for a name that does
+not exist, NIS does not have the function in this run ("no"). Before the sweep, three control
+calls check that this is safe: a name that does not exist, `GetOptConfCount` (takes no
+argument) and `StgMoveZ` (Z must not move). If one of them fails, no name is swept.
 
 ## What it calls
 

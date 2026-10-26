@@ -14,6 +14,9 @@ as a macro does. Nothing is called through a DLL. It answers:
   4. What every reading the bridge does returns, and how long a call takes.
   5. Every write the bridge does (on by default, for the simulator): each one confirmed and
      put back.
+  6. Whether every function in NIS's list can be reached through nis.call_proc, without
+     running it. One line per function in functions_reachable.csv (stays on the NIS
+     computer, like the list).
 
 Every result goes to step0_report.json and step0_summary.txt in OUT_DIR. Before each call
 the log names it, so if NIS hangs, the last line of step0.log says which call it was.
@@ -26,6 +29,7 @@ Date: 2026-10-26
 License: MIT
 """
 
+import csv
 import glob
 import html
 import json
@@ -538,6 +542,82 @@ if ALLOW_PFS:
     check("Perfect Focus and back", pfs_round_trip, group="writes")
 if ALLOW_CAPTURE:
     check("capture, save, close", capture_save_close, group="writes")
+
+
+# -- 6. can every function in NIS's list be reached? (nothing is run) -----------------------
+# 6.10 has no nis.mac to look a name up without calling it. So each name is called with one
+# argument that no NIS function can take: if nis.call_proc refuses the argument, it found the
+# function and ran nothing; if it answers as for a name that does not exist, NIS does not have
+# it. Three control calls first show that such a call runs nothing; if one fails, no name is
+# swept. Last in the run, so a hang here loses none of the results above.
+class NotAValue:
+    """An argument no NIS function can take."""
+
+
+def refused(name):
+    """nis.call_proc(name, NotAValue()): the error, with the name taken out; None if it ran."""
+    try:
+        raw(name, NotAValue())
+        return None
+    except Exception as error:  # noqa: BLE001 - the error is the answer
+        return f"{type(error).__name__}: {error}".replace(name, "<name>")
+
+
+def reach_controls():
+    unknown = refused("ThisFunctionDoesNotExist_Step0")
+    no_arguments = refused("GetOptConfCount")  # takes no argument: is the extra one refused?
+    z_before = z_position()["z"]
+    with_arguments = refused("StgMoveZ")  # takes (double, int): refused, and the stage stays?
+    z_after = z_position()["z"]
+    answer = {"unknown name": unknown, "GetOptConfCount": no_arguments,
+              "StgMoveZ": with_arguments, "z_before": z_before, "z_after": z_after}
+    problems = []
+    if unknown is None:
+        problems.append("an unknown name raised nothing")
+    for name, error in (("GetOptConfCount", no_arguments), ("StgMoveZ", with_arguments)):
+        if error is None:
+            problems.append(f"{name} ran with an argument it cannot take")
+        elif error == unknown:
+            problems.append(f"{name} answered like an unknown name")
+    if abs(z_after - z_before) > 0.01:
+        problems.append("Z moved")
+    answer["safe to sweep"] = not problems
+    answer["problems"] = problems
+    return answer
+
+
+def reach_all():
+    """Every name in NIS's list: reached (refused the argument), not there, or it ran."""
+    controls = report["checks"][-1]
+    if not controls["ok"] or not controls["answer"]["safe to sweep"]:
+        return {"skipped": "the control calls did not show the sweep is safe"}
+    path = function_list_file()
+    if path is None:
+        return {"skipped": f"no FunctionList*.html next to this file or under {NIS_DIR}"}
+    unknown = controls["answer"]["unknown name"]
+    rows, counts = [], {}
+    for name, (section, edition) in sorted(names_in_function_list(path).items()):
+        log(f"reach {name}")
+        error = refused(name)
+        reached = "ran" if error is None else ("no" if error == unknown else "yes")
+        rows.append((name, section, edition, reached, error or ""))
+        key = "AR" if edition == "yes" else ("AR with module" if edition.startswith("module")
+                                              else "not in AR")
+        counts.setdefault(key, {"yes": 0, "no": 0, "ran": 0})[reached] += 1
+    with open(os.path.join(OUT_DIR, "functions_reachable.csv"), "w", newline="",
+              encoding="utf-8") as handle:
+        writer = csv.writer(handle)
+        writer.writerow(("function", "section", "in AR", "reached", "call_proc said"))
+        writer.writerows(rows)
+    # ponytail: one example error per kind is enough to read the run; the csv has them all
+    return {"functions": len(rows), "reached": sum(r[3] == "yes" for r in rows),
+            "by edition": counts, "ran (should be none)": [r[0] for r in rows if r[3] == "ran"],
+            "kinds of refusal": sorted({r[4] for r in rows if r[3] == "yes"})[:20]}
+
+
+if nis is not None and hasattr(nis, "call_proc"):
+    check("controls: a refused call runs nothing", reach_controls, group="reach")
+    check("every function in NIS's list", reach_all, group="reach")
 
 # -- the summary ----------------------------------------------------------------------------
 report["finished"] = time.strftime("%Y-%m-%d %H:%M:%S")
