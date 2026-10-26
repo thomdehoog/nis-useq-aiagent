@@ -29,8 +29,8 @@ CURRENT = os.path.join(OUT_DIR, "step2_current.json")
 DIALOGS = os.path.join(OUT_DIR, "step2_dialogs.jsonl")
 NEVER_TOUCH = ("Confirm Interrupting Macro",)
 BUTTONS = ("cancel", "no", "close", "ok", "continue", "abort", "ignore")  # first found is pressed
-WAIT_BEFORE_CLOSING_S = 1.0  # a window must stay this long before it is closed
-HANG_S = 10  # a call this long is hung: NIS is closed and started again, and the run carries on
+WAIT_BEFORE_CLOSING_S = 0.2  # a window must stay this long before it is closed
+HANG_S = 1  # a call this long (after the last window it closed) is hung: NIS is closed and started again, and the run carries on
 MAX_RESTARTS = 200  # after this many restarts of NIS, stop restarting
 MACRO = os.path.join(os.path.dirname(os.path.abspath(OUT_DIR)), "step2.mac")
 RESTARTS = os.path.join(OUT_DIR, "step2_restarts.txt")
@@ -203,8 +203,8 @@ def main():
         if now - last_print > 1.0:
             last_print = now
             line = f"[{current.get('i', 0)}/{current.get('n', '?')}] now: {fn or '-'}"
-            if fn and now - fn_since > 2:
-                line += f" (reachable, running in NIS {int(now - fn_since)} s; NIS restarts at {HANG_S} s)"
+            if fn and now - fn_since > 0.5:
+                line += f" (reachable, running in NIS {now - fn_since:.1f} s; NIS restarts at {HANG_S} s)"
             print(line, flush=True)
             print(f"      so far: {counts_text(current.get('counts', {}))}", flush=True)
         if fn and not current.get("done") and now - fn_since > HANG_S:
@@ -240,7 +240,8 @@ def main():
                 with open(DIALOGS, "a", encoding="utf-8") as handle:
                     handle.write(json.dumps(record) + "\n")
                 print(f"   window from {fn}: '{title}' {' | '.join(texts)[:80]} -> {did}", flush=True)
-        time.sleep(0.3)
+                fn_since = now  # closing it may be all the call waits for: give it HANG_S again
+        time.sleep(0.1)
 
 
 if __name__ == "__main__":
