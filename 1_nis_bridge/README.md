@@ -281,12 +281,12 @@ requests from several clients are served in turn.
 marked cancelled and never run; one that has started runs to its end, and the
 client is told it is still running.
 
-**The NIS functions.** Every NIS macro function (`StgMoveXY`, `Capture`,
-`ImageSaveAs`, ...) is also exported by `g5_regprocs.dll`, a C library that
+**The NIS functions.** Most NIS macro functions (`StgMoveXY`, `Capture`,
+`ImageSaveAs`, ...) are also exported by `g5_regprocs.dll`, a C library that
 ships with NIS. `nis_dll.py` calls them with `ctypes`, turns their return
 codes into Python exceptions and their output values into plain Python.
 Signatures come from the macro reference installed with NIS-Elements
-(`C:\Program Files\NIS-Elements\Docs\nis\eng_ar\`). 
+(`C:\Program Files\NIS-Elements\Docs\nis\eng_ar\`).
 
 Not every function is exported: of the 1022 hardware functions in NIS's list
 (stage, devices, camera), the DLL has 565; most camera settings are missing.
