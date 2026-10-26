@@ -60,5 +60,6 @@ So the bridge needs two routes: ctypes (and `nis.call_proc` for the exposure) on
 - Perfect Focus: the status is polled until it changes (up to 5 s), and the report says whether
   it was put back.
 - Autofocus now runs before the Perfect Focus round trip, so it is not skipped.
-- The coverage check found 1 name in NIS's function list: the name extraction does not match
-  that file's format yet. To be fixed with a short excerpt of the file (not committed).
+- The coverage check found 1 name in NIS's function list: the name extraction did not match
+  that file's format. Fixed: it now reads 4071 functions in 20 sections, 4041 of them in the AR
+  edition (350 of those with a module), and reports reachability per section.

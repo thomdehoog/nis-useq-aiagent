@@ -259,21 +259,38 @@ def function_list_file():
 
 
 def names_in_function_list(path):
-    """Function names from Nikon's HTML list: link texts and names written as name(...)."""
-    with open(path, encoding="utf-8", errors="replace") as handle:
+    """Function names from NIS's HTML list, with their section and whether AR includes them.
+
+    The list has one <h2> per section and one row per function, with the name in
+    <td title="..."> and one column per edition (D, BR, AR): a circle means included, a module
+    name means included with that module, empty means not in that edition.
+    """
+    with open(path, encoding="latin-1") as handle:
         text = handle.read()
-    found = set(re.findall(r"<a\b[^>]*>\s*([A-Za-z_][A-Za-z0-9_]{2,})\s*</a>", text))
-    plain = html.unescape(re.sub(r"<[^>]+>", " ", text))
-    found |= set(re.findall(r"\b([A-Za-z_][A-Za-z0-9_]{2,})\s*\(", plain))
-    return sorted(found)
+    parts = re.split(r"<h2>(.*?)</h2>", text)
+    functions = {}
+    for index in range(1, len(parts), 2):
+        section = html.unescape(parts[index]).strip()
+        for row in re.findall(r"<tr>(.*?)</tr>", parts[index + 1], re.S):
+            name = re.search(r'<td title="([^"]+)"', row)
+            if not name:
+                continue
+            cells = [re.sub(r"\s+", "", html.unescape(re.sub(r"<[^>]+>", "", cell)))
+                     for cell in re.findall(r"<td[^>]*>(.*?)</td>", row, re.S)]
+            ar = cells[3] if len(cells) > 3 else ""
+            edition = "yes" if ar == "\u25cb" else (f"module {ar}" if ar else "no")
+            functions.setdefault(html.unescape(name.group(1)).strip(), (section, edition))
+    return functions
 
 
 def coverage():
     path = function_list_file()
     if path is None:
         return {"skipped": f"no FunctionList*.html next to this file or under {NIS_DIR}"}
-    names = names_in_function_list(path)
-    answer = {"file": path, "names_found": len(names)}
+    functions = names_in_function_list(path)
+    names = sorted(functions)
+    answer = {"file": path, "names_found": len(names),
+              "in_AR": sum(1 for _, ar in functions.values() if ar != "no")}
     routes = {"ctypes": ctypes_resolves} if regprocs else {}
     if HAS_MAC:
         routes["nis.mac"] = mac_resolves
@@ -282,12 +299,18 @@ def coverage():
         hits = [n for n in names if resolves(n)]
         answer[route] = {"reachable": len(hits), "not_reachable": len(names) - len(hits)}
         reachable[route] = set(hits)
+        by_section = {}
+        for name in names:
+            counts = by_section.setdefault(functions[name][0], [0, 0])
+            counts[0 if name in reachable[route] else 1] += 1
+        answer[route]["by_section (reachable, not)"] = by_section
     # Per name, in the results folder only: this list comes from Nikon's file and stays local.
     with open(os.path.join(OUT_DIR, "functions.csv"), "w", encoding="utf-8") as handle:
-        handle.write("function," + ",".join(routes) + "\n")
+        handle.write("function,section,in_AR," + ",".join(routes) + "\n")
         for name in names:
-            handle.write(name + "," + ",".join("yes" if name in reachable[r] else "no"
-                                               for r in routes) + "\n")
+            section, ar = functions[name]
+            handle.write(f"{name},{section},{ar}," + ",".join(
+                "yes" if name in reachable[r] else "no" for r in routes) + "\n")
     answer["bridge functions missing from the list"] = [
         n for n in BRIDGE_FUNCTIONS if n not in names]
     return answer
