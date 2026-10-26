@@ -42,3 +42,4 @@ MACRO_FILE = "start_bridge.mac"  # written next to the package by install_macros
 TIFF_ALL_LAYERS = 18  # ImageSaveAs: file type
 CLOSE_WITHOUT_ASKING = 2  # CloseCurrentDocument: do not ask about unsaved changes
 INFOSTR_VERSION = 1  # Get_InfoStr: the NIS version string
+CAMERA_MODE = 2  # GetCameraResolution, CameraFormatGet: 2 = quality capture (1 = live)
