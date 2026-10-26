@@ -5,7 +5,7 @@ functions; most camera settings are missing. NIS's Python reaches every one of
 them by name through ``nis.call_proc``, but on NIS-Elements 6.10 that breaks on
 any argument the function writes a value into: a number handed back fails with
 a blocking dialog, and a text handed back with a max length corrupts NIS's heap
-and kills it a few calls later (branch ``nis-6p1-step0``, RESULTS.md).
+and kills it a few calls later (branch ``_nis-6p1-step0``, RESULTS.md).
 
 So a function that hands values back is called inside a macro: Python writes
 the macro to a file and runs it with ``RunMacro``; the macro calls the function

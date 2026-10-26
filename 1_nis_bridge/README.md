@@ -298,7 +298,7 @@ text handed back, so the call is made inside a few lines of NIS macro, run with
 `RunMacro`, and the answer is read back from macro variables and a file. That
 costs about 20 ms per call (the DLL: under 0.1 ms), so the DLL stays the route
 for everything it exports. `get_camera` and the exposure read come through the
-macro route. Details: branch `nis-6p1-step0`, RESULTS.md.
+macro route. Details: branch `_nis-6p1-step0`, RESULTS.md.
 
 **Standard library only** on the bridge side, because it runs inside
 NIS-Elements' own Python (NIS 6.10 bundles Python 3.12 with numpy and nothing
