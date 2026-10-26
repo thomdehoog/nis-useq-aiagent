@@ -12,7 +12,7 @@ anyone at the keyboard (`step0_runner.mac`, `dialog_watcher.py`).
 | Macro functions in NIS's list | 4071 |
 | Macro functions the AR edition includes | 3691 (+350 with a module) |
 | **Reachable by name through `nis.call_proc`** | **3321**: 3175 of the 3691 AR functions (86 %), 146 with a module |
-| Called for real and confirmed working | **about 270**: the bridge's 25, and 247 hardware functions (210 getters, 37 setters; 12 positions or states changed and put back) |
+| Called for real and confirmed working | **279**, by category and route: [CALLABLE.md](CALLABLE.md). 218 of them are also in the DLL; 61 only through `nis.call_proc` (42 of those are camera functions) |
 | Reachable, not called yet | about 3000, mostly image processing, analysis, files and experiments: they need an image or a set-up per function. Their route (direct or macro) is read off the signature, not tested |
 | Not reachable (*Procedure not found*) | 750: 516 AR, 204 with a module, 30 not in AR |
 | Reachable through `g5_regprocs.dll`, for comparison | 2638 exported; of the 1022 hardware functions (Device, Acquire) 565, against 769 through `nis.call_proc` |
