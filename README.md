@@ -1,6 +1,6 @@
 # Step 0: test what NIS-Elements 6.10 lets our Python do
 
-Run on **NIS-Elements AR 6.10.02 (Build 2031)** on the Ti2 simulator, with its own Python 3.12.1 (version and Python as reported by the test itself, 2026-10-26). Every NIS function goes through `nis.call_proc`; no DLL. The same test for NIS-Elements 7.01: branch `agent/nis-7-step0`. Results in full: [RESULTS.md](RESULTS.md).
+Run on **NIS-Elements AR 6.10.02 (Build 2031)** on the Ti2 simulator, with its own Python 3.12.1 (version and Python as reported by the test itself, 2026-10-26). Every NIS function goes through `nis.call_proc`; no DLL. The same test for NIS-Elements 7.01: branch `nis-7-step0`. Results in full: [RESULTS.md](RESULTS.md).
 
 ## Run it
 
@@ -80,7 +80,7 @@ our software  ──►  NIS's Python  ──►  nis.call_proc / RunMacro  ─�
 
 ## What our Python can reach, on the simulator
 
-Reachable means `nis.call_proc` finds the function by name; it was not run. Every function: [FUNCTIONS.md](https://github.com/thomdehoog/nis-useq-aiagent/blob/agent/nis-6-step0/FUNCTIONS.md) (branch `agent/nis-6-step0`).
+Reachable means `nis.call_proc` finds the function by name; it was not run. Every function: [FUNCTIONS.md](FUNCTIONS.md) (as a spreadsheet: `functions.csv`).
 
 | Section | Reachable | Not reachable | Total |
 |---|---:|---:|---:|
