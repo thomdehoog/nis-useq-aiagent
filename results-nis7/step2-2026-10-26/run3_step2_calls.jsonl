@@ -1,0 +1,127 @@
+{"fn": "-", "phase": "run", "version": "2026-10-26 step 2", "file": "C:\\Users\\t.de/Desktop\\nikon-step2_5\\nikon-step2\\step2_calls.py", "python": "3.12.4 (tags/v3.12.4:8e8a4ba, Jun  6 2024, 19:30:16) [MSC v.1940 64 bit (AMD64)]", "pid": 27376, "time": "2026-10-26 18:15:09", "camera": false, "already_done": 0, "to_do": 3667, "crashed_last_time": null}
+{"fn": "CameraCmd_AutoExposure", "section": "Acquire", "phase": "end", "result": "not reachable", "detail": "AttributeError: 'Macro' object has no attribute 'CameraCmd_AutoExposure'"}
+{"fn": "CameraCmd_AutoWhite", "section": "Acquire", "phase": "end", "result": "not reachable", "detail": "AttributeError: 'Macro' object has no attribute 'CameraCmd_AutoWhite'"}
+{"fn": "CameraCmd_AverageReset", "section": "Acquire", "phase": "end", "result": "not reachable", "detail": "AttributeError: 'Macro' object has no attribute 'CameraCmd_AverageReset'"}
+{"fn": "CameraCmd_OnePushWB", "section": "Acquire", "phase": "end", "result": "not reachable", "detail": "AttributeError: 'Macro' object has no attribute 'CameraCmd_OnePushWB'"}
+{"fn": "CameraCmd_SetDefaults", "section": "Acquire", "phase": "end", "result": "not reachable", "detail": "AttributeError: 'Macro' object has no attribute 'CameraCmd_SetDefaults'"}
+{"fn": "CameraCmd_TurnFanOff", "section": "Acquire", "phase": "end", "result": "not reachable", "detail": "AttributeError: 'Macro' object has no attribute 'CameraCmd_TurnFanOff'"}
+{"fn": "CameraCmd_TurnFanOn", "section": "Acquire", "phase": "end", "result": "not reachable", "detail": "AttributeError: 'Macro' object has no attribute 'CameraCmd_TurnFanOn'"}
+{"fn": "CameraGet_Average", "section": "Acquire", "phase": "end", "result": "not reachable", "detail": "AttributeError: 'Macro' object has no attribute 'CameraGet_Average'"}
+{"fn": "CameraGet_AverageCH", "section": "Acquire", "phase": "end", "result": "not reachable", "detail": "AttributeError: 'Macro' object has no attribute 'CameraGet_AverageCH'"}
+{"fn": "CameraGet_AverageToQuality", "section": "Acquire", "phase": "end", "result": "not reachable", "detail": "AttributeError: 'Macro' object has no attribute 'CameraGet_AverageToQuality'"}
+{"fn": "CameraGet_AverageToQualityCH", "section": "Acquire", "phase": "end", "result": "not reachable", "detail": "AttributeError: 'Macro' object has no attribute 'CameraGet_AverageToQualityCH'"}
+{"fn": "CameraGet_Exposure", "section": "Acquire", "phase": "end", "result": "not reachable", "detail": "AttributeError: 'Macro' object has no attribute 'CameraGet_Exposure'"}
+{"fn": "CameraGet_FileName", "section": "Acquire", "phase": "end", "result": "not reachable", "detail": "AttributeError: 'Macro' object has no attribute 'CameraGet_FileName'"}
+{"fn": "CameraGet_FlexibleHeight", "section": "Acquire", "phase": "end", "result": "not reachable", "detail": "AttributeError: 'Macro' object has no attribute 'CameraGet_FlexibleHeight'"}
+{"fn": "CameraGet_FrameDuration", "section": "Acquire", "phase": "end", "result": "not reachable", "detail": "AttributeError: 'Macro' object has no attribute 'CameraGet_FrameDuration'"}
+{"fn": "CameraGet_HWTrgInEnabled", "section": "Acquire", "phase": "end", "result": "not reachable", "detail": "AttributeError: 'Macro' object has no attribute 'CameraGet_HWTrgInEnabled'"}
+{"fn": "CameraGet_HWTrgOutEnabled", "section": "Acquire", "phase": "end", "result": "not reachable", "detail": "AttributeError: 'Macro' object has no attribute 'CameraGet_HWTrgOutEnabled'"}
+{"fn": "CameraGet_Integrate", "section": "Acquire", "phase": "end", "result": "not reachable", "detail": "AttributeError: 'Macro' object has no attribute 'CameraGet_Integrate'"}
+{"fn": "CameraGet_IntegrateCH", "section": "Acquire", "phase": "end", "result": "not reachable", "detail": "AttributeError: 'Macro' object has no attribute 'CameraGet_IntegrateCH'"}
+{"fn": "CameraGet_IntegrateToQualityCH", "section": "Acquire", "phase": "end", "result": "not reachable", "detail": "AttributeError: 'Macro' object has no attribute 'CameraGet_IntegrateToQualityCH'"}
+{"fn": "CameraGet_Negate", "section": "Acquire", "phase": "end", "result": "not reachable", "detail": "AttributeError: 'Macro' object has no attribute 'CameraGet_Negate'"}
+{"fn": "CameraGet_Rotate", "section": "Acquire", "phase": "end", "result": "not reachable", "detail": "AttributeError: 'Macro' object has no attribute 'CameraGet_Rotate'"}
+{"fn": "CameraGet_StimulationTime", "section": "Acquire", "phase": "end", "result": "not reachable", "detail": "AttributeError: 'Macro' object has no attribute 'CameraGet_StimulationTime'"}
+{"fn": "CameraGet_ToRGB", "section": "Acquire", "phase": "end", "result": "not reachable", "detail": "AttributeError: 'Macro' object has no attribute 'CameraGet_ToRGB'"}
+{"fn": "CameraGet_UseDriverMetadata", "section": "Acquire", "phase": "end", "result": "not reachable", "detail": "AttributeError: 'Macro' object has no attribute 'CameraGet_UseDriverMetadata'"}
+{"fn": "CameraSet_Average", "section": "Acquire", "phase": "end", "result": "not reachable", "detail": "AttributeError: 'Macro' object has no attribute 'CameraSet_Average'"}
+{"fn": "CameraSet_AverageCH", "section": "Acquire", "phase": "end", "result": "not reachable", "detail": "AttributeError: 'Macro' object has no attribute 'CameraSet_AverageCH'"}
+{"fn": "CameraSet_AverageToQuality", "section": "Acquire", "phase": "end", "result": "not reachable", "detail": "AttributeError: 'Macro' object has no attribute 'CameraSet_AverageToQuality'"}
+{"fn": "CameraSet_AverageToQualityCH", "section": "Acquire", "phase": "end", "result": "not reachable", "detail": "AttributeError: 'Macro' object has no attribute 'CameraSet_AverageToQualityCH'"}
+{"fn": "CameraSet_Exposure", "section": "Acquire", "phase": "end", "result": "not reachable", "detail": "AttributeError: 'Macro' object has no attribute 'CameraSet_Exposure'"}
+{"fn": "CameraSet_FileName", "section": "Acquire", "phase": "end", "result": "not reachable", "detail": "AttributeError: 'Macro' object has no attribute 'CameraSet_FileName'"}
+{"fn": "CameraSet_FlexibleHeight", "section": "Acquire", "phase": "end", "result": "not reachable", "detail": "AttributeError: 'Macro' object has no attribute 'CameraSet_FlexibleHeight'"}
+{"fn": "CameraSet_FlipH", "section": "Acquire", "phase": "end", "result": "not reachable", "detail": "AttributeError: 'Macro' object has no attribute 'CameraSet_FlipH'"}
+{"fn": "CameraSet_FlipV", "section": "Acquire", "phase": "end", "result": "not reachable", "detail": "AttributeError: 'Macro' object has no attribute 'CameraSet_FlipV'"}
+{"fn": "CameraSet_FrameDuration", "section": "Acquire", "phase": "end", "result": "not reachable", "detail": "AttributeError: 'Macro' object has no attribute 'CameraSet_FrameDuration'"}
+{"fn": "CameraSet_HWTrgInEnabled", "section": "Acquire", "phase": "end", "result": "not reachable", "detail": "AttributeError: 'Macro' object has no attribute 'CameraSet_HWTrgInEnabled'"}
+{"fn": "CameraSet_HWTrgOutEnabled", "section": "Acquire", "phase": "end", "result": "not reachable", "detail": "AttributeError: 'Macro' object has no attribute 'CameraSet_HWTrgOutEnabled'"}
+{"fn": "CameraSet_Integrate", "section": "Acquire", "phase": "end", "result": "not reachable", "detail": "AttributeError: 'Macro' object has no attribute 'CameraSet_Integrate'"}
+{"fn": "CameraSet_IntegrateCH", "section": "Acquire", "phase": "end", "result": "not reachable", "detail": "AttributeError: 'Macro' object has no attribute 'CameraSet_IntegrateCH'"}
+{"fn": "CameraSet_IntegrateToQualityCH", "section": "Acquire", "phase": "end", "result": "not reachable", "detail": "AttributeError: 'Macro' object has no attribute 'CameraSet_IntegrateToQualityCH'"}
+{"fn": "CameraSet_Negate", "section": "Acquire", "phase": "end", "result": "not reachable", "detail": "AttributeError: 'Macro' object has no attribute 'CameraSet_Negate'"}
+{"fn": "CameraSet_Rotate", "section": "Acquire", "phase": "end", "result": "not reachable", "detail": "AttributeError: 'Macro' object has no attribute 'CameraSet_Rotate'"}
+{"fn": "CameraSet_StimulationTime", "section": "Acquire", "phase": "end", "result": "not reachable", "detail": "AttributeError: 'Macro' object has no attribute 'CameraSet_StimulationTime'"}
+{"fn": "CameraSet_ToRGB", "section": "Acquire", "phase": "end", "result": "not reachable", "detail": "AttributeError: 'Macro' object has no attribute 'CameraSet_ToRGB'"}
+{"fn": "CameraSet_UseDriverMetadata", "section": "Acquire", "phase": "end", "result": "not reachable", "detail": "AttributeError: 'Macro' object has no attribute 'CameraSet_UseDriverMetadata'"}
+{"fn": "CameraFormatGet", "section": "Acquire", "phase": "end", "result": "not reachable", "detail": "AttributeError: 'Macro' object has no attribute 'CameraFormatGet'"}
+{"fn": "CameraFormatSet", "section": "Acquire", "phase": "end", "result": "not reachable", "detail": "AttributeError: 'Macro' object has no attribute 'CameraFormatSet'"}
+{"fn": "CameraSettings_Load", "section": "Acquire", "phase": "end", "result": "not reachable", "detail": "AttributeError: 'Macro' object has no attribute 'CameraSettings_Load'"}
+{"fn": "CameraSettings_Remove", "section": "Acquire", "phase": "end", "result": "not reachable", "detail": "AttributeError: 'Macro' object has no attribute 'CameraSettings_Remove'"}
+{"fn": "CameraSettings_RemoveAll", "section": "Acquire", "phase": "end", "result": "not reachable", "detail": "AttributeError: 'Macro' object has no attribute 'CameraSettings_RemoveAll'"}
+{"fn": "CameraSettings_Save", "section": "Acquire", "phase": "end", "result": "not reachable", "detail": "AttributeError: 'Macro' object has no attribute 'CameraSettings_Save'"}
+{"fn": "CameraUpdateGUI", "section": "Acquire", "phase": "end", "result": "not reachable", "detail": "AttributeError: 'Macro' object has no attribute 'CameraUpdateGUI'"}
+{"fn": "Camera_AngleGet", "section": "Acquire", "phase": "end", "result": "not reachable", "detail": "AttributeError: 'Macro' object has no attribute 'Camera_AngleGet'"}
+{"fn": "Camera_AverageGet", "section": "Acquire", "phase": "end", "result": "not reachable", "detail": "AttributeError: 'Macro' object has no attribute 'Camera_AverageGet'"}
+{"fn": "Camera_AverageSet", "section": "Acquire", "phase": "end", "result": "not reachable", "detail": "AttributeError: 'Macro' object has no attribute 'Camera_AverageSet'"}
+{"fn": "Camera_ExposureGet", "section": "Acquire", "phase": "end", "result": "not reachable", "detail": "AttributeError: 'Macro' object has no attribute 'Camera_ExposureGet'"}
+{"fn": "Camera_ExposureSet", "section": "Acquire", "phase": "end", "result": "not reachable", "detail": "AttributeError: 'Macro' object has no attribute 'Camera_ExposureSet'"}
+{"fn": "Camera_GainRGet", "section": "Acquire", "phase": "end", "result": "not reachable", "detail": "AttributeError: 'Macro' object has no attribute 'Camera_GainRGet'"}
+{"fn": "Camera_GainRSet", "section": "Acquire", "phase": "end", "result": "not reachable", "detail": "AttributeError: 'Macro' object has no attribute 'Camera_GainRSet'"}
+{"fn": "Camera_GainBGet", "section": "Acquire", "phase": "end", "result": "not reachable", "detail": "AttributeError: 'Macro' object has no attribute 'Camera_GainBGet'"}
+{"fn": "Camera_GainBSet", "section": "Acquire", "phase": "end", "result": "not reachable", "detail": "AttributeError: 'Macro' object has no attribute 'Camera_GainBSet'"}
+{"fn": "Camera_IntegrateGet", "section": "Acquire", "phase": "end", "result": "not reachable", "detail": "AttributeError: 'Macro' object has no attribute 'Camera_IntegrateGet'"}
+{"fn": "Camera_IntegrateSet", "section": "Acquire", "phase": "end", "result": "not reachable", "detail": "AttributeError: 'Macro' object has no attribute 'Camera_IntegrateSet'"}
+{"fn": "Camera_RelayLensGet", "section": "Acquire", "phase": "end", "result": "not reachable", "detail": "AttributeError: 'Macro' object has no attribute 'Camera_RelayLensGet'"}
+{"fn": "Camera_RelayLensSet", "section": "Acquire", "phase": "end", "result": "not reachable", "detail": "AttributeError: 'Macro' object has no attribute 'Camera_RelayLensSet'"}
+{"fn": "Camera_RotateGet", "section": "Acquire", "phase": "end", "result": "not reachable", "detail": "AttributeError: 'Macro' object has no attribute 'Camera_RotateGet'"}
+{"fn": "Camera_RotateSet", "section": "Acquire", "phase": "end", "result": "not reachable", "detail": "AttributeError: 'Macro' object has no attribute 'Camera_RotateSet'"}
+{"fn": "Camera_SensorModeGet", "section": "Acquire", "phase": "end", "result": "not reachable", "detail": "AttributeError: 'Macro' object has no attribute 'Camera_SensorModeGet'"}
+{"fn": "Camera_SensorModeSet", "section": "Acquire", "phase": "end", "result": "not reachable", "detail": "AttributeError: 'Macro' object has no attribute 'Camera_SensorModeSet'"}
+{"fn": "Camera_TemperatureGet", "section": "Acquire", "phase": "end", "result": "not reachable", "detail": "AttributeError: 'Macro' object has no attribute 'Camera_TemperatureGet'"}
+{"fn": "Camera_TriggerModeGet", "section": "Acquire", "phase": "end", "result": "not reachable", "detail": "AttributeError: 'Macro' object has no attribute 'Camera_TriggerModeGet'"}
+{"fn": "Camera_TriggerModeSet", "section": "Acquire", "phase": "end", "result": "not reachable", "detail": "AttributeError: 'Macro' object has no attribute 'Camera_TriggerModeSet'"}
+{"fn": "ChangeFollowExposureMode", "section": "Acquire", "phase": "end", "result": "not reachable", "detail": "AttributeError: 'Macro' object has no attribute 'ChangeFollowExposureMode'"}
+{"fn": "EnableFocusCriterium", "section": "Acquire", "phase": "end", "result": "not reachable", "detail": "AttributeError: 'Macro' object has no attribute 'EnableFocusCriterium'"}
+{"fn": "EnableMouseXY", "phase": "start", "t": 1793034910.0904925}
+{"fn": "EnableMouseXY", "section": "Acquire", "phase": "end", "result": "needs arguments", "detail": "error: Bad number of parameters", "ms": 0.02}
+{"fn": "EnableTrackXY", "phase": "start", "t": 1793034910.0954792}
+{"fn": "EnableTrackXY", "section": "Acquire", "phase": "end", "result": "needs arguments", "detail": "error: Bad number of parameters", "ms": 0.01}
+{"fn": "GetCameraName", "section": "Acquire", "phase": "end", "result": "not reachable", "detail": "AttributeError: 'Macro' object has no attribute 'GetCameraName'"}
+{"fn": "GetCameraResolution", "section": "Acquire", "phase": "end", "result": "not reachable", "detail": "AttributeError: 'Macro' object has no attribute 'GetCameraResolution'"}
+{"fn": "GetCurrentCameraDriverName", "section": "Acquire", "phase": "end", "result": "not reachable", "detail": "AttributeError: 'Macro' object has no attribute 'GetCurrentCameraDriverName'"}
+{"fn": "GetCurrentCameraName", "section": "Acquire", "phase": "end", "result": "not reachable", "detail": "AttributeError: 'Macro' object has no attribute 'GetCurrentCameraName'"}
+{"fn": "GetFollowExposureMode", "section": "Acquire", "phase": "end", "result": "not reachable", "detail": "AttributeError: 'Macro' object has no attribute 'GetFollowExposureMode'"}
+{"fn": "InputCameraEx", "section": "Acquire", "phase": "end", "result": "not reachable", "detail": "AttributeError: 'Macro' object has no attribute 'InputCameraEx'"}
+{"fn": "InputHWUnit", "section": "Acquire", "phase": "end", "result": "not reachable", "detail": "AttributeError: 'Macro' object has no attribute 'InputHWUnit'"}
+{"fn": "LockCameraMagnification", "phase": "start", "t": 1793034910.1423538}
+{"fn": "LockCameraMagnification", "section": "Acquire", "phase": "end", "result": "needs arguments", "detail": "error: Bad number of parameters", "ms": 0.01}
+{"fn": "ManualIntegration", "section": "Acquire", "phase": "end", "result": "not reachable", "detail": "AttributeError: 'Macro' object has no attribute 'ManualIntegration'"}
+{"fn": "ResetFocusCriteriumMax", "section": "Acquire", "phase": "end", "result": "not reachable", "detail": "AttributeError: 'Macro' object has no attribute 'ResetFocusCriteriumMax'"}
+{"fn": "ShowShadingCorrections", "phase": "start", "t": 1793034910.1543224}
+{"fn": "ShowShadingCorrections", "section": "Acquire", "phase": "end", "result": "ran", "detail": "None", "ms": 0.08}
+{"fn": "ToggleInputSetup", "section": "Acquire", "phase": "end", "result": "not reachable", "detail": "AttributeError: 'Macro' object has no attribute 'ToggleInputSetup'"}
+{"fn": "TrackXYSetup", "phase": "start", "t": 1793034910.1632977}
+{"fn": "TrackXYSetup", "section": "Acquire", "phase": "end", "result": "ran", "detail": "None", "ms": 0.03}
+{"fn": "_CameraSetAverageToQuality", "section": "Acquire", "phase": "end", "result": "not reachable", "detail": "AttributeError: 'Macro' object has no attribute '_CameraSetAverageToQuality'"}
+{"fn": "_InputCameraEx", "section": "Acquire", "phase": "end", "result": "not reachable", "detail": "AttributeError: 'Macro' object has no attribute '_InputCameraEx'"}
+{"fn": "_InputDriver", "section": "Acquire", "phase": "end", "result": "not reachable", "detail": "AttributeError: 'Macro' object has no attribute '_InputDriver'"}
+{"fn": "_InputHWUnit", "section": "Acquire", "phase": "end", "result": "not reachable", "detail": "AttributeError: 'Macro' object has no attribute '_InputHWUnit'"}
+{"fn": "_InputHWUnitAndCamera", "section": "Acquire", "phase": "end", "result": "not reachable", "detail": "AttributeError: 'Macro' object has no attribute '_InputHWUnitAndCamera'"}
+{"fn": "_InputHWUnitAndCamera2", "section": "Acquire", "phase": "end", "result": "not reachable", "detail": "AttributeError: 'Macro' object has no attribute '_InputHWUnitAndCamera2'"}
+{"fn": "_InputSetup", "section": "Acquire", "phase": "end", "result": "not reachable", "detail": "AttributeError: 'Macro' object has no attribute '_InputSetup'"}
+{"fn": "_ManualIntegration", "section": "Acquire", "phase": "end", "result": "not reachable", "detail": "AttributeError: 'Macro' object has no attribute '_ManualIntegration'"}
+{"fn": "Capture", "section": "Acquire", "phase": "end", "result": "needs the camera", "detail": "not run: the camera is off"}
+{"fn": "CaptureEx", "section": "Acquire", "phase": "end", "result": "needs the camera", "detail": "not run: the camera is off"}
+{"fn": "CaptureExWithName", "section": "Acquire", "phase": "end", "result": "needs the camera", "detail": "not run: the camera is off"}
+{"fn": "CaptureFast", "section": "Acquire", "phase": "end", "result": "not reachable", "detail": "AttributeError: 'Macro' object has no attribute 'CaptureFast'"}
+{"fn": "FineGrab", "section": "Acquire", "phase": "end", "result": "not reachable", "detail": "AttributeError: 'Macro' object has no attribute 'FineGrab'"}
+{"fn": "_CaptureEDF", "section": "Acquire", "phase": "end", "result": "needs the camera", "detail": "not run: the camera is off"}
+{"fn": "_CaptureHDR", "section": "Acquire", "phase": "end", "result": "needs the camera", "detail": "not run: the camera is off"}
+{"fn": "_CaptureZStack", "section": "Acquire", "phase": "end", "result": "needs the camera", "detail": "not run: the camera is off"}
+{"fn": "_Grabbing", "section": "Acquire", "phase": "end", "result": "needs the camera", "detail": "not run: the camera is off"}
+{"fn": "MultiViewEnable", "section": "Acquire", "phase": "end", "result": "not reachable", "detail": "AttributeError: 'Macro' object has no attribute 'MultiViewEnable'"}
+{"fn": "MultiViewEnabled", "section": "Acquire", "phase": "end", "result": "not reachable", "detail": "AttributeError: 'Macro' object has no attribute 'MultiViewEnabled'"}
+{"fn": "MultiViewSourceSet", "section": "Acquire", "phase": "end", "result": "not reachable", "detail": "AttributeError: 'Macro' object has no attribute 'MultiViewSourceSet'"}
+{"fn": "MultiViewSwitch", "section": "Acquire", "phase": "end", "result": "not reachable", "detail": "AttributeError: 'Macro' object has no attribute 'MultiViewSwitch'"}
+{"fn": "_MultiViewSourceDefine", "section": "Acquire", "phase": "end", "result": "not reachable", "detail": "AttributeError: 'Macro' object has no attribute '_MultiViewSourceDefine'"}
+{"fn": "Experiment_ClearChannelParfocalityOffsets", "phase": "start", "t": 1793034910.2630308}
+{"fn": "Experiment_ClearChannelParfocalityOffsets", "section": "Acquire", "phase": "end", "result": "ran", "detail": "None", "ms": 0.01}
+{"fn": "Experiment_DetectParfocalities", "phase": "start", "t": 1793034910.2690158}
+{"fn": "Experiment_DetectParfocalities", "section": "Acquire", "phase": "end", "result": "crashed or hung", "detail": "NIS crashed or hung in this call; the run was started again after it"}
+{"fn": "-", "phase": "run", "version": "2026-10-26 step 2", "file": "C:\\Users\\t.de/Desktop\\nikon-step2_5\\nikon-step2\\step2_calls.py", "python": "3.12.4 (tags/v3.12.4:8e8a4ba, Jun  6 2024, 19:30:16) [MSC v.1940 64 bit (AMD64)]", "pid": 19524, "time": "2026-10-26 18:15:43", "camera": false, "already_done": 113, "to_do": 3554, "crashed_last_time": "Experiment_DetectParfocalities"}
+{"fn": "Experiment_RunAutoAll", "phase": "start", "t": 1793034943.4866927}
+{"fn": "Experiment_RunAutoAll", "section": "Acquire", "phase": "end", "result": "crashed or hung", "detail": "NIS crashed or hung in this call; the run was started again after it"}
+{"fn": "-", "phase": "run", "version": "2026-10-26 step 2", "file": "C:\\Users\\t.de/Desktop\\nikon-step2_5\\nikon-step2\\step2_calls.py", "python": "3.12.4 (tags/v3.12.4:8e8a4ba, Jun  6 2024, 19:30:16) [MSC v.1940 64 bit (AMD64)]", "pid": 27368, "time": "2026-10-26 18:18:00", "camera": false, "already_done": 114, "to_do": 3553, "crashed_last_time": "Experiment_RunAutoAll"}
+{"fn": "Experiment_RunAutoBrightnessAndFocusOnAllChannels", "section": "Acquire", "phase": "end", "result": "not reachable", "detail": "AttributeError: 'Macro' object has no attribute 'Experiment_RunAutoBrightnessAndFocusOnAllChannels'"}
+{"fn": "Experiment_RunAutoBrightnessOnAllChannels", "phase": "start", "t": 1793035080.5739224}

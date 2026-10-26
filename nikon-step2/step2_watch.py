@@ -198,16 +198,17 @@ def main():
         current = read_current() or {}
         now = time.time()
         fn = current.get("fn")
-        if fn != last_fn:
-            last_fn, fn_since = fn, now
+        running = bool(current.get("running"))
+        if (fn, running) != last_fn:
+            last_fn, fn_since = (fn, running), now
         if now - last_print > 1.0:
             last_print = now
             line = f"[{current.get('i', 0)}/{current.get('n', '?')}] now: {fn or '-'}"
-            if fn and now - fn_since > 0.5:
+            if fn and running and now - fn_since > 0.5:
                 line += f" (reachable, running in NIS {now - fn_since:.1f} s; NIS restarts at {HANG_S} s)"
             print(line, flush=True)
             print(f"      so far: {counts_text(current.get('counts', {}))}", flush=True)
-        if fn and not current.get("done") and now - fn_since > HANG_S:
+        if fn and running and not current.get("done") and now - fn_since > HANG_S:
             restart(exe, f"no answer for {HANG_S} s (hung)", fn)
             return
         if current.get("done"):

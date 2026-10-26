@@ -1,0 +1,3 @@
+2026-10-26 18:15:11	Experiment_DetectParfocalities	no answer for 1 s (hung)
+2026-10-26 18:15:45	Experiment_RunAutoAll	no answer for 1 s (hung)
+2026-10-26 18:18:02	Experiment_RunAutoBrightnessOnAllChannels	no answer for 1 s (hung)

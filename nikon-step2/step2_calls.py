@@ -51,7 +51,12 @@ LAST = re.compile(r"(^|_)(Exit|Quit|Restart|Reboot|Shut_?down|Log_?off|Log_?out)
                   re.IGNORECASE)
 
 # With the camera off these wait for it (_CaptureEDF: 153 s): not run then, marked so.
-NEEDS_CAMERA = re.compile(r"Captur|Grab|Live|Acqui|AutoFocus|HDR|Freeze_", re.IGNORECASE)
+# Experiment_*, Auto* and focus calls hung NIS (run of 2026-10-26); readings (Get*, Is*) still run.
+NEEDS_CAMERA = re.compile(
+    r"Captur|Grab|Live|Acqui|Focus|HDR|Freeze_|^Experiment_|Parfocal|Snap|Shading|Stimulat|Trigger"
+    r"|Auto(All|Bright|Expos|Signal|White|Gain)|Exposure|^_?ND_(Run|Start|Pause|Resume)"
+    r"|Calibrat\w*Automatic", re.IGNORECASE)
+READING = re.compile(r"^_?(Get|Is|Stg_?Get|StgIs|Org_)", re.IGNORECASE)
 
 try:
     import nis  # exists only inside NIS-Elements
@@ -132,7 +137,7 @@ def call(name, section):
         record.update(result="not reachable", detail=f"{type(error).__name__}: {error}")
         return record
     record.update(describe(function))
-    if not state.get("camera") and NEEDS_CAMERA.search(name):
+    if not state.get("camera") and NEEDS_CAMERA.search(name) and not READING.match(name):
         record.update(result="needs the camera", detail="not run: the camera is off")
         return record
     write({"fn": name, "phase": "start", "t": time.time()})
@@ -192,11 +197,13 @@ def pump():
         while state["index"] < len(state["todo"]) and time.perf_counter() < until:
             name, section = state["todo"][state["index"]]
             done_before = state["resumed"] + state["index"]
-            show(i=done_before, n=state["total"], fn=name, counts=state["counts"], done=False)
+            show(i=done_before, n=state["total"], fn=name, counts=state["counts"], done=False, running=True)
             record = call(name, section)
             write(record)
             state["counts"][record["result"]] = state["counts"].get(record["result"], 0) + 1
             state["index"] += 1
+            show(i=done_before + 1, n=state["total"], fn=name, counts=state["counts"], done=False,
+                 running=False)  # answered: whatever NIS does now is not this call hanging
         if state["index"] >= len(state["todo"]):
             finish()
     except BaseException as error:  # noqa: BLE001 - an error here would reach NIS every pass
