@@ -1,0 +1,1 @@
+2026-10-26 18:10:12	_CaptureEDF	no answer for 60 s (hung)
