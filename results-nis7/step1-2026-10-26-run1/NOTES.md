@@ -14,6 +14,6 @@ Dialogs noted:
 
 | Time | Dialog | Source |
 |---|---|---|
-| 17:34:18 | untitled, button "Continue" | already open at the start; not known |
-| 17:35:38 | "Command Interpreter Error: Cannot Evaluate the Expression. `EnableShading(2)`" | not the test, and nobody clicked: NIS itself. `EnableShading` is a camera function, absent without the camera (step 0). Open: does it also appear without our macro running? |
+| 17:34:18 | untitled, button "Continue" | the macro's own `WaitText` message |
+| 17:35:38 | "Command Interpreter Error: Cannot Evaluate the Expression. `EnableShading(2)`" | the shading correction button (pressed in place of Stop, see run 2); `EnableShading` is a camera function, absent without the camera (step 0) |
 | 17:35:48 | "Interrupt Macro Execution?" | the Stop button |

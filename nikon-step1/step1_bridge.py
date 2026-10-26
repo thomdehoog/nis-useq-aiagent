@@ -39,6 +39,8 @@ import threading
 import time
 import traceback
 
+VERSION = "2026-10-26 run-by-itself"  # in the log, so a run shows which files it used
+
 # -- settings: edit before a run ----------------------------------------------------------
 HERE = os.path.dirname(os.path.abspath(__file__))
 OUT_DIR = os.path.join(HERE, "results")
@@ -79,7 +81,7 @@ _log_lock = threading.Lock()
 _log_file = open(os.path.join(OUT_DIR, "step1.log"), "a", encoding="utf-8")
 
 state = {
-    "started": time.strftime("%Y-%m-%d %H:%M:%S"),
+    "started": time.strftime("%Y-%m-%d %H:%M:%S"), "version": VERSION, "file": __file__,
     "python": sys.version, "platform": platform.platform(), "pid": os.getpid(),
     "nis_module": nis is not None,
     "main_thread": None,  # the thread start() ran on: NIS's own
@@ -238,6 +240,7 @@ def start():
             old.server_close()
         except Exception as error:  # noqa: BLE001
             log(f"could not close it: {error}")
+    log(f"start: step 1 version {VERSION}, file {os.path.abspath(__file__)}")
     log(f"start: Python {sys.version.split()[0]}, pid {os.getpid()}, nis module {nis is not None}")
     try:
         _server = Server((HOST, PORT), Handler)
@@ -323,6 +326,7 @@ def write_summary():
     s = state
     lines = [
         f"step 1, {s['started']} to {s.get('finished', '?')}, stopped by: {s['stopped_by']}",
+        f"version {s['version']}, {s['file']}",
         f"Python {s['python'].split()[0]}, nis module: {s['nis_module']}",
         f"macro loop: {s['pumps']} passes, {s.get('pumps_per_s', '?')} per second, longest gap "
         f"{s['longest_gap_s']} s, passes not on NIS's thread: {s['pumps_off_main_thread']}",
