@@ -30,7 +30,10 @@ DIALOGS = os.path.join(OUT_DIR, "step2_dialogs.jsonl")
 NEVER_TOUCH = ("Confirm Interrupting Macro",)
 BUTTONS = ("cancel", "no", "close", "ok", "continue", "abort", "ignore")  # first found is pressed
 WAIT_BEFORE_CLOSING_S = 1.0  # a window must stay this long before it is closed
-STUCK_S = 60  # one call this long: say so
+HANG_S = 60  # a call this long is hung: NIS is closed and started again, and the run carries on
+MAX_RESTARTS = 200  # after this many restarts of NIS, stop restarting
+MACRO = os.path.join(os.path.dirname(os.path.abspath(OUT_DIR)), "step2.mac")
+RESTARTS = os.path.join(OUT_DIR, "step2_restarts.txt")
 WINDOWS = sys.platform == "win32"
 
 if WINDOWS:
@@ -93,6 +96,55 @@ def close(hwnd):
     return "asked to close"
 
 
+def nis_exe():
+    """The full path of the running nis_ar.exe, to start it again after a crash or hang."""
+    if not WINDOWS:
+        return None
+    handle = kernel32.OpenProcess(0x1000, False, NIS_PID)  # PROCESS_QUERY_LIMITED_INFORMATION
+    if not handle:
+        return None
+    buffer = ctypes.create_unicode_buffer(1024)
+    size = wintypes.DWORD(1024)
+    ok = kernel32.QueryFullProcessImageNameW(handle, 0, buffer, ctypes.byref(size))
+    kernel32.CloseHandle(handle)
+    return buffer.value if ok else None
+
+
+def restart(exe, reason, fn):
+    """Close NIS if it still runs, start it again with step2.mac, and end this window.
+
+    The new run notes the function NIS went down in as "crashed or hung" and carries on after it.
+    """
+    count = 1
+    if os.path.exists(RESTARTS):
+        with open(RESTARTS, encoding="utf-8") as handle:
+            count = sum(1 for _ in handle) + 1
+    with open(RESTARTS, "a", encoding="utf-8") as handle:
+        handle.write(f"{time.strftime('%Y-%m-%d %H:%M:%S')}\t{fn}\t{reason}\n")
+    print(f" {fn}: {reason}.", flush=True)
+    if count > MAX_RESTARTS:
+        end([f"NIS went down {count} times; no more restarts.", "Start NIS and run step2.mac by hand."])
+        return
+    if not exe:
+        end(["Start NIS again and run step2.mac: it carries on after that function."])
+        return
+    if nis_alive():
+        print(" Closing NIS ...", flush=True)
+        handle = kernel32.OpenProcess(0x0001 | 0x00100000, False, NIS_PID)  # TERMINATE | SYNCHRONIZE
+        if handle:
+            kernel32.TerminateProcess(handle, 1)
+            kernel32.WaitForSingleObject(handle, 20000)
+            kernel32.CloseHandle(handle)
+        time.sleep(2)
+    macro = MACRO.replace("\\", "\\\\")
+    print(f" Starting NIS again (restart {count}); the run carries on after {fn}.", flush=True)
+    print(" If it does not carry on within 3 minutes: run step2.mac by hand.", flush=True)
+    import subprocess
+    flags = getattr(subprocess, "DETACHED_PROCESS", 0) | getattr(subprocess, "CREATE_NEW_PROCESS_GROUP", 0)
+    subprocess.Popen([exe, "-c", f'RunMacro("{macro}")'], creationflags=flags, close_fds=True)
+    time.sleep(5)
+
+
 def nis_alive():
     if not WINDOWS:
         try:
@@ -139,6 +191,7 @@ def main():
     print(" this window says FINISHED. Dialogs that calls open are closed by this window.")
     print("=" * 78, flush=True)
     baseline = set(nis_windows()) if WINDOWS else set()
+    exe = nis_exe()
     seen, acted = {}, {}
     last_print, last_fn, fn_since = 0.0, None, time.time()
     while True:
@@ -150,12 +203,12 @@ def main():
         if now - last_print > 1.0:
             last_print = now
             line = f"[{current.get('i', 0)}/{current.get('n', '?')}] {fn or ''}"
-            if fn and now - fn_since > STUCK_S:
+            if fn and now - fn_since > 5:
                 line += f"   <- running {int(now - fn_since)} s"
             print(f"{line:<60} {counts_text(current.get('counts', {}))}", flush=True)
-            if fn and int(now - fn_since) in range(STUCK_S, STUCK_S + 2):
-                print(f" {fn} has not returned for {STUCK_S} s. If it stays like this: close NIS,")
-                print(" start it again and run step2.mac: it carries on after this function.", flush=True)
+        if fn and not current.get("done") and now - fn_since > HANG_S:
+            restart(exe, f"no answer for {HANG_S} s (hung)", fn)
+            return
         if current.get("done"):
             end([f"STEP 2 FINISHED: {current.get('n')} functions called.",
                  counts_text(current.get("counts", {})),
@@ -166,8 +219,7 @@ def main():
                  "Run step2.mac again to carry on where it stopped."])
             return
         if not nis_alive():
-            end([f"NIS closed or crashed during {fn or 'the run'}.",
-                 "Start NIS again and run step2.mac: it carries on after that function."])
+            restart(exe, "NIS closed or crashed", fn or "the run")
             return
         if WINDOWS:
             for hwnd in nis_windows():

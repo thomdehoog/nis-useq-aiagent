@@ -12,9 +12,10 @@ Nothing is skipped. It runs by itself; nothing to install.
    a call opens, which it closes. Leave NIS alone until it says **STEP 2 FINISHED**.
 5. Send the `results` folder.
 
-**If NIS crashes or hangs:** close NIS (Task Manager if needed), start it again, and run
-`step2.mac` again. It carries on after the function that crashed, and marks that one
-"crashed or hung". Repeat until FINISHED. The macro Stop button pauses the same way.
+**If a call hangs (no answer for 60 s) or NIS crashes,** the black window closes NIS, starts
+it again with `step2.mac`, and the run carries on after that function, marked "crashed or
+hung" (`results\step2_restarts.txt` lists each restart). If NIS does not come back within a
+few minutes: start it and run `step2.mac` by hand; it carries on the same way.
 
 ## How
 
