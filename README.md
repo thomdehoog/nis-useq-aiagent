@@ -1,6 +1,6 @@
 # Step 0: test what NIS-Elements 6.10 lets our Python do
 
-The mirror of the NIS 7 Step 0 (branch `agent/nis-7-step0`), for **NIS-Elements AR 6.10.02**
+Run on **NIS-Elements AR 6.10.02**
 on the Ti2 simulator: the version the bridge was built and tested on. It calls every NIS
 function the bridge uses, so the two versions can be compared function by function.
 
