@@ -29,12 +29,16 @@ is **not** part of this branch.
 
 ## Every function in the list: reachable?
 
-Last in the run. 6.10 has no `nis.mac` to look a name up without calling it, so each name is
-called with one argument that no NIS function can take. If `nis.call_proc` refuses the
-argument, it found the function and ran nothing ("yes"). If it answers as for a name that does
-not exist, NIS does not have the function in this run ("no"). Before the sweep, three control
-calls check that this is safe: a name that does not exist, `GetOptConfCount` (takes no
-argument) and `StgMoveZ` (Z must not move). If one of them fails, no name is swept.
+Early in the run, right after the function list is counted. 6.10 has no `nis.mac` to look a
+name up without calling it, so each name is called with one argument that no NIS function can
+take. If `nis.call_proc` refuses the argument, it found the function and ran nothing ("yes").
+If it answers as for a name that does not exist (*Procedure not found*), NIS does not have the
+function in this run ("no"). Before the sweep, three control calls check that this is safe: a
+name that does not exist, `GetOptConfCount` (takes no argument) and `Stg_SetNosepiecePosition`
+(the objective must not change). If one of them fails, no name is swept.
+
+Once the log says `END reach / every function in NIS's list`, the reachability results are
+saved. The rest of the run opens dialogs (click OK) and may crash NIS (see RESULTS.md).
 
 ## What it calls
 

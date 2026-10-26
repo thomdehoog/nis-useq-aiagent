@@ -1,5 +1,29 @@
 # Step 0 results
 
+## 2026-10-26, second run: everything through nis.call_proc
+
+NIS-Elements 6.10.02 (Build 2031), Ti2 simulator, test 9e97f46. NIS crashed halfway.
+
+| Question | Answer |
+|---|---|
+| A name that does not exist | `nis.error: Procedure not found` |
+| A text handed back (`Get_InfoStr`) | **Works** with a count (`256`), a sequence and a string: `[1, 1, '6.10.02 (Build 2031)']` |
+| A number handed back (`StgGetPosXY`) | **Fails** with a count and with a sequence: `nis.error: Failed to run procedure`, and NIS opens a blocking dialog: *Command Interpreter Error: Cannot Evaluate the Expression. StgGetPosXY(LpStgX,LpStgY)* |
+| `StgGetPos`, `StgGetPosXY`, `StgGetPosZ`, `StgXY_GetLimits` | Fail the same way, one dialog each |
+| `GetOptConfCount`, `GetOptConfName` | Work |
+| Function list | 4071 functions, 3691 in AR, 350 more in AR with a module; all bridge functions in it |
+| Crash | Right after `GetOptConfName`, before the next check started |
+
+The dialog names the arguments as Nikon's macro reference does (`LpStgX`, `LpStgY`), so
+`nis.call_proc` seems to build a macro expression from the function's own parameter names.
+
+### Changed in the test after this run
+
+- The reachability sweep runs right after the function list, before the number probe, the
+  readings and the writes.
+- Its write control is the objective (`Stg_SetNosepiecePosition`, read back as a return
+  value), since Z cannot be read through `nis.call_proc`.
+
 ## 2026-10-26: NIS-Elements AR 6.10.02, Ti2 simulator
 
 One run, with all writes on. 26 of 27 checks passed; the one failure is the test's own
