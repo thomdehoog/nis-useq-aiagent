@@ -1,6 +1,6 @@
 # Step 0: test what NIS-Elements 6.10 lets our Python do
 
-Run on **NIS-Elements AR 6.10.02 (Build 2031)** on the Ti2 simulator, with its own Python 3.12.1 (version and Python as reported by the test itself, 2026-10-26). Every NIS function goes through `nis.call_proc`; no DLL. The same test for NIS-Elements 7.01: branch `nis-7-step0`. Results in full: [RESULTS.md](RESULTS.md).
+Run on **NIS-Elements AR 6.10.02 (Build 2031)** on the Ti2 simulator, with its own Python 3.12.1 (version and Python as reported by the test itself, 2026-10-26). Every NIS function goes through `nis.call_proc`; no DLL. The same test for NIS-Elements 7.01: branch `_nis-7-step0`. Results in full: [RESULTS.md](RESULTS.md).
 
 ## Run it
 
@@ -20,7 +20,7 @@ Run on **NIS-Elements AR 6.10.02 (Build 2031)** on the Ti2 simulator, with its o
 Without anyone at the keyboard: `step0_runner.mac` keeps a loop running inside NIS. Write a
 script name (e.g. `step0_calls.py`) into `runner\request.txt`; NIS runs it and writes
 `runner\done.txt`. The macro holds the folder's path: edit it if the folder is not
-`Desktop\nis-useq-aiagent-nis-6p1-step0`. Stop it with the macro Stop button or
+`Desktop\nis-useq-aiagent-_nis-6p1-step0`. Stop it with the macro Stop button or
 `runner\stop.txt`.
 
 ## The results

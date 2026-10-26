@@ -1,8 +1,8 @@
 WaitText(1, "step0 runner: starting");
 SetCommandText("step0 runner: waiting for work (Stop button ends it)");
-while (ExistFile("C:/Users/t.de/Desktop/nis-useq-aiagent-nis-6p1-step0/runner/stop.txt") == 0)
+while (ExistFile("C:/Users/t.de/Desktop/nis-useq-aiagent-_nis-6p1-step0/runner/stop.txt") == 0)
 {
-    Python_RunString("import runpy; runpy.run_path('C:/Users/t.de/Desktop/nis-useq-aiagent-nis-6p1-step0/runner_tick.py')");
+    Python_RunString("import runpy; runpy.run_path('C:/Users/t.de/Desktop/nis-useq-aiagent-_nis-6p1-step0/runner_tick.py')");
     Wait(0.2);
 }
 SetCommandText(0);
