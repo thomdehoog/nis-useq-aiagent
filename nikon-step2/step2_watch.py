@@ -137,6 +137,13 @@ def restart(exe, reason, fn):
     time.sleep(5)
 
 
+def press_escape():
+    """Escape to every NIS window: cancels most running operations (capture, focus, progress)."""
+    for hwnd in nis_windows():
+        user32.PostMessageW(hwnd, 0x0100, 0x1B, 0x00010001)  # WM_KEYDOWN, VK_ESCAPE
+        user32.PostMessageW(hwnd, 0x0101, 0x1B, 0xC0010001)  # WM_KEYUP
+
+
 def nis_alive():
     if not WINDOWS:
         try:
@@ -185,6 +192,7 @@ def main():
     baseline = set(nis_windows()) if WINDOWS else set()
     exe = nis_exe()
     hung = set()
+    last_escape = 0.0
     seen, acted = {}, {}
     last_print, last_fn, fn_since = 0.0, None, time.time()
     while True:
@@ -199,9 +207,13 @@ def main():
             line = f"[{current.get('i', 0)}/{current.get('n', '?')}] now: {fn or '-'}"
             if fn and running and now - fn_since > 0.5:
                 line += f" (running in NIS {now - fn_since:.0f} s"
-                line += "; HUNG, waiting: NIS is not closed)" if now - fn_since > HANG_S else ")"
+                line += "; HUNG: Escape is pressed until it ends; NIS is not closed)" if now - fn_since > HANG_S else ")"
             print(line, flush=True)
             print(f"      so far: {counts_text(current.get('counts', {}))}", flush=True)
+        if WINDOWS and fn and running and now - fn_since > HANG_S and now - last_escape > 2.0:
+            press_escape()  # try to end the hung call; NIS itself is never closed
+            last_escape = now
+            print(f"   {fn}: pressed Escape in NIS to end it", flush=True)
         if fn and running and not current.get("done") and now - fn_since > HANG_S and fn not in hung:
             hung.add(fn)
             with open(RESTARTS.replace("restarts", "hung"), "a", encoding="utf-8") as handle:
