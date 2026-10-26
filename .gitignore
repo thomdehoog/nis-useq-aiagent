@@ -2,3 +2,5 @@
 FunctionList*.htm*
 results/
 __pycache__/
+# the step0 runner's requests and log
+runner/

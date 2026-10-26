@@ -1,5 +1,92 @@
 # Step 0 results
 
+## 2026-10-26, runs 3 to 10: why NIS crashed, and the macro route
+
+NIS-Elements 6.10.02 (Build 2031), Ti2 simulator. Everything through `nis.call_proc`; no DLL.
+
+### What crashed NIS
+
+Six step0 runs and four probes. NIS died with heap corruption (`0xc0000374` in ntdll; once an
+access violation, `0xc0000005`) 4 to 8 s after a call, so the last line of the log named
+whatever check ran next, not the cause. Lining up the crash times (Windows event log) with the
+calls, then probing one call shape at a time:
+
+| Call shape through `nis.call_proc` | Example | Result |
+|---|---|---|
+| No arguments, or only values going in | `Stg_GetNosepiecePosition()`, `StgMoveZ(501.0, 0)` | **Works** |
+| A text handed back, no max length | `Get_InfoStr(1, 256)` | **Works** (21 calls in a row) |
+| A number handed back (`double *`, `int *`) | `StgGetPosXY`, `StgGetPosZ`, `StgXY_GetLimits`, `Camera_ExposureGet` | **Fails**: *Failed to run procedure* and a blocking dialog |
+| A text handed back with a max length | `GetOptConfName(i, 256, 64)`, `Stg_GetNosepieceObjectiveName(p, 256, 64)` | **Kills NIS**: the right answer comes back, then NIS dies within 1 to 6 calls. A 4096 buffer only delays it. Windows' `HeapValidate` after every call sees nothing |
+| A refused argument (the reachability sweep) | 4071 names | **Safe**: refused, nothing runs |
+
+`probe_textlen.py` reproduces the crash: `Stg_GetNosepieceObjectiveName` in a loop.
+
+### The macro route
+
+For every call that hands values back, Python writes a few lines of NIS macro, runs them with
+`nis.call_proc("RunMacro", file)` and reads the answer back: numbers from global macro variables
+with `GetVariableValue`, texts from a file the macro writes with `WriteFile` (UTF-16). So Python
+itself never passes an out-argument to `nis.call_proc`. `RunMacro` works from inside our Python,
+which itself runs from a macro.
+
+```
+global double step0_1_r, step0_1_x, step0_1_y;
+step0_1_x = -123456789.0;
+step0_1_y = -123456789.0;
+step0_1_r = StgGetPosXY(&step0_1_x, &step0_1_y);
+```
+
+- `probe_macro.py`: XY, Z, limits, `GetOptConfName`, and `Stg_GetNosepieceObjectiveName` 20
+  times, then 15 s idle: no crash; the same values as ctypes in the first run.
+- About 300 macro runs since, no crash.
+- Every declaration must come before the first statement. A `char` declared after a statement
+  opens *Command Interpreter Error* (first run with the route: `GetSelectedOptConf` and
+  `Get_Calibration` waited for OK).
+- A call that fails inside the macro (a device that is not there) opens *Command Interpreter
+  Error: Cannot Evaluate the Expression*, which blocks until OK. `dialog_watcher.py` closes
+  them (OK only) and writes each to `results\dialogs.log`; `step0_calls.py` does not call such
+  a function again.
+- Speed: `StgGetPosXY` through a macro 24 ms (median); a direct call 0.5 ms.
+
+### step0_test.py: 29 of 29
+
+| | Answer |
+|---|---|
+| Readings (macro route) | XYZ 39904.7, -13433.1, 500 µm; limits X ±57000, Y ±37500, Z 0 to 10000 µm; objective names (with λ); calibration 0.1084 µm/px, `Plan Apo VC 60xA WI DIC N2`; exposure 33 ms |
+| `GetSelectedOptConf` | returns 0 and three empty texts (as with ctypes) |
+| Moves XY, Z, XYZ and back | DR_OK, read back exactly |
+| Objective 4 → 5 → 4 | DR_OK, read back exactly |
+| `Camera_ExposureSet` 50 ms | read back 50 (was 33); `Camera_ExposureGet` returns 0 although it works |
+| Perfect Focus on and back | status 1, then 0: put back |
+| Autofocus (`StgFocusInRangeEx`) | needs the speed as an integer (*Expected integer* with a float); returned 0, Z 500 → 505.4, put back to 500 |
+| Capture, save, close | 8.6 MB TIFF; `Capture` returns 0 |
+
+### step0_calls.py: the hardware functions (Device and Acquire sections)
+
+Every getter and setter that needs no image, file or dialog, called for real:
+
+| Stage | Functions | Works | Rest |
+|---|---|---|---|
+| 1. Getters without arguments, direct | 99 | 73 | 18 not in this NIS; 8 DR errors (not supported) |
+| 2. Getters that hand values back, macro (index or type guessed; every type tried) | 187 | 137 | 36 open a dialog (device not simulated: A1, confocal, DMD, triggered acquisition, filter and shutter speeds, some camera settings); 10 hand back nothing; 4 DR errors |
+| 3. Set the value the Get read, read again | 51 | 37 | 4 not in this NIS; 3 not supported; 6 a Get's text is an input (gas, channel name), not filled in; `StgSetRelativeMovements` reads back differently |
+| 4. Change and back (positions, on/off states) | 19 changes | 12 | 7: the Set returned 0 and nothing changed (shutters 2 to 5, CSU shutter, TIRF mirror, analyzer, zoom) |
+
+Changed and put back: objective, condenser, filter wheels 0, 1, 2 and 5, aperture 1 and 3,
+shutters 0 and 1, PFS LED. Help-index signatures can be wrong: `CameraGet_Exposure` is listed
+with a plain `double` that it writes into (*Found Mismatch in dimensions*).
+
+The full tables stay on the NIS computer (made from Nikon's list): `results\functions_called.csv`
+(one line per call) and `results\functions_calls.csv` (every function: signature, route,
+reached, what this run called).
+
+### What this means for the bridge on 6.10
+
+- `nis.call_proc` for calls that take values in; a macro for everything handed back. No DLL.
+- The bridge's readings each cost about 24 ms through a macro.
+- A missing device opens a blocking dialog; the bridge must not call functions for devices it
+  has not seen (`Stg_Is...Present`, or the getters of stage 1 first).
+
 ## 2026-10-26, second run: everything through nis.call_proc
 
 NIS-Elements 6.10.02 (Build 2031), Ti2 simulator, test 9e97f46. NIS crashed halfway.
