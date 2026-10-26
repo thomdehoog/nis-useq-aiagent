@@ -137,8 +137,10 @@ try:
 except ImportError:
     nis = None
 
+log(f"running {os.path.abspath(__file__)}, results in {OUT_DIR}")
 check("python", lambda: {"version": sys.version, "executable": sys.executable,
-                         "platform": platform.platform()}, group="environment")
+                         "platform": platform.platform(), "script": os.path.abspath(__file__)},
+      group="environment")
 check("nis module", lambda: {"present": nis is not None,
                              "names": sorted(n for n in dir(nis) if not n.startswith("__")) if nis else [],
                              "call_proc": nis is not None and hasattr(nis, "call_proc"),

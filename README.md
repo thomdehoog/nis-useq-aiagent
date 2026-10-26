@@ -9,7 +9,8 @@ name, and not through a DLL. The results can be compared with NIS 7 (branch `age
 
 1. Download this branch (GitHub: Code > Download ZIP) and unzip it on the desktop (or to
    `C:\nikon-step0-610\`). Any folder name works. The NIS 7 folder can stay on the desktop:
-   `step0.mac` only runs a `step0_test.py` whose first line says 6.10.
+   `step0.mac` runs the newest `step0_test.py` whose first line says 6.10, so older
+   downloads can stay too. The first line of `step0.log` names the file that ran.
 2. Start NIS-Elements 6.10 with the Ti2 simulator.
 3. In NIS: Macro > Run Macro From File > `step0.mac` in that folder.
 4. Wait until NIS responds again (a minute or two: the writes move the simulated stage).
