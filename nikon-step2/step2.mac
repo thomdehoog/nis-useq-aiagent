@@ -1,0 +1,9 @@
+WaitText(1, "step 2: starting");
+Python_RunString("import os, sys, glob, importlib.util; s = 'C:/Users/Public/nikon-step2.stop'; os.remove(s) if os.path.exists(s) else None; h = os.path.expanduser('~'); c = ['C:/nikon-step2/step2_calls.py', 'C:/nikon-step2/nikon-step2/step2_calls.py'] + sorted(glob.glob(h + '/Desktop/*/step2_calls.py') + glob.glob(h + '/Desktop/*/*/step2_calls.py')) + sorted(glob.glob(h + '/OneDrive*/Desktop/*/step2_calls.py') + glob.glob(h + '/OneDrive*/Desktop/*/*/step2_calls.py')); e = [p for p in c if os.path.isfile(p)]; f = max(e, key=os.path.getmtime) if e else None; spec = importlib.util.spec_from_file_location('step2_calls', f) if f else None; m = importlib.util.module_from_spec(spec) if spec else None; sys.modules['step2_calls'] = m; spec.loader.exec_module(m) if m else open(s, 'w').close(); m.start() if m else None");
+while (ExistFile("C:\\Users\\Public\\nikon-step2.stop") == 0)
+{
+    Python_RunString("import sys; p = getattr(sys.modules.get('step2_calls'), 'pump', None); p() if p else open('C:/Users/Public/nikon-step2.stop', 'w').close()");
+    Wait(0.01);
+}
+Python_RunString("import sys; f = getattr(sys.modules.get('step2_calls'), 'stop', None); f() if f else None");
+WaitText(2, "step 2: FINISHED or stopped; see the window, and the results folder.");
