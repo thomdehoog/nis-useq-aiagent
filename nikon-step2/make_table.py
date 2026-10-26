@@ -19,7 +19,7 @@ import sys
 
 RESULTS = sys.argv[1]
 OUT = sys.argv[2] if len(sys.argv) > 2 else RESULTS
-ORDER = ["ran", "needs arguments", "error", "not reachable", "crashed or hung", "not called"]
+ORDER = ["ran", "needs arguments", "needs the camera", "error", "not reachable", "crashed or hung", "not called"]
 HERE = os.path.dirname(os.path.abspath(__file__))
 
 names = []

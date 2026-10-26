@@ -6,6 +6,7 @@ macro Stop button works. Every function in ar_functions.txt (3667) is called onc
 nis.mac, with no arguments, on NIS's own thread:
 
   ran              it needed no arguments, and it ran; its return value is kept
+  needs the camera not run: capture, live, grab or autofocus, with the camera off
   needs arguments  NIS answered "Bad number of parameters": reachable, not run
   error            NIS or nis.mac answered with another error
   not reachable    nis.mac does not offer it (camera, other hardware, modules)
@@ -48,6 +49,9 @@ START_WATCH = os.environ.get("STEP2_WATCH", "1") == "1"  # open the watch window
 # Last, because they end the run: quitting NIS, stopping or starting macros.
 LAST = re.compile(r"(^|_)(Exit|Quit|Restart|Reboot|Shut_?down|Log_?off|Log_?out)|Macro|^Python_",
                   re.IGNORECASE)
+
+# With the camera off these wait for it (_CaptureEDF: 153 s): not run then, marked so.
+NEEDS_CAMERA = re.compile(r"Captur|Grab|Live|Acqui|AutoFocus|HDR|Freeze_", re.IGNORECASE)
 
 try:
     import nis  # exists only inside NIS-Elements
@@ -128,6 +132,9 @@ def call(name, section):
         record.update(result="not reachable", detail=f"{type(error).__name__}: {error}")
         return record
     record.update(describe(function))
+    if not state.get("camera") and NEEDS_CAMERA.search(name):
+        record.update(result="needs the camera", detail="not run: the camera is off")
+        return record
     write({"fn": name, "phase": "start", "t": time.time()})
     started = time.perf_counter()
     try:
@@ -160,11 +167,12 @@ def start():
     counts = {}
     for record in done.values():
         counts[record["result"]] = counts.get(record["result"], 0) + 1
+    state["camera"] = nis is not None and hasattr(nis.mac, "GetCurrentCameraName")
     state.update(todo=todo, index=0, total=len(functions), counts=counts, started=time.time(),
                  resumed=len(done))
     write({"fn": "-", "phase": "run", "version": VERSION, "file": __file__, "python": sys.version,
            "pid": os.getpid(), "time": time.strftime("%Y-%m-%d %H:%M:%S"),
-           "already_done": len(done), "to_do": len(todo), "crashed_last_time": crashed})
+           "camera": state["camera"], "already_done": len(done), "to_do": len(todo), "crashed_last_time": crashed})
     show(i=len(done), n=len(functions), fn="", counts=counts, done=not todo)
     if START_WATCH:
         start_watch()
