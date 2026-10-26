@@ -12,10 +12,10 @@ Nothing is skipped. It runs by itself; nothing to install.
    a call opens, which it closes. Leave NIS alone until it says **STEP 2 FINISHED**.
 5. Send the `results` folder.
 
-**If a call hangs (no answer for 1 s) or NIS crashes,** the black window closes NIS, starts
-it again with `step2.mac`, and the run carries on after that function, marked "crashed or
-hung" (`results\step2_restarts.txt` lists each restart). If NIS does not come back within a
-few minutes: start it and run `step2.mac` by hand; it carries on the same way.
+**NIS is never closed by the test.** A call that does not answer within 1 s is shown as
+HUNG in the window (and listed in `results\step2_hung.txt`); the run waits for it. If NIS
+crashes by itself, the window starts NIS again with `step2.mac`, and the run carries on
+after that function, marked "crashed or hung".
 
 ## How
 

@@ -30,7 +30,7 @@ DIALOGS = os.path.join(OUT_DIR, "step2_dialogs.jsonl")
 NEVER_TOUCH = ("Confirm Interrupting Macro",)
 BUTTONS = ("cancel", "no", "close", "ok", "continue", "abort", "ignore")  # first found is pressed
 WAIT_BEFORE_CLOSING_S = 0.2  # a window must stay this long before it is closed
-HANG_S = 1  # a call this long (after the last window it closed) is hung: NIS is closed and started again, and the run carries on
+HANG_S = 1  # a call this long is shown as hung; NIS is never closed for it, the run waits
 MAX_RESTARTS = 200  # after this many restarts of NIS, stop restarting
 MACRO = os.path.join(os.path.dirname(os.path.abspath(OUT_DIR)), "step2.mac")
 RESTARTS = os.path.join(OUT_DIR, "step2_restarts.txt")
@@ -111,7 +111,7 @@ def nis_exe():
 
 
 def restart(exe, reason, fn):
-    """Close NIS if it still runs, start it again with step2.mac, and end this window.
+    """After NIS crashed by itself: start it again with step2.mac, and end this window.
 
     The new run notes the function NIS went down in as "crashed or hung" and carries on after it.
     """
@@ -128,14 +128,6 @@ def restart(exe, reason, fn):
     if not exe:
         end(["Start NIS again and run step2.mac: it carries on after that function."])
         return
-    if nis_alive():
-        print(" Closing NIS ...", flush=True)
-        handle = kernel32.OpenProcess(0x0001 | 0x00100000, False, NIS_PID)  # TERMINATE | SYNCHRONIZE
-        if handle:
-            kernel32.TerminateProcess(handle, 1)
-            kernel32.WaitForSingleObject(handle, 20000)
-            kernel32.CloseHandle(handle)
-        time.sleep(2)
     macro = MACRO.replace("\\", "\\\\")
     print(f" Starting NIS again (restart {count}); the run carries on after {fn}.", flush=True)
     print(" If it does not carry on within 3 minutes: run step2.mac by hand.", flush=True)
@@ -192,6 +184,7 @@ def main():
     print("=" * 78, flush=True)
     baseline = set(nis_windows()) if WINDOWS else set()
     exe = nis_exe()
+    hung = set()
     seen, acted = {}, {}
     last_print, last_fn, fn_since = 0.0, None, time.time()
     while True:
@@ -205,12 +198,14 @@ def main():
             last_print = now
             line = f"[{current.get('i', 0)}/{current.get('n', '?')}] now: {fn or '-'}"
             if fn and running and now - fn_since > 0.5:
-                line += f" (reachable, running in NIS {now - fn_since:.1f} s; NIS restarts at {HANG_S} s)"
+                line += f" (running in NIS {now - fn_since:.0f} s"
+                line += "; HUNG, waiting: NIS is not closed)" if now - fn_since > HANG_S else ")"
             print(line, flush=True)
             print(f"      so far: {counts_text(current.get('counts', {}))}", flush=True)
-        if fn and running and not current.get("done") and now - fn_since > HANG_S:
-            restart(exe, f"no answer for {HANG_S} s (hung)", fn)
-            return
+        if fn and running and not current.get("done") and now - fn_since > HANG_S and fn not in hung:
+            hung.add(fn)
+            with open(RESTARTS.replace("restarts", "hung"), "a", encoding="utf-8") as handle:
+                handle.write(f"{time.strftime('%Y-%m-%d %H:%M:%S')}\t{fn}\tno answer for {HANG_S} s\n")
         if current.get("done"):
             end([f"STEP 2 FINISHED: {current.get('n')} functions called.",
                  counts_text(current.get("counts", {})),
