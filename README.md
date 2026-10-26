@@ -28,8 +28,11 @@ answer goes to `results\functions.csv`, which stays on the NIS computer.
 
 ## What it calls
 
-Every NIS function in `1_nis_bridge/nis_bridge/nis_dll.py`, the way the bridge calls it
-(ctypes on `g5_regprocs.dll`; `nis.call_proc` for `Camera_ExposureSet`):
+Every NIS function in `1_nis_bridge/nis_bridge/nis_dll.py`. Each reading goes through ctypes
+on `g5_regprocs.dll` (what the bridge uses today) and through `nis.mac` (what NIS 7 uses), and
+the two answers are compared. Each write is done once: through `nis.mac` if 6.10 has it,
+otherwise through ctypes. `Camera_ExposureSet`, which the DLL does not export, is tried through
+`nis.call_proc` (the bridge today) and `nis.mac`.
 
 | | Functions |
 |---|---|
@@ -59,9 +62,9 @@ on the 6.10 simulator) and `ALLOW_COMMAND_TEXT` (`Int_ExecuteCommand`, may hang)
 ```
 ┌──────────────────── NIS-Elements ────────────────────┐
 │                                                      │
-│ step0.mac ──► NIS's Python ──► g5_regprocs.dll ──────┼──► microscope
-│ (a macro)     (step0_test.py)  (ctypes; call_proc    │    (simulator)
-│                    │            for the exposure)    │
+│ step0.mac ──► NIS's Python ──► nis.mac ──────────────┼──► microscope
+│ (a macro)     (step0_test.py)  or g5_regprocs.dll   │    (simulator)
+│                    │           (ctypes)             │
 └────────────────────┼─────────────────────────────────┘
                      ▼
                  results\  (the report)
@@ -69,4 +72,6 @@ on the 6.10 simulator) and `ALLOW_COMMAND_TEXT` (`Int_ExecuteCommand`, may hang)
 
 On 6.10 the bridge reaches NIS through ctypes on `g5_regprocs.dll`, and through
 `nis.call_proc` for the one function the DLL does not export. NIS 7.01 has no
-`nis.call_proc` but has `nis.mac`; this run shows whether 6.10 already has `nis.mac`.
+`nis.call_proc` but has `nis.mac`, Nikon's documented route. This run shows whether 6.10
+already has `nis.mac`, and whether it gives the same answers as ctypes. If it does, the
+bridge can use `nis.mac` on both versions.

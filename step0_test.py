@@ -9,9 +9,10 @@ Runs INSIDE NIS-Elements, started by step0.mac (Macro > Run Macro From File). It
      can be reached by name (coverage check; nothing is called for this). The list is NOT
      part of this folder (it is Nikon's): the test reads it on the NIS computer, from a
      FunctionList*.html next to this file or in the NIS folder.
-  3. What every reading the bridge does returns on 6.10, and how long a call takes.
-  4. Every write the bridge does (on by default, for the simulator): each one confirmed and
-     put back.
+  3. What every reading the bridge does returns on 6.10, through ctypes and through nis.mac,
+     whether the two agree, and how long a call takes.
+  4. Every write the bridge does (on by default, for the simulator), through nis.mac when
+     6.10 has it, otherwise through ctypes: each one confirmed and put back.
 
 Every result goes to step0_report.json and step0_summary.txt in OUT_DIR. Before each call
 the log names it, so if NIS hangs, the last line of step0.log says which call it was.
@@ -44,7 +45,7 @@ NIS_DIR = r"C:\Program Files\NIS-Elements"  # searched for FunctionList*.html
 # them to False and switch them on one at a time, with someone at the microscope.
 ALLOW_STAGE = True  # XY, Z and XYZ by STAGE_STEP_UM / Z_STEP_UM and back
 ALLOW_OPTICAL_CONFIGURATION = True  # select another optical configuration, then the first again
-ALLOW_EXPOSURE = True  # Camera_ExposureSet through nis.call_proc, as the bridge does
+ALLOW_EXPOSURE = True  # Camera_ExposureSet through nis.call_proc (as the bridge does) and nis.mac
 ALLOW_NOSEPIECE = True  # another objective, then the first again
 ALLOW_PFS = True  # Perfect Focus on and off again, if there is one
 ALLOW_AUTOFOCUS = True  # StgFocusInRangeEx over AUTOFOCUS_RANGE_UM, then Z put back
@@ -284,90 +285,155 @@ def coverage():
 
 check("every function in NIS's list, by name", coverage, group="coverage")
 
-# -- 4. every reading the bridge does, through ctypes as the bridge does it ------------------
+# -- 4. every reading the bridge does, through ctypes (as the bridge does) and nis.mac -----
 D = ct.POINTER(ct.c_double)
 
-
-def reading(name, build):
-    check(name, build, group="readings")
-
-
-def stage_position():
-    x, y, z = ct.c_double(), ct.c_double(), ct.c_double()
-    result = ctypes_fn("StgGetPos", [D] * 3)(ct.byref(x), ct.byref(y), ct.byref(z))
-    return {"return": dr(result), "x": x.value, "y": y.value, "z": z.value}
-
-
-def z_position():
-    z = ct.c_double()
-    result = ctypes_fn("StgGetPosZ", [D, ct.c_int32])(ct.byref(z), 0)
-    return {"return": dr(result), "z": z.value}
-
-
-def limits():
-    x0, y0, x1, y1, z0, z1 = (ct.c_double() for _ in range(6))
-    xy = ctypes_fn("StgXY_GetLimits", [D] * 4)(*(ct.byref(v) for v in (x0, y0, x1, y1)))
-    z = ctypes_fn("StgZ_GetLimits", [D] * 2)(ct.byref(z0), ct.byref(z1))
-    return {"StgXY_GetLimits": dr(xy), "x": [x0.value, x1.value], "y": [y0.value, y1.value],
-            "StgZ_GetLimits": dr(z), "z": [z0.value, z1.value]}
-
-
-def optical_configurations():
-    count = ctypes_fn("GetOptConfCount", [])()
-    get_name = ctypes_fn("GetOptConfName", [ct.c_int32, ct.c_wchar_p, ct.c_int32])
-    names = []
-    for index in range(max(count, 0)):
-        buf = ct.create_unicode_buffer(256)
-        get_name(index, buf, 256)
-        names.append(buf.value)
-    return {"GetOptConfCount": count, "names": names}
+# ctypes needs each function's signature; nis.mac does not. From the bridge's nis_dll.py.
+SIGNATURES = {
+    "StgGetPos": ([D] * 3, ct.c_int32),
+    "StgGetPosZ": ([D, ct.c_int32], ct.c_int32),
+    "StgXY_GetLimits": ([D] * 4, ct.c_int32),
+    "StgZ_GetLimits": ([D] * 2, ct.c_int32),
+    "StgMove": ([ct.c_double] * 3 + [ct.c_int32], ct.c_int32),
+    "StgMoveXY": ([ct.c_double, ct.c_double, ct.c_int32], ct.c_int32),
+    "StgMoveZ": ([ct.c_double, ct.c_int32], ct.c_int32),
+    "GetOptConfCount": ([], ct.c_int32),
+    "GetOptConfName": ([ct.c_int32, ct.c_wchar_p, ct.c_int32], ct.c_int32),
+    "GetSelectedOptConf": ([ct.c_wchar_p] * 3 + [ct.c_int32], ct.c_int32),
+    "SelectOptConf": ([ct.c_wchar_p], ct.c_int32),
+    "Stg_IsNosepiecePresent": ([], ct.c_int32),
+    "Stg_GetNosepiecePositions": ([], ct.c_int32),
+    "Stg_GetNosepiecePosition": ([], ct.c_int32),
+    "Stg_GetNosepieceObjectiveName": ([ct.c_int32, ct.c_wchar_p, ct.c_int32], ct.c_int32),
+    "Stg_SetNosepiecePosition": ([ct.c_int32], ct.c_int32),
+    "Stg_IsPFSPresent": ([], ct.c_int32),
+    "Stg_GetPFSStatus": ([], ct.c_int32),
+    "Stg_SetPFSStatus": ([ct.c_int32], ct.c_int32),
+    "Stg_WaitForPFS": ([ct.c_double], ct.c_int32),
+    "StgFocusInRangeEx": ([ct.c_double, ct.c_double], ct.c_int32),
+    "Capture": ([], ct.c_int32),
+    "Get_Calibration": ([ct.c_wchar_p, D, D, ct.POINTER(ct.c_int32)], ct.c_double),
+    "ImageSaveAs": ([ct.c_wchar_p, ct.c_int32, ct.c_int32], ct.c_int32),
+    "CloseCurrentDocument": ([ct.c_int32], ct.c_int32),
+    "Int_ExecuteCommand": ([ct.c_int32, ct.c_wchar_p], ct.c_int32),
+}
 
 
-def selected_optical_configuration():
-    """GetSelectedOptConf hands back three texts; which one holds the name is what we learn."""
-    texts = [ct.create_unicode_buffer(256) for _ in range(3)]
-    fn = ctypes_fn("GetSelectedOptConf", [ct.c_wchar_p] * 3 + [ct.c_int32])
-    return {"return": fn(*texts, 256), "texts": [t.value for t in texts]}
+class Route:
+    """One way of calling NIS: the same readings and calls, ctypes or nis.mac underneath."""
+
+    def __init__(self, name):
+        self.name = name
+
+    # what differs between the two: plain calls, and out-values (numbers and texts)
+    def call(self, function_name, *args):
+        if self.name == "nis.mac":
+            return getattr(nis.mac, function_name)(*args)
+        argtypes, restype = SIGNATURES[function_name]
+        return ctypes_fn(function_name, argtypes, restype)(*args)
+
+    def double(self):
+        return nis.ptr.double() if self.name == "nis.mac" else ct.c_double()
+
+    def int(self):
+        return nis.ptr.int() if self.name == "nis.mac" else ct.c_int32()
+
+    def text(self):
+        return nis.ptr.char() if self.name == "nis.mac" else ct.create_unicode_buffer(256)
+
+    def out(self, value):
+        """An out-value as nis.mac or ctypes wants it in the call."""
+        return value if self.name == "nis.mac" or isinstance(value, ct.Array) else ct.byref(value)
+
+    @staticmethod
+    def get(value):
+        return value.get() if hasattr(value, "get") else value.value
+
+    # the readings
+    def stage_position(self):
+        x, y, z = self.double(), self.double(), self.double()
+        result = self.call("StgGetPos", *(self.out(v) for v in (x, y, z)))
+        return {"return": dr(result), "x": self.get(x), "y": self.get(y), "z": self.get(z)}
+
+    def z_position(self):
+        z = self.double()
+        result = self.call("StgGetPosZ", self.out(z), 0)
+        return {"return": dr(result), "z": self.get(z)}
+
+    def limits(self):
+        values = [self.double() for _ in range(6)]
+        xy = self.call("StgXY_GetLimits", *(self.out(v) for v in values[:4]))
+        z = self.call("StgZ_GetLimits", *(self.out(v) for v in values[4:]))
+        x0, y0, x1, y1, z0, z1 = (self.get(v) for v in values)
+        return {"StgXY_GetLimits": dr(xy), "x": [x0, x1], "y": [y0, y1],
+                "StgZ_GetLimits": dr(z), "z": [z0, z1]}
+
+    def optical_configurations(self):
+        count = self.call("GetOptConfCount")
+        names = []
+        for index in range(max(count, 0)):
+            text = self.text()
+            self.call("GetOptConfName", index, text, 256)
+            names.append(self.get(text))
+        return {"GetOptConfCount": count, "names": names}
+
+    def selected_optical_configuration(self):
+        """GetSelectedOptConf hands back three texts; which one holds the name is what we learn."""
+        texts = [self.text() for _ in range(3)]
+        return {"return": self.call("GetSelectedOptConf", *texts, 256),
+                "texts": [self.get(t) for t in texts]}
+
+    def nosepiece(self):
+        answer = {name: self.call(name) for name in (
+            "Stg_IsNosepiecePresent", "Stg_GetNosepiecePositions", "Stg_GetNosepiecePosition")}
+        names = {}
+        for position in range(1, max(answer["Stg_GetNosepiecePositions"], 0) + 1):
+            text = self.text()
+            result = self.call("Stg_GetNosepieceObjectiveName", position, text, 256)
+            names[position] = {"return": dr(result), "name": self.get(text)}
+        answer["objectives"] = names
+        return answer
+
+    def pfs(self):
+        return {"Stg_IsPFSPresent": self.call("Stg_IsPFSPresent"),
+                "Stg_GetPFSStatus": self.call("Stg_GetPFSStatus")}
+
+    def pfs_on(self):
+        return bool(self.call("Stg_IsPFSPresent")) and self.call("Stg_GetPFSStatus") in (1, 5, 6)
+
+    def calibration(self):
+        name, cal, aspect, unit = self.text(), self.double(), self.double(), self.int()
+        result = self.call("Get_Calibration", name, self.out(cal), self.out(aspect), self.out(unit))
+        return {"return": result, "name": self.get(name), "um_per_px": self.get(cal),
+                "aspect": self.get(aspect), "unit": self.get(unit)}
 
 
-def nosepiece():
-    answer = {"Stg_IsNosepiecePresent": ctypes_fn("Stg_IsNosepiecePresent", [])(),
-              "Stg_GetNosepiecePositions": ctypes_fn("Stg_GetNosepiecePositions", [])(),
-              "Stg_GetNosepiecePosition": ctypes_fn("Stg_GetNosepiecePosition", [])()}
-    get_name = ctypes_fn("Stg_GetNosepieceObjectiveName", [ct.c_int32, ct.c_wchar_p, ct.c_int32])
-    names = {}
-    for position in range(1, max(answer["Stg_GetNosepiecePositions"], 0) + 1):
-        buf = ct.create_unicode_buffer(256)
-        names[position] = {"return": dr(get_name(position, buf, 256)), "name": buf.value}
-    answer["objectives"] = names
+READINGS = ["stage_position", "z_position", "limits", "optical_configurations",
+            "selected_optical_configuration", "nosepiece", "pfs", "calibration"]
+ROUTES = [Route("ctypes")] + ([Route("nis.mac")] if HAS_MAC else [])
+
+
+def without_return_codes(answer):
+    """The values of a reading, without the return codes: those are compared on their own."""
+    if isinstance(answer, dict):
+        return {k: without_return_codes(v) for k, v in answer.items() if k != "return"}
     return answer
 
 
-def pfs():
-    return {"Stg_IsPFSPresent": ctypes_fn("Stg_IsPFSPresent", [])(),
-            "Stg_GetPFSStatus": ctypes_fn("Stg_GetPFSStatus", [])()}
+for reading_name in READINGS:
+    answers = {}
+    for route in ROUTES:
+        entry = check(f"{reading_name} via {route.name}", getattr(route, reading_name),
+                      group="readings")
+        answers[route.name] = entry.get("answer", entry.get("error"))
+    if len(ROUTES) == 2:
+        check(f"{reading_name}: same values on both routes",
+              lambda a=answers: {"same": without_return_codes(a["ctypes"])
+                                 == without_return_codes(a["nis.mac"])}, group="readings")
 
-
-def calibration():
-    name = ct.create_unicode_buffer(256)
-    cal, aspect, unit = ct.c_double(), ct.c_double(), ct.c_int32()
-    fn = ctypes_fn("Get_Calibration", [ct.c_wchar_p, D, D, ct.POINTER(ct.c_int32)], ct.c_double)
-    result = fn(name, ct.byref(cal), ct.byref(aspect), ct.byref(unit))
-    return {"return": result, "name": name.value, "um_per_px": cal.value,
-            "aspect": aspect.value, "unit": unit.value}
-
-
-reading("StgGetPos", stage_position)
-reading("StgGetPosZ", z_position)
-reading("limits", limits)
-reading("optical configurations", optical_configurations)
-reading("GetSelectedOptConf", selected_optical_configuration)
-reading("nosepiece", nosepiece)
-reading("Perfect Focus", pfs)
-reading("Get_Calibration (no image open)", calibration)
 if ALLOW_CAMERA_READ:
-    reading("Camera_ExposureGet via nis.call_proc",
-            lambda: {"raw": repr(nis.call_proc("Camera_ExposureGet", 0.0))})
+    check("Camera_ExposureGet via nis.call_proc",
+          lambda: {"raw": repr(nis.call_proc("Camera_ExposureGet", 0.0))}, group="readings")
 
 
 def timing():
@@ -396,10 +462,15 @@ def timing():
 
 check("StgGetPosXY timing", timing, group="timing")
 
-# -- 5. writes, each confirmed and put back ---------------------------------------------------
+# -- 5. writes, each confirmed and put back --------------------------------------------------
+# Through nis.mac when 6.10 has it (the route NIS 7 needs), otherwise through ctypes as the
+# bridge does today. Each write once: twice would only move the stage twice.
+W = ROUTES[-1]
+
+
 def stage_round_trip():
-    start = stage_position()
-    lim = limits()
+    start = W.stage_position()
+    lim = W.limits()
     low, high = min(lim["x"]), max(lim["x"])
     if start["x"] + STAGE_STEP_UM <= high:
         target = start["x"] + STAGE_STEP_UM
@@ -407,112 +478,112 @@ def stage_round_trip():
         target = start["x"] - STAGE_STEP_UM
     else:
         return {"skipped": f"no room for {STAGE_STEP_UM} um within the X limits {low}..{high}"}
-    move_xy = ctypes_fn("StgMoveXY", [ct.c_double, ct.c_double, ct.c_int32])
-    steps = {"start": start, "limits_x": [low, high]}
+    steps = {"route": W.name, "start": start, "limits_x": [low, high]}
     started = time.perf_counter()
-    steps["StgMoveXY"] = dr(move_xy(target, start["y"], 0))
+    steps["StgMoveXY"] = dr(W.call("StgMoveXY", target, start["y"], 0))
     steps["move_s"] = round(time.perf_counter() - started, 3)
-    steps["read_after_move"] = stage_position()
-    steps["StgMoveXY back"] = dr(move_xy(start["x"], start["y"], 0))
-    steps["read_after_back"] = stage_position()
+    steps["read_after_move"] = W.stage_position()
+    steps["StgMoveXY back"] = dr(W.call("StgMoveXY", start["x"], start["y"], 0))
+    steps["read_after_back"] = W.stage_position()
     return steps
 
 
 def z_round_trip():
-    if ctypes_fn("Stg_IsPFSPresent", [])() and ctypes_fn("Stg_GetPFSStatus", [])() in (1, 5, 6):
+    if W.pfs_on():
         return {"skipped": "Perfect Focus is on; a Z move would fight it"}
-    move_z = ctypes_fn("StgMoveZ", [ct.c_double, ct.c_int32])
-    start = z_position()["z"]
-    steps = {"start": start, "StgMoveZ": dr(move_z(start + Z_STEP_UM, 0))}
-    steps["read_after_move"] = z_position()["z"]
-    steps["StgMoveZ back"] = dr(move_z(start, 0))
-    steps["read_after_back"] = z_position()["z"]
+    start = W.z_position()["z"]
+    steps = {"route": W.name, "start": start,
+             "StgMoveZ": dr(W.call("StgMoveZ", start + Z_STEP_UM, 0))}
+    steps["read_after_move"] = W.z_position()["z"]
+    steps["StgMoveZ back"] = dr(W.call("StgMoveZ", start, 0))
+    steps["read_after_back"] = W.z_position()["z"]
     return steps
 
 
 def xyz_round_trip():
     """StgMove: the bridge's move of all three axes at once."""
-    if ctypes_fn("Stg_IsPFSPresent", [])() and ctypes_fn("Stg_GetPFSStatus", [])() in (1, 5, 6):
+    if W.pfs_on():
         return {"skipped": "Perfect Focus is on; a Z move would fight it"}
-    move = ctypes_fn("StgMove", [ct.c_double, ct.c_double, ct.c_double, ct.c_int32])
-    start = stage_position()
-    lim = limits()
-    step = STAGE_STEP_UM if start["x"] + STAGE_STEP_UM <= max(lim["x"]) else -STAGE_STEP_UM
-    steps = {"start": start,
-             "StgMove": dr(move(start["x"] + step, start["y"], start["z"] + Z_STEP_UM, 0))}
-    steps["read_after_move"] = stage_position()
-    steps["StgMove back"] = dr(move(start["x"], start["y"], start["z"], 0))
-    steps["read_after_back"] = stage_position()
+    start = W.stage_position()
+    step = STAGE_STEP_UM if start["x"] + STAGE_STEP_UM <= max(W.limits()["x"]) else -STAGE_STEP_UM
+    steps = {"route": W.name, "start": start, "StgMove": dr(
+        W.call("StgMove", start["x"] + step, start["y"], start["z"] + Z_STEP_UM, 0))}
+    steps["read_after_move"] = W.stage_position()
+    steps["StgMove back"] = dr(W.call("StgMove", start["x"], start["y"], start["z"], 0))
+    steps["read_after_back"] = W.stage_position()
     return steps
 
 
 def optical_configuration_round_trip():
-    names = optical_configurations()["names"]
+    names = W.optical_configurations()["names"]
     if len(names) < 2:
         return {"skipped": "fewer than two optical configurations"}
-    select = ctypes_fn("SelectOptConf", [ct.c_wchar_p])
     first, other = names[0], names[1]
-    steps = {"before": selected_optical_configuration()["texts"]}
-    steps["SelectOptConf other"] = select(other)
-    steps["read_after_select"] = selected_optical_configuration()["texts"]
-    steps["SelectOptConf first"] = select(first)
-    steps["read_after_first"] = selected_optical_configuration()["texts"]
+    steps = {"route": W.name, "before": W.selected_optical_configuration()["texts"]}
+    steps["SelectOptConf other"] = W.call("SelectOptConf", other)
+    steps["read_after_select"] = W.selected_optical_configuration()["texts"]
+    steps["SelectOptConf first"] = W.call("SelectOptConf", first)
+    steps["read_after_first"] = W.selected_optical_configuration()["texts"]
     steps["selected"] = [other, first]
     return steps
 
 
 def exposure():
-    """Camera_ExposureSet is not exported by the DLL; the bridge reaches it by nis.call_proc."""
+    """Camera_ExposureSet is not exported by the DLL: the bridge reaches it by nis.call_proc.
+
+    NIS 7 has no nis.call_proc, so whether nis.mac reaches it on 6.10 decides whether nis.mac
+    can replace nis.call_proc everywhere.
+    """
     answer = {"ctypes resolves": ctypes_resolves("Camera_ExposureSet")}
-    if not HAS_CALL_PROC:
-        answer["skipped"] = "no nis.call_proc"
-        return answer
-    answer["raw"] = repr(nis.call_proc("Camera_ExposureSet", float(EXPOSURE_MS)))
+    if HAS_CALL_PROC:
+        answer["nis.call_proc"] = repr(nis.call_proc("Camera_ExposureSet", float(EXPOSURE_MS)))
+    if HAS_MAC:
+        answer["nis.mac resolves"] = mac_resolves("Camera_ExposureSet")
+        if answer["nis.mac resolves"]:
+            answer["nis.mac"] = repr(nis.mac.Camera_ExposureSet(float(EXPOSURE_MS)))
     return answer
 
 
 def nosepiece_round_trip():
-    if not ctypes_fn("Stg_IsNosepiecePresent", [])():
+    if not W.call("Stg_IsNosepiecePresent"):
         return {"skipped": "no nosepiece"}
-    count = ctypes_fn("Stg_GetNosepiecePositions", [])()
-    start = ctypes_fn("Stg_GetNosepiecePosition", [])()
+    count = W.call("Stg_GetNosepiecePositions")
+    start = W.call("Stg_GetNosepiecePosition")
     if count < 2 or start < 1:
         return {"skipped": f"positions {count}, current {start}"}
     other = start % count + 1
-    set_position = ctypes_fn("Stg_SetNosepiecePosition", [ct.c_int32])
-    steps = {"start": start, "Stg_SetNosepiecePosition": dr(set_position(other))}
-    steps["read_after_move"] = ctypes_fn("Stg_GetNosepiecePosition", [])()
-    steps["Stg_SetNosepiecePosition back"] = dr(set_position(start))
-    steps["read_after_back"] = ctypes_fn("Stg_GetNosepiecePosition", [])()
+    steps = {"route": W.name, "start": start,
+             "Stg_SetNosepiecePosition": dr(W.call("Stg_SetNosepiecePosition", other))}
+    steps["read_after_move"] = W.call("Stg_GetNosepiecePosition")
+    steps["Stg_SetNosepiecePosition back"] = dr(W.call("Stg_SetNosepiecePosition", start))
+    steps["read_after_back"] = W.call("Stg_GetNosepiecePosition")
     return steps
 
 
 def pfs_round_trip():
-    if not ctypes_fn("Stg_IsPFSPresent", [])():
+    if not W.call("Stg_IsPFSPresent"):
         return {"skipped": "no Perfect Focus"}
-    set_status = ctypes_fn("Stg_SetPFSStatus", [ct.c_int32])
-    wait = ctypes_fn("Stg_WaitForPFS", [ct.c_double])
-    status = ctypes_fn("Stg_GetPFSStatus", [])
-    start = status()
+    start = W.call("Stg_GetPFSStatus")
     on = start in (1, 5, 6)
-    steps = {"start": start, "Stg_SetPFSStatus": set_status(0 if on else 1)}
-    steps["Stg_WaitForPFS"] = wait(PFS_WAIT_S)
-    steps["read_after_set"] = status()
-    steps["Stg_SetPFSStatus back"] = set_status(1 if on else 0)
-    steps["Stg_WaitForPFS back"] = wait(PFS_WAIT_S)
-    steps["read_after_back"] = status()
+    steps = {"route": W.name, "start": start,
+             "Stg_SetPFSStatus": W.call("Stg_SetPFSStatus", 0 if on else 1)}
+    steps["Stg_WaitForPFS"] = W.call("Stg_WaitForPFS", PFS_WAIT_S)
+    steps["read_after_set"] = W.call("Stg_GetPFSStatus")
+    steps["Stg_SetPFSStatus back"] = W.call("Stg_SetPFSStatus", 1 if on else 0)
+    steps["Stg_WaitForPFS back"] = W.call("Stg_WaitForPFS", PFS_WAIT_S)
+    steps["read_after_back"] = W.call("Stg_GetPFSStatus")
     return steps
 
 
 def autofocus():
-    if ctypes_fn("Stg_IsPFSPresent", [])() and ctypes_fn("Stg_GetPFSStatus", [])() in (1, 5, 6):
+    if W.pfs_on():
         return {"skipped": "Perfect Focus is on"}
-    start = z_position()["z"]
-    focus = ctypes_fn("StgFocusInRangeEx", [ct.c_double, ct.c_double])
-    steps = {"start": start, "StgFocusInRangeEx": focus(AUTOFOCUS_RANGE_UM, AUTOFOCUS_SPEED)}
-    steps["z_after"] = z_position()["z"]
-    steps["StgMoveZ back"] = dr(ctypes_fn("StgMoveZ", [ct.c_double, ct.c_int32])(start, 0))
-    steps["read_after_back"] = z_position()["z"]
+    start = W.z_position()["z"]
+    steps = {"route": W.name, "start": start,
+             "StgFocusInRangeEx": W.call("StgFocusInRangeEx", AUTOFOCUS_RANGE_UM, AUTOFOCUS_SPEED)}
+    steps["z_after"] = W.z_position()["z"]
+    steps["StgMoveZ back"] = dr(W.call("StgMoveZ", start, 0))
+    steps["read_after_back"] = W.z_position()["z"]
     return steps
 
 
@@ -520,21 +591,19 @@ def capture_save_close():
     path = os.path.join(OUT_DIR, "step0_capture.tif")
     if os.path.exists(path):
         os.remove(path)
-    steps = {"Capture": dr(ctypes_fn("Capture", [])())}
-    steps["Get_Calibration"] = calibration()
-    save_as = ctypes_fn("ImageSaveAs", [ct.c_wchar_p, ct.c_int32, ct.c_int32])
-    steps["ImageSaveAs"] = save_as(path, TIFF_ALL_LAYERS, 0)
+    steps = {"route": W.name, "Capture": dr(W.call("Capture"))}
+    steps["Get_Calibration"] = W.calibration()
+    steps["ImageSaveAs"] = W.call("ImageSaveAs", path, TIFF_ALL_LAYERS, 0)
     steps["saved_file"] = os.path.exists(path)
     steps["bytes"] = os.path.getsize(path) if steps["saved_file"] else 0
-    steps["CloseCurrentDocument"] = ctypes_fn("CloseCurrentDocument", [ct.c_int32])(
-        CLOSE_WITHOUT_ASKING)
+    steps["CloseCurrentDocument"] = W.call("CloseCurrentDocument", CLOSE_WITHOUT_ASKING)
     return steps
 
 
 def command_text():
     """The fallback route: macro text on NIS's own process. Harmless text: it only sets a title."""
-    fn = ctypes_fn("Int_ExecuteCommand", [ct.c_int32, ct.c_wchar_p])
-    return {"return": fn(os.getpid(), 'WaitText(1, "step0: command text works");')}
+    return {"route": W.name, "return": W.call(
+        "Int_ExecuteCommand", os.getpid(), 'WaitText(1, "step0: command text works");')}
 
 
 if ALLOW_STAGE:
