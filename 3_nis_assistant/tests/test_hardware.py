@@ -64,7 +64,10 @@ def talk(engine, tmp_path):
 
 def test_reads_and_moves_a_little(talk, here):
     assistant = talk(
-        ("get_status", {}), ("move_stage", {"x": here["x"] + 30}), ("move_stage", here), "Done."
+        ("read_microscope", {}),
+        ("move_stage", {"x": here["x"] + 30}),
+        ("move_stage", here),
+        "Done.",
     )
     assert assistant.send("status, then a small step and back") == "Done."
     status, moved, back = tool_results(assistant)

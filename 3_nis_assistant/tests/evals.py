@@ -111,9 +111,7 @@ HERE = Path(__file__).resolve().parent
 CASES = HERE / "eval_cases.json"
 HOLDOUT = HERE / "eval_cases_holdout.json"
 READING_TOOLS = {
-    "check_setup",
-    "get_status",
-    "get_devices",
+    "read_microscope",
     "ask_eyes",
     "plan_acquisition",
     "plan_useq_sequence",

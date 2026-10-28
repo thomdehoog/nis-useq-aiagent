@@ -272,13 +272,19 @@ def bridge_steps() -> list[str]:
     return [BRIDGE_MACRO_MISSING.format(macro=macro), *BRIDGE_STEPS[:2]]
 
 
-def check_setup(ctx: RunContext[Microscope]) -> dict[str, Any]:
-    """in: {}. out: {bridge, nis_elements?, optical_configurations?, note?,
-    steps_for_the_operator?}.
+@guarded_tool
+def read_microscope(ctx: RunContext[Microscope]) -> dict[str, Any]:
+    """in: {}. out: {bridge, nis_elements, position_um, stage_limits_um, objectives,
+    optical_configurations, pfs, lights, lasers, shutters, filters, light_path,
+    environment, camera, incubator, laser_power_limit, note?, steps_for_the_operator?}
+    or, when NIS does not answer, {bridge, error, steps_for_the_operator}.
 
-    Whether NIS-Elements and its bridge answer and whether an optical
-    configuration exists; when something is missing, the steps that set it up.
-    Reconnects to a bridge that was restarted. Moves nothing.
+    Everything the microscope reports, in one call: the stage, the objectives and
+    optical configurations, the PFS, and every device NIS has (lamps and LEDs, laser
+    lines, shutters, filter changers, the light path, heating stages, the camera,
+    the incubator). A part NIS cannot read is null. When NIS-Elements or its bridge
+    does not answer, or NIS has no optical configuration, steps_for_the_operator say
+    how to set it up. Reconnects to a bridge that was restarted. Moves nothing.
     """
     engine = ctx.deps.engine
     try:
@@ -291,12 +297,29 @@ def check_setup(ctx: RunContext[Microscope]) -> dict[str, Any]:
             "error": str(exc),
             "steps_for_the_operator": bridge_steps(),
         }
-    configurations = engine.client.request("get_optical_configurations")
+    client = engine.client
+    configurations = client.request("get_optical_configurations")
     result: dict[str, Any] = {
         "bridge": "running",
         "nis_elements": info.get("nis"),
+        "position_um": client.request("get_position"),
+        "stage_limits_um": engine.limits(),
+        "objectives": client.request("get_objectives"),
         "optical_configurations": configurations,
+        "pfs": client.request("get_pfs"),
     }
+    devices = {
+        "lights": "get_lights",
+        "lasers": "get_lasers",
+        "shutters": "get_shutters",
+        "filters": "get_filters",
+        "light_path": "get_light_path",
+        "environment": "get_environment",
+        "camera": "get_camera",
+        "incubator": "get_incubator",
+    }
+    result.update({key: _read_or_none(client, op) for key, op in devices.items()})
+    result["laser_power_limit"] = LASER_POWER_LIMIT
     if not configurations:
         result["note"] = (
             "NIS lists no optical configuration, so nothing can be imaged in a named "
@@ -306,21 +329,12 @@ def check_setup(ctx: RunContext[Microscope]) -> dict[str, Any]:
     return result
 
 
-@guarded_tool
-def get_status(ctx: RunContext[Microscope]) -> dict[str, Any]:
-    """in: {}. out: {position_um, stage_limits_um, objectives, optical_configurations, pfs}.
-
-    Everything the microscope reports, more than the state sent with each
-    message: every objective in the nosepiece and every optical configuration.
-    """
-    client = ctx.deps.client
-    return {
-        "position_um": client.request("get_position"),
-        "stage_limits_um": ctx.deps.engine.limits(),
-        "objectives": client.request("get_objectives"),
-        "optical_configurations": client.request("get_optical_configurations"),
-        "pfs": client.request("get_pfs"),
-    }
+def _read_or_none(client: Any, op: str) -> Any:
+    """A bridge reading, or None from an older bridge or when NIS cannot say."""
+    try:
+        return client.request(op)
+    except (ValueError, RuntimeError):
+        return None
 
 
 @guarded_tool
@@ -490,41 +504,6 @@ def optical_configuration(
 
 
 @guarded_tool
-def get_devices(ctx: RunContext[Microscope]) -> dict[str, Any]:
-    """in: {}. out: {lights, lasers, shutters, filters, light_path, environment, camera,
-    incubator}.
-
-    The devices besides stage, objectives and configurations, as NIS-Elements
-    reports them now: lamps and LEDs (on, iris, voltage), laser lines (wavelength,
-    on, power), shutters (open), filter changers (position and the filter in each
-    position), the transmitted light path (condenser, apertures, zoom, analyzer)
-    heating stages (temperature), the camera (format, ROI, exposure, frames averaged
-    or summed) and the incubator (gas, pressure). A part NIS cannot read is null.
-    """
-    client = ctx.deps.client
-    parts = {
-        "lights": "get_lights",
-        "lasers": "get_lasers",
-        "shutters": "get_shutters",
-        "filters": "get_filters",
-        "light_path": "get_light_path",
-        "environment": "get_environment",
-        "camera": "get_camera",
-        "incubator": "get_incubator",
-    }
-    devices = {key: _read_or_none(client, op) for key, op in parts.items()}
-    return {**devices, "laser_power_limit": LASER_POWER_LIMIT}
-
-
-def _read_or_none(client: Any, op: str) -> Any:
-    """A bridge reading, or None from an older bridge or when NIS cannot say."""
-    try:
-        return client.request(op)
-    except (ValueError, RuntimeError):
-        return None
-
-
-@guarded_tool
 def set_illumination(
     ctx: RunContext[Microscope],
     light: str | None = None,
@@ -545,7 +524,7 @@ def set_illumination(
 
     Switches and sets the light: a lamp or LED by name (on, iris, voltage), a
     laser line by its wavelength (on, power in NIS's steps, usually 0 to 100), a
-    shutter by name (open). Names and wavelengths are the ones get_devices lists.
+    shutter by name (open). Names and wavelengths are the ones read_microscope lists.
     A laser power above the limit is refused. Everything is checked first.
 
     Args:
@@ -645,7 +624,7 @@ def set_optics(
     light path port (where the light goes: camera, eyepieces ...), and the spinning
     disk (its shutter, its speed). escape lowers the objective away from the sample,
     as the microscope's Escape button does, and false brings it back to its focus.
-    Names are the ones get_devices lists. Everything is checked first.
+    Names are the ones read_microscope lists. Everything is checked first.
 
     Args:
         filter_changer: name of the filter changer, e.g. "Turret-Up".
@@ -659,7 +638,7 @@ def set_optics(
         analyzer_in: put the analyzer in (true) or take it out (false).
         pfs_offset: the Perfect Focus offset, a whole number in NIS's units.
         pfs_dish: what the sample sits on, for the Perfect Focus.
-        port: the light path port, as get_devices lists it under light_path.port.
+        port: the light path port, as read_microscope lists it under light_path.port.
         disk_shutter_open: open (true) or close (false) the spinning disk's shutter.
         disk_speed_rpm: the spinning disk's speed in RPM.
         escape: true lowers the objective away from the sample; false brings it back.
@@ -729,7 +708,7 @@ def set_camera(
 
     Args:
         binning: pixels binned in each direction: 1, 2, 4 ...
-        camera_format: or a format name, as get_devices shows it under camera.
+        camera_format: or a format name, as read_microscope shows it under camera.
         roi: the region read out, inside the sensor (camera width_px x height_px).
         averaging: frames averaged into each image.
         integration: frames summed into each image.
@@ -1147,12 +1126,10 @@ def load_skill(ctx: RunContext[Microscope], name: str) -> dict[str, Any]:
 
 
 TOOLS = (
-    check_setup,
-    get_status,
+    read_microscope,
     move_stage,
     set_microscope,
     optical_configuration,
-    get_devices,
     set_illumination,
     set_optics,
     set_camera,

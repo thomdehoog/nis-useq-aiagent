@@ -25,7 +25,7 @@ OPTIONS_ADVICE = (
     "configured_options lists the microscope's own names. If one is plainly what the "
     "operator meant, only spelled differently, use it; otherwise name the options and ask."
 )
-# check_setup hands these to the operator, through the model, when something is missing.
+# read_microscope hands these to the operator, through the model, when something is missing.
 BRIDGE_STEPS = [
     "Open NIS-Elements (the microscope, or its simulator).",
     "In NIS-Elements choose Macro > Run Macro From File..., and pick {macro}.",
@@ -83,7 +83,7 @@ operator has already said. Confirm only what is unclear.
 offer it in one short line ("Shall I ...?"); do not do it unasked, and leave \
 it out when nothing obvious follows.
 - When something looks wrong, find the cause yourself before answering. A \
-dark or empty image: read get_devices and check that the light reaches the \
+dark or empty image: call read_microscope and check that the light reaches the \
 sample and the camera (the light on, a shutter open, the port to the camera, \
 a spinning disk running) and the exposure; say what you found and propose the \
 fix as a question. A saturated image: propose a shorter exposure or less \
@@ -113,7 +113,7 @@ milliseconds, intervals in seconds. The focus is z.
 operator asks you to take are an acquisition, so they are saved; a look only \
 shows. When a run returns a description of its last image, say what it shows.
 - You cannot act later on your own: for imaging over time, plan time points.
-- When the microscope does not answer, call check_setup and pass on its steps.
+- When the microscope does not answer, call read_microscope and pass on its steps.
 - Questions about how the software works are answered from its source code, \
 not from memory."""
 

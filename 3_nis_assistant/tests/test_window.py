@@ -106,11 +106,11 @@ def test_cancel_prompt_stops_the_assistant(qtbot, open_window, fake):
 
 
 def test_tool_calls_show_when_asked(qtbot, open_window):
-    window = open_window(("move_stage", {"x": 1100}), "Moved.", ("get_status", {}), "Here.")
+    window = open_window(("move_stage", {"x": 1100}), "Moved.", ("read_microscope", {}), "Here.")
     ask(qtbot, window, "move a little")
     assert "move_stage" not in window.transcript.toPlainText()
     window.show_tools.setChecked(True)
-    assert "get_status()" in ask(qtbot, window, "status?")
+    assert "read_microscope()" in ask(qtbot, window, "status?")
 
 
 def test_clear_context_empties_the_chat_and_the_memory(qtbot, open_window):
