@@ -7,8 +7,8 @@ at the top of the window chooses one (a cloud model with its API key, a server y
 run yourself, or a model file on this computer); folded open, it also holds the
 coordinate system and the stage limits in force, which the operator can narrow.
 Left: the conversation and the buttons. Right: the latest
-image, the microscope status, and a red banner for anything refused. The divider
-between the two halves can be dragged. The status line shows the session's size;
+image and a red banner for anything refused. The divider
+between the two halves can be dragged. When the session grows large the chat says so;
 past the model's ceiling no message is sent until Clear.
 
 Author: Thom de Hoog, Center for Microscopy and Image Analysis (ZMB), University of Zurich
@@ -180,14 +180,9 @@ class AssistantWindow(QMainWindow):
         self.image = QLabel("No image yet.", alignment=Qt.AlignmentFlag.AlignCenter)
         self.image.setMinimumSize(480, 480)
         self.image.setStyleSheet("background:#111; color:#aaa")
-        self.caption = QLabel(wordWrap=True)
-        self.status = QLabel(wordWrap=True)
-        self.status.setStyleSheet("color:#555")
         right = QVBoxLayout()
         right.addWidget(self.warning)
         right.addWidget(self.image, 1)
-        right.addWidget(self.caption)
-        right.addWidget(self.status)
 
         # the two halves, with a divider the operator can drag
         left_widget, right_widget = QWidget(), QWidget()
@@ -211,7 +206,6 @@ class AssistantWindow(QMainWindow):
             QTimer.singleShot(int(nis_start.POLL_S * 1000), self._wait_for_bridge)
         elif self.assistant.microscope.engine.client.closed:
             self._say_bridge_steps()
-        self._refresh_status()
         self._show_limits()
         if endpoint is not None:
             self.panel.language.show_endpoint(endpoint)
@@ -231,7 +225,6 @@ class AssistantWindow(QMainWindow):
                 QTimer.singleShot(int(nis_start.POLL_S * 1000), self._wait_for_bridge)
             return
         self._say("system", "Connected to NIS-Elements.")
-        self._refresh_status()
         self._show_limits()
 
     def _say_bridge_steps(self) -> None:
@@ -326,7 +319,6 @@ class AssistantWindow(QMainWindow):
         if note := self.assistant.size_note():
             self._say("system", note)
         self._set_busy(False)
-        self._refresh_status()
 
     def _show_error(self, text: str) -> None:
         self._say("system", text)
@@ -335,15 +327,14 @@ class AssistantWindow(QMainWindow):
     # -- the operator's say: Cancel prompt, Stop, Clear ---------------------------------
 
     def cancel_prompt(self) -> None:
-        """Stop the assistant, not the microscope: further tool calls in this turn do nothing.
+        """Stop the assistant, not the microscope: the request to the model ends now.
 
-        What the assistant already started (a move, an acquisition) runs on; Stop
-        microscope ends an acquisition.
+        A tool already running (a move, an image) finishes first; an acquisition runs
+        on, and Stop microscope ends it.
         """
         if not self.busy:
             return
-        self.assistant.microscope.cancel.set()
-        self._say("system", "Cancelled. The assistant stops after its current step.")
+        self.assistant.cancel()  # the turn ends with its reply: CANCELLED_REPLY
 
     def stop_microscope(self) -> None:
         """Cancel the assistant and end a running acquisition after the current image."""
@@ -428,7 +419,6 @@ class AssistantWindow(QMainWindow):
                 Qt.TransformationMode.SmoothTransformation,
             )
         )
-        self.caption.setText(caption)
 
     def _show_tool(self, name: str, args: dict) -> None:
         if self.show_tools.isChecked():
@@ -440,22 +430,6 @@ class AssistantWindow(QMainWindow):
     def _show_warning(self, text: str) -> None:
         self.warning.setText(f"Refused: {text}")
         self.warning.show()
-
-    def _refresh_status(self) -> None:
-        engine = self.assistant.microscope.engine
-        try:
-            if engine.client.closed:
-                engine.reconnect()
-            state = self.assistant.microscope.state()
-        except (RuntimeError, ValueError, OSError) as exc:
-            self.status.setText(f"Microscope not reachable: {exc}")
-            return
-        p = state["position_um"]
-        self.status.setText(
-            f"Stage x {p['x']:.1f}, y {p['y']:.1f}, z {p['z']:.1f} um  ·  "
-            f"objective {state['objective']['name']}  ·  PFS {state['pfs']}  ·  "
-            f"session {self.assistant.tokens:,} tokens"
-        )
 
     # -- small helpers ------------------------------------------------------------------
 

@@ -106,6 +106,10 @@ class Microscope:
     runner: MDARunner | None = None  # set while an acquisition runs, so it can be stopped
     # Set by Cancel: every further tool call in this turn does nothing.
     cancel: threading.Event = field(default_factory=threading.Event)
+    # The tool work running in threads now; a cancelled turn waits for it (agent.py), so
+    # the window never says "done" while the stage or the camera is still busy.
+    working: threading.Condition = field(default_factory=threading.Condition)
+    running: int = 0
     turn: int = 0  # the operator's messages so far
     # The skills the model may load, by name (skills.py); empty when there are none.
     skills: dict[str, Skill] = field(default_factory=dict)
@@ -147,6 +151,26 @@ class Microscope:
     @eyes.setter
     def eyes(self, eyes: Eyes) -> None:
         self._eyes, self.vision_model = eyes, eyes.model
+
+    def counted(self, work: Callable) -> Callable:
+        """``work``, counted in ``running`` while it runs (in whatever thread it runs)."""
+
+        def run(*args: Any, **kwargs: Any) -> Any:
+            with self.working:
+                self.running += 1
+            try:
+                return work(*args, **kwargs)
+            finally:
+                with self.working:
+                    self.running -= 1
+                    self.working.notify_all()
+
+        return run
+
+    def wait_for_tools(self) -> None:
+        """Until no tool work is running any more."""
+        with self.working:
+            self.working.wait_for(lambda: self.running == 0)
 
     def stop(self) -> None:
         """Cancel the assistant's turn and end a running acquisition.
@@ -231,7 +255,7 @@ def guarded_tool(fn: Callable) -> Callable:
         if (stopped := before(ctx, kwargs)) is not None:
             return stopped
         try:
-            return fn(ctx, *args, **kwargs)
+            return ctx.deps.counted(fn)(ctx, *args, **kwargs)
         except ModelRetry:
             raise
         except Exception as exc:
@@ -804,7 +828,7 @@ async def look(ctx: RunContext[Microscope], question: str) -> dict[str, Any]:
         question: what to find out, e.g. "what do you see?", "is it in focus?",
             "is it sharper than the image before?".
     """
-    image = await asyncio.to_thread(snap, ctx.deps.client)
+    image = await asyncio.to_thread(ctx.deps.counted(snap), ctx.deps.client)
     stats = image_statistics(image)
     ctx.deps.on_image(image, question)
     if not ctx.deps.vision:
@@ -982,7 +1006,7 @@ async def run_acquisition(ctx: RunContext[Microscope], plan_id: str) -> dict[str
     try:
         # The run blocks for as long as the acquisition takes; a thread keeps the
         # assistant's own event loop free, which the vision request below needs.
-        await asyncio.to_thread(runner.run, sequence, output=[frames, output])
+        await asyncio.to_thread(ctx.deps.counted(runner.run), sequence, output=[frames, output])
     except Exception as exc:
         error = f"{type(exc).__name__}: {exc}"
     finally:

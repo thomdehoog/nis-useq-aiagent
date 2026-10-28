@@ -63,7 +63,6 @@ def ask(qtbot, window, text):
 
 def test_a_question_and_its_answer(qtbot, open_window):
     window = open_window("The stage is at x 1000 um.")
-    assert "Stage x 1000.0" in window.status.text()
     transcript = ask(qtbot, window, "where is the stage?")
     assert "where is the stage?" in transcript and "The stage is at x 1000 um." in transcript
 
@@ -82,10 +81,10 @@ def test_a_full_session_sends_nothing_until_clear(qtbot, open_window):
     assert window.assistant.tokens == 0
 
 
-def test_a_move_shows_in_the_chat_and_the_status_line(qtbot, open_window, fake):
+def test_a_move_shows_in_the_chat(qtbot, open_window, fake):
     window = open_window(("move_stage", {"x": 20000}), "We are at x 20 mm.")
     assert "We are at x 20 mm." in ask(qtbot, window, "go to x 20 mm")
-    assert moves(fake) == ["move_xy(20000,-500)"] and "Stage x 20000.0" in window.status.text()
+    assert moves(fake) == ["move_xy(20000,-500)"] and fake.position["x"] == 20000
 
 
 def test_cancel_prompt_stops_the_assistant(qtbot, open_window, fake):
@@ -134,7 +133,6 @@ def test_looking_fills_the_image_panel(qtbot, open_window):
     window = open_window(("look", {"question": "focus?"}), "Looks flat.", vision="A flat field.")
     ask(qtbot, window, "look")
     assert window.image.pixmap() is not None and not window.image.pixmap().isNull()
-    assert window.caption.text() == "focus?"
 
 
 def test_the_model_panel_folds_and_applies_a_choice(qtbot, open_window, monkeypatch):
@@ -242,7 +240,7 @@ def test_an_acquisition_runs_from_the_window_and_stop_ends_it(qtbot, open_window
     assert "Shall I start 12 images?" in ask(qtbot, window, "take 12 images")
     assert fake.captures == 0  # nothing starts before the operator agrees
     start(window, "yes")
-    qtbot.waitUntil(lambda: window.caption.text().startswith("frame 3"), timeout=10000)
+    qtbot.waitUntil(lambda: fake.captures >= 3, timeout=10000)  # the run is under way
     window.stop_button.click()
     qtbot.waitUntil(lambda: not window.busy, timeout=10000)
     transcript = window.transcript.toPlainText()
@@ -258,7 +256,7 @@ def test_while_nis_starts_the_window_waits_and_then_connects(qtbot, port, tmp_pa
     assert "being started" in window.transcript.toPlainText()
     connected = lambda: "Connected to NIS-Elements" in window.transcript.toPlainText()  # noqa: E731
     qtbot.waitUntil(connected, timeout=10000)
-    assert "Stage x" in window.status.text() and window.limit_fields["x", "-"].text()
+    assert window.limit_fields["x", "-"].text()  # the limits were read from NIS
     engine.close()
 
 
@@ -278,7 +276,6 @@ def test_without_the_bridge_the_window_opens_and_says_which_file_to_run(
     assert str(tmp_path / "start_bridge.mac") in transcript and "Run Macro From File" in transcript
     # the bridge is there by the first message (here: it always was): the window connects
     assert "At x 1000." in ask(qtbot, window, "where?")
-    assert "Stage x" in window.status.text()
     engine.close()
 
 

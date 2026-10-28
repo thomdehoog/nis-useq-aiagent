@@ -61,6 +61,7 @@ PREFIXES = {
 # is 0.
 TEMPERATURE = 0.0
 TOOL_CALL_RETRIES = 3  # a malformed tool call goes back to the model up to three times
+MODEL_TIMEOUT_S = 120.0  # one request to the model; a dead connection must not hang a turn
 MODEL_SETTINGS: dict[str, dict[str, Any]] = {
     # max_tokens: room for a full acquisition plan. parallel_tool_calls False: one
     # action at a time, so each is seen before the next.

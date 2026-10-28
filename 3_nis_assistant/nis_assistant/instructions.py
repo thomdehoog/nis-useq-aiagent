@@ -49,6 +49,10 @@ COORDINATES = (
     "and {not_x} is -x; {y} is +y and {not_y} is -y; {z} is +z and {not_z} is -z. Left, "
     "right, up, down, deeper and toward the coverslip mean what the operator sees in the image."
 )
+CANCELLED_REPLY = (
+    "Cancelled. The request to the model is stopped; nothing more happens in this turn. "
+    "A tool that was already running finished first."
+)
 CANCELLED_ADVICE = (
     "The operator pressed Cancel. Call no more tools; say in one sentence what was done."
 )
@@ -84,7 +88,8 @@ sample and the camera (the light on, a shutter open, the port to the camera, \
 a spinning disk running) and the exposure; say what you found and propose the \
 fix. A saturated image: propose a shorter exposure or less light.
 - Ask only when the answer changes what you would do: at most one question in \
-a reply, with your suggestion in it, so a yes is enough. Never ask what the \
+a reply, with your suggestion in it, so a yes or a no answers it; never ask \
+"this or that?". Never ask what the \
 state or a tool can tell you. Up, down, raise and lower do not say whether the \
 focus goes deeper or toward the coverslip: that is unclear, so ask which.
 - When the operator is done with the light, or leaves the microscope, offer to \

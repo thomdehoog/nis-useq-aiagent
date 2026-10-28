@@ -1032,3 +1032,31 @@ def test_clear_context_forgets_the_conversation(microscope):
     assistant.clear()
     assistant.send("second")
     assert operator_prompts(script.requests[1]) == [script.requests[1][-1].parts[0].content]
+
+
+# -- cancel ---------------------------------------------------------------------------------
+
+
+def test_cancel_stops_a_model_request_that_does_not_answer(microscope):
+    """The operator's Cancel ends the turn at once, also while the model is still thinking."""
+    import asyncio
+    import threading
+    import time
+
+    from nis_assistant.instructions import CANCELLED_REPLY
+
+    calls = []
+
+    async def slow_then_quick(messages, info):
+        calls.append(len(calls))
+        if len(calls) == 1:
+            await asyncio.sleep(60)  # a request that hangs, as a dead connection would
+        return ModelResponse(parts=[TextPart("Ready.")])
+
+    assistant = Assistant(microscope, model=FunctionModel(slow_then_quick))
+    threading.Timer(0.3, assistant.cancel).start()
+    started = time.monotonic()
+    assert assistant.send("look at it") == CANCELLED_REPLY
+    assert time.monotonic() - started < 5
+    assert assistant.send("are you there?") == "Ready."  # the conversation goes on
+    assert not assistant.cancel()  # nothing is running any more
