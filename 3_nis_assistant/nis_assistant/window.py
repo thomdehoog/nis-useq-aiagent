@@ -4,10 +4,11 @@
 
 Needs the bridge running in NIS-Elements and a model to talk to: the Model panel
 at the top of the window chooses one (a cloud model with its API key, a server you
-run yourself, or a model file on this computer). Left: the conversation, the buttons,
-and the stage limits in force, which the operator can narrow. Right: the latest
-image, the microscope status, and a red banner for anything refused. The divider
-between the two halves can be dragged. The status line shows the session's size;
+run yourself, or a model file on this computer); folded open, it also holds the
+coordinate system and the stage limits in force, which the operator can narrow.
+Left: the conversation and the buttons. Right: the latest
+image and a red banner for anything refused. The divider
+between the two halves can be dragged. When the session grows large the chat says so;
 past the model's ceiling no message is sent until Clear.
 
 Author: Thom de Hoog, Center for Microscopy and Image Analysis (ZMB), University of Zurich
@@ -39,6 +40,7 @@ from PySide6.QtGui import QCloseEvent, QFont, QPixmap
 from PySide6.QtWidgets import (
     QApplication,
     QCheckBox,
+    QGroupBox,
     QHBoxLayout,
     QLabel,
     QLineEdit,
@@ -68,12 +70,6 @@ from .tools import TOOLS, Microscope, bridge_steps
 
 # The colour of each voice in the transcript.
 COLOURS = {"you": "#1a5fb4", "assistant": "#26a269", "system": "#b00020"}
-
-WELCOME = (
-    "Hello. I can move the stage, change the optical settings, focus, look at the "
-    "sample and run acquisitions. Ask me in your own words, for example "
-    "<i>What do you see?</i> or <i>Take a 3-channel Z-stack of 10 um here</i>."
-)
 
 
 class _Signals(QObject):
@@ -132,7 +128,8 @@ class AssistantWindow(QMainWindow):
         buttons_row.addWidget(self.clear_button)
         buttons_row.addWidget(self.show_tools)
         buttons_row.addStretch(1)
-        # below: the stage limits in force, one field per side; the operator can narrow them
+        # the stage limits in force, one field per side; the operator can narrow them.
+        # They sit in their own box in the panel.
         self.limit_fields = {
             (axis, side): QLineEdit(placeholderText="NIS") for axis in "xyz" for side in "-+"
         }
@@ -140,14 +137,14 @@ class AssistantWindow(QMainWindow):
             edit.setMinimumWidth(64)  # room for "-57000" in full: a sign cut off would mislead
         self.apply_limits_button = QPushButton("Apply limits", clicked=self.apply_limits)
         self.nis_limits_button = QPushButton("Use NIS limits", clicked=self.use_nis_limits)
-        # The buttons sit on the row above, so the left half can be made narrow.
-        buttons_row.addWidget(self.apply_limits_button)
-        buttons_row.addWidget(self.nis_limits_button)
-        limits_row = QHBoxLayout()
-        limits_row.addWidget(QLabel("Stage limits (um):"))
+        self.limits_box = QGroupBox("Stage limits (um)")
+        limits_row = QHBoxLayout(self.limits_box)
+        limits_row.setSpacing(6)  # a label touching its field reads as part of the number
         for (axis, side), edit in self.limit_fields.items():
             limits_row.addWidget(QLabel(f"{axis.upper()}{side}"))
             limits_row.addWidget(edit, 1)
+        limits_row.addWidget(self.apply_limits_button)
+        limits_row.addWidget(self.nis_limits_button)
 
         # top: which model, folding open to the choice and the preferences
         self.preferences = PreferencesBox(
@@ -159,6 +156,7 @@ class AssistantWindow(QMainWindow):
             lambda text: self._say("system", text),
             self.preferences,
             axes=self.axes_box,
+            limits=self.limits_box,
         )
 
         left = QVBoxLayout()
@@ -166,7 +164,6 @@ class AssistantWindow(QMainWindow):
         left.addWidget(self.transcript, 1)
         left.addLayout(input_row)
         left.addLayout(buttons_row)
-        left.addLayout(limits_row)
 
         # right: warning, image, status
         self.warning = QLabel(wordWrap=True)
@@ -177,14 +174,9 @@ class AssistantWindow(QMainWindow):
         self.image = QLabel("No image yet.", alignment=Qt.AlignmentFlag.AlignCenter)
         self.image.setMinimumSize(480, 480)
         self.image.setStyleSheet("background:#111; color:#aaa")
-        self.caption = QLabel(wordWrap=True)
-        self.status = QLabel(wordWrap=True)
-        self.status.setStyleSheet("color:#555")
         right = QVBoxLayout()
         right.addWidget(self.warning)
         right.addWidget(self.image, 1)
-        right.addWidget(self.caption)
-        right.addWidget(self.status)
 
         # the two halves, with a divider the operator can drag
         left_widget, right_widget = QWidget(), QWidget()
@@ -198,7 +190,7 @@ class AssistantWindow(QMainWindow):
         self.splitter.setChildrenCollapsible(False)
         self.setCentralWidget(self.splitter)
 
-        self._say("assistant", WELCOME, escape=False)
+        # The chat starts empty: the assistant speaks only after the operator has.
         if nis_starting:
             self._say(
                 "system",
@@ -208,10 +200,10 @@ class AssistantWindow(QMainWindow):
             QTimer.singleShot(int(nis_start.POLL_S * 1000), self._wait_for_bridge)
         elif self.assistant.microscope.engine.client.closed:
             self._say_bridge_steps()
-        self._refresh_status()
         self._show_limits()
         if endpoint is not None:
             self.panel.language.show_endpoint(endpoint)
+            self._quiet_connect = True  # the Model line says which; the chat stays empty
             self.panel.apply()
 
     def _wait_for_bridge(self) -> None:
@@ -228,7 +220,6 @@ class AssistantWindow(QMainWindow):
                 QTimer.singleShot(int(nis_start.POLL_S * 1000), self._wait_for_bridge)
             return
         self._say("system", "Connected to NIS-Elements.")
-        self._refresh_status()
         self._show_limits()
 
     def _say_bridge_steps(self) -> None:
@@ -270,7 +261,10 @@ class AssistantWindow(QMainWindow):
         note = (
             f" The eyes start afresh; the {seen} images seen so far are forgotten." if seen else ""
         )
-        self._say("system", f"Talking to {endpoint.name}.{note}")
+        if getattr(self, "_quiet_connect", False):
+            self._quiet_connect = False
+        else:
+            self._say("system", f"Talking to {endpoint.name}.{note}")
 
     def closeEvent(self, event: QCloseEvent) -> None:
         """Do not close in the middle of an action: the microscope would be left mid-way."""
@@ -323,7 +317,6 @@ class AssistantWindow(QMainWindow):
         if note := self.assistant.size_note():
             self._say("system", note)
         self._set_busy(False)
-        self._refresh_status()
 
     def _show_error(self, text: str) -> None:
         self._say("system", text)
@@ -332,15 +325,14 @@ class AssistantWindow(QMainWindow):
     # -- the operator's say: Cancel prompt, Stop, Clear ---------------------------------
 
     def cancel_prompt(self) -> None:
-        """Stop the assistant, not the microscope: further tool calls in this turn do nothing.
+        """Stop the assistant, not the microscope: the request to the model ends now.
 
-        What the assistant already started (a move, an acquisition) runs on; Stop
-        microscope ends an acquisition.
+        A tool already running (a move, an image) finishes first; an acquisition runs
+        on, and Stop microscope ends it.
         """
         if not self.busy:
             return
-        self.assistant.microscope.cancel.set()
-        self._say("system", "Cancelled. The assistant stops after its current step.")
+        self.assistant.cancel()  # the turn ends with its reply: CANCELLED_REPLY
 
     def stop_microscope(self) -> None:
         """Cancel the assistant and end a running acquisition after the current image."""
@@ -358,7 +350,6 @@ class AssistantWindow(QMainWindow):
             return
         self.assistant.clear()
         self.transcript.clear()
-        self._say("assistant", WELCOME, escape=False)
 
     # -- stage limits -------------------------------------------------------------------
 
@@ -425,7 +416,6 @@ class AssistantWindow(QMainWindow):
                 Qt.TransformationMode.SmoothTransformation,
             )
         )
-        self.caption.setText(caption)
 
     def _show_tool(self, name: str, args: dict) -> None:
         if self.show_tools.isChecked():
@@ -437,22 +427,6 @@ class AssistantWindow(QMainWindow):
     def _show_warning(self, text: str) -> None:
         self.warning.setText(f"Refused: {text}")
         self.warning.show()
-
-    def _refresh_status(self) -> None:
-        engine = self.assistant.microscope.engine
-        try:
-            if engine.client.closed:
-                engine.reconnect()
-            state = self.assistant.microscope.state()
-        except (RuntimeError, ValueError, OSError) as exc:
-            self.status.setText(f"Microscope not reachable: {exc}")
-            return
-        p = state["position_um"]
-        self.status.setText(
-            f"Stage x {p['x']:.1f}, y {p['y']:.1f}, z {p['z']:.1f} um  ·  "
-            f"objective {state['objective']['name']}  ·  PFS {state['pfs']}  ·  "
-            f"session {self.assistant.tokens:,} tokens"
-        )
 
     # -- small helpers ------------------------------------------------------------------
 

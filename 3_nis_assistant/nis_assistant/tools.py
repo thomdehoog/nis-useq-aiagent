@@ -28,6 +28,7 @@ Acknowledgement: if you use this code or build on its ideas, please acknowledge 
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import functools
 import inspect
 import os
@@ -67,9 +68,11 @@ from .plans import AcquisitionPlan, PositionSpec, count_images, describe, plan_t
 from .settings import (
     CLOCK_FORMAT,
     DEFAULT_AXES,
+    LASER_POWER_LIMIT,
     MAX_EXPOSURE_MS,
     MAX_SWEEP_UM,
     MODEL,
+    SAFE_STATE_TIMEOUT_S,
     SOURCE_LINES,
     SOURCE_MATCHES,
 )
@@ -103,6 +106,10 @@ class Microscope:
     runner: MDARunner | None = None  # set while an acquisition runs, so it can be stopped
     # Set by Cancel: every further tool call in this turn does nothing.
     cancel: threading.Event = field(default_factory=threading.Event)
+    # The tool work running in threads now; a cancelled turn waits for it (agent.py), so
+    # the window never says "done" while the stage or the camera is still busy.
+    working: threading.Condition = field(default_factory=threading.Condition)
+    running: int = 0
     turn: int = 0  # the operator's messages so far
     # The skills the model may load, by name (skills.py); empty when there are none.
     skills: dict[str, Skill] = field(default_factory=dict)
@@ -145,6 +152,26 @@ class Microscope:
     def eyes(self, eyes: Eyes) -> None:
         self._eyes, self.vision_model = eyes, eyes.model
 
+    def counted(self, work: Callable) -> Callable:
+        """``work``, counted in ``running`` while it runs (in whatever thread it runs)."""
+
+        def run(*args: Any, **kwargs: Any) -> Any:
+            with self.working:
+                self.running += 1
+            try:
+                return work(*args, **kwargs)
+            finally:
+                with self.working:
+                    self.running -= 1
+                    self.working.notify_all()
+
+        return run
+
+    def wait_for_tools(self) -> None:
+        """Until no tool work is running any more."""
+        with self.working:
+            self.working.wait_for(lambda: self.running == 0)
+
     def stop(self) -> None:
         """Cancel the assistant's turn and end a running acquisition.
 
@@ -154,6 +181,15 @@ class Microscope:
         self.cancel.set()
         if self.runner is not None:
             self.runner.cancel()
+        # Lasers, shutters and lamps off; in the background, since a turn may still be
+        # using the bridge and the window must not wait for it.
+        threading.Thread(target=self._safe_state, daemon=True).start()
+
+    def _safe_state(self) -> None:
+        # Best effort: an older bridge, NIS not answering or a closed connection must not
+        # turn Stop into an error; the turn is cancelled either way.
+        with contextlib.suppress(Exception):
+            self.client.request("safe_state", timeout=SAFE_STATE_TIMEOUT_S)
 
 
 def refusal(
@@ -219,7 +255,7 @@ def guarded_tool(fn: Callable) -> Callable:
         if (stopped := before(ctx, kwargs)) is not None:
             return stopped
         try:
-            return fn(ctx, *args, **kwargs)
+            return ctx.deps.counted(fn)(ctx, *args, **kwargs)
         except ModelRetry:
             raise
         except Exception as exc:
@@ -392,6 +428,337 @@ def set_microscope(
 
 
 @guarded_tool
+def optical_configuration(
+    ctx: RunContext[Microscope],
+    action: Literal["show", "edit", "copy", "delete"],
+    name: str,
+    exposure_ms: float | None = None,
+    new_name: str | None = None,
+) -> dict[str, Any]:
+    """in: {action, name, exposure_ms?, new_name?}. out: {the configuration as NIS
+    now holds it (name, objective, camera, format, binning, exposure_ms, light_path),
+    backup?} or, for delete, {deleted, backup}.
+
+    Reads or changes an optical configuration as saved in NIS-Elements, which the
+    operator and later sessions will use; set_microscope changes the current
+    settings only. "show" reads what it holds. "edit" saves another exposure in it.
+    "copy" saves it under new_name, with exposure_ms if given. "delete" removes it.
+    Change or delete a saved configuration only when the operator asks for that.
+    Every change keeps a backup file of all configurations first; backup is its path.
+
+    Args:
+        action: "show", "edit", "copy" or "delete".
+        name: the optical configuration, as NIS lists it or without the light path
+            in front ("BF" for "Spinning Disk (2):BF").
+        exposure_ms: the camera exposure to save, in milliseconds (edit, copy).
+        new_name: the name of the copy (copy only), as the operator gives it; spaces
+            are fine, only ":" is not.
+    """
+    client = ctx.deps.client
+    # Everything is checked first; only then does anything change.
+    known = client.request("get_optical_configurations")
+    if not any(listed == name or listed.rsplit(":", 1)[-1] == name for listed in known):
+        return refusal(
+            ctx,
+            "invalid",
+            f"{name!r} is not an optical configuration in NIS-Elements",
+            OPTIONS_ADVICE,
+            configured_options=known,
+        )
+    if exposure_ms is not None and not 0 < exposure_ms <= MAX_EXPOSURE_MS:
+        return refusal(
+            ctx,
+            "invalid",
+            f"the exposure must be between 0 and {MAX_EXPOSURE_MS:g} ms",
+            FAILURE_ADVICE,
+        )
+    if action == "edit" and exposure_ms is None:
+        return refusal(
+            ctx, "invalid", "edit needs exposure_ms: the exposure to save", FAILURE_ADVICE
+        )
+    if action == "copy" and not new_name:
+        return refusal(ctx, "invalid", "copy needs new_name: the name of the copy", FAILURE_ADVICE)
+
+    if action == "show":
+        return client.request("get_optical_configuration", name=name)
+    if action == "edit":
+        return client.request("edit_optical_configuration", name=name, exposure_ms=exposure_ms)
+    if action == "copy":
+        args = {"exposure_ms": exposure_ms} if exposure_ms is not None else {}
+        return client.request("copy_optical_configuration", name=name, new_name=new_name, **args)
+    return client.request("delete_optical_configuration", name=name)
+
+
+@guarded_tool
+def get_devices(ctx: RunContext[Microscope]) -> dict[str, Any]:
+    """in: {}. out: {lights, lasers, shutters, filters, light_path, environment, camera,
+    incubator}.
+
+    The devices besides stage, objectives and configurations, as NIS-Elements
+    reports them now: lamps and LEDs (on, iris, voltage), laser lines (wavelength,
+    on, power), shutters (open), filter changers (position and the filter in each
+    position), the transmitted light path (condenser, apertures, zoom, analyzer)
+    heating stages (temperature), the camera (format, ROI, exposure, frames averaged
+    or summed) and the incubator (gas, pressure). A part NIS cannot read is null.
+    """
+    client = ctx.deps.client
+    parts = {
+        "lights": "get_lights",
+        "lasers": "get_lasers",
+        "shutters": "get_shutters",
+        "filters": "get_filters",
+        "light_path": "get_light_path",
+        "environment": "get_environment",
+        "camera": "get_camera",
+        "incubator": "get_incubator",
+    }
+    devices = {key: _read_or_none(client, op) for key, op in parts.items()}
+    return {**devices, "laser_power_limit": LASER_POWER_LIMIT}
+
+
+def _read_or_none(client: Any, op: str) -> Any:
+    """A bridge reading, or None from an older bridge or when NIS cannot say."""
+    try:
+        return client.request(op)
+    except (ValueError, RuntimeError):
+        return None
+
+
+@guarded_tool
+def set_illumination(
+    ctx: RunContext[Microscope],
+    light: str | None = None,
+    light_on: bool | None = None,
+    light_iris: float | None = None,
+    light_voltage: float | None = None,
+    wavelength_nm: int | None = None,
+    laser_on: bool | None = None,
+    laser_power: int | None = None,
+    laser: str | None = None,
+    shutter: str | None = None,
+    shutter_open: bool | None = None,
+    all_off: bool | None = None,
+) -> dict[str, Any]:
+    """in: {light?, light_on?, light_iris?, light_voltage?, wavelength_nm?, laser_on?,
+    laser_power?, laser?, shutter?, shutter_open?, all_off?}. out: {each device as it is now}
+    or, for all_off, {lasers_off, shutters_closed, lights_off, failed}.
+
+    Switches and sets the light: a lamp or LED by name (on, iris, voltage), a
+    laser line by its wavelength (on, power in NIS's steps, usually 0 to 100), a
+    shutter by name (open). Names and wavelengths are the ones get_devices lists.
+    A laser power above the limit is refused. Everything is checked first.
+
+    Args:
+        light: name of a lamp or LED, e.g. "DIA".
+        light_on: switch that light on (true) or off (false).
+        light_iris: the lamp's own iris intensity, where NIS controls it; not the
+            X-Light's Illumination Iris, which is set_optics aperture "epi_field".
+        light_voltage: its voltage in V, where NIS controls it.
+        wavelength_nm: the laser line, by wavelength, e.g. 488.
+        laser_on: switch that line on (true) or off (false).
+        laser_power: its power, a whole number of NIS's steps.
+        laser: the laser light source, when NIS has more than one.
+        shutter: name of a shutter.
+        shutter_open: open (true) or close (false) that shutter.
+        all_off: true switches every laser line, shutter and lamp off at once.
+    """
+    client = ctx.deps.client
+    if all_off:
+        return client.request("safe_state")
+    if all(v is None for v in (light, wavelength_nm, shutter)):
+        return refusal(
+            ctx, "invalid", "name a light, a laser wavelength or a shutter", FAILURE_ADVICE
+        )
+    if laser_power is not None and laser_power > LASER_POWER_LIMIT:
+        return refusal(
+            ctx,
+            "limit",
+            f"laser power {laser_power} is above the limit of {LASER_POWER_LIMIT}",
+            LIMIT_ADVICE,
+        )
+    if light is not None:
+        known = [x["name"] for x in client.request("get_lights")]
+        if light not in known:
+            return refusal(
+                ctx, "invalid", f"{light!r} is not a light NIS has", OPTIONS_ADVICE,
+                configured_options=known,
+            )  # fmt: skip
+    if wavelength_nm is not None:
+        lines = [x for source in client.request("get_lasers") for x in source["lines"]]
+        offered = sorted({x["wavelength_nm"] for x in lines if x["wavelength_nm"]})
+        if wavelength_nm not in offered:
+            return refusal(
+                ctx, "invalid", f"no laser line at {wavelength_nm} nm", OPTIONS_ADVICE,
+                configured_options=offered,
+            )  # fmt: skip
+    if shutter is not None:
+        known = [x["name"] for x in client.request("get_shutters")]
+        if shutter not in known:
+            return refusal(
+                ctx, "invalid", f"{shutter!r} is not a shutter NIS has", OPTIONS_ADVICE,
+                configured_options=known,
+            )  # fmt: skip
+
+    applied: dict[str, Any] = {}
+    if light is not None:
+        args = {"on": light_on, "iris": light_iris, "voltage": light_voltage}
+        applied["light"] = client.request(
+            "set_light", name=light, **{k: v for k, v in args.items() if v is not None}
+        )
+    if wavelength_nm is not None:
+        args = {"on": laser_on, "power": laser_power, "laser": laser}
+        applied["laser"] = client.request(
+            "set_laser",
+            wavelength_nm=wavelength_nm,
+            **{k: v for k, v in args.items() if v is not None},
+        )
+    if shutter is not None:
+        applied["shutter"] = client.request("set_shutter", name=shutter, open=bool(shutter_open))
+    return applied
+
+
+@guarded_tool
+def set_optics(
+    ctx: RunContext[Microscope],
+    filter_changer: str | None = None,
+    filter: str | None = None,
+    filter_position: int | None = None,
+    condenser: int | None = None,
+    aperture: Literal["field", "epi_field", "dia"] | None = None,
+    aperture_size: float | None = None,
+    zoom: float | None = None,
+    analyzer_in: bool | None = None,
+    pfs_offset: int | None = None,
+    pfs_dish: Literal["glass", "plastic"] | None = None,
+    port: int | None = None,
+    disk_shutter_open: bool | None = None,
+    disk_speed_rpm: int | None = None,
+    escape: bool | None = None,
+) -> dict[str, Any]:
+    """in: {filter_changer?, filter?, filter_position?, condenser?, aperture?,
+    aperture_size?, zoom?, analyzer_in?, pfs_offset?, pfs_dish?, port?, disk_shutter_open?,
+    disk_speed_rpm?, escape?}. out: {each part as it is now}.
+
+    Sets the optics in the light path: a filter changer (turret, wheel) to a
+    filter by name or to a position, the condenser position, an aperture's size,
+    the zoom, the analyzer in or out, the Perfect Focus offset and dish type, the
+    light path port (where the light goes: camera, eyepieces ...), and the spinning
+    disk (its shutter, its speed). escape lowers the objective away from the sample,
+    as the microscope's Escape button does, and false brings it back to its focus.
+    Names are the ones get_devices lists. Everything is checked first.
+
+    Args:
+        filter_changer: name of the filter changer, e.g. "Turret-Up".
+        filter: the filter to turn to, by the name the changer gives it.
+        filter_position: or the position to turn to, from 1.
+        condenser: condenser position.
+        aperture: which aperture: "field", "epi_field" or "dia". On an X-Light
+            spinning disk, epi_field is its Illumination Iris (0 to 100 %).
+        aperture_size: its size, in NIS's units.
+        zoom: the zoom factor; NIS takes its closest step.
+        analyzer_in: put the analyzer in (true) or take it out (false).
+        pfs_offset: the Perfect Focus offset, a whole number in NIS's units.
+        pfs_dish: what the sample sits on, for the Perfect Focus.
+        port: the light path port, as get_devices lists it under light_path.port.
+        disk_shutter_open: open (true) or close (false) the spinning disk's shutter.
+        disk_speed_rpm: the spinning disk's speed in RPM.
+        escape: true lowers the objective away from the sample; false brings it back.
+    """
+    client = ctx.deps.client
+    if filter_changer is not None:
+        known = [x["name"] for x in client.request("get_filters")]
+        if filter_changer not in known:
+            return refusal(
+                ctx, "invalid", f"{filter_changer!r} is not a filter changer NIS has",
+                OPTIONS_ADVICE, configured_options=known,
+            )  # fmt: skip
+    applied: dict[str, Any] = {}
+    if filter_changer is not None:
+        target = {"filter": filter} if filter is not None else {"position": filter_position}
+        applied["filter"] = client.request("set_filter", changer=filter_changer, **target)
+    path = {"condenser": condenser, "zoom": zoom, "analyzer": analyzer_in}
+    if aperture is not None:
+        path.update(aperture=aperture, size=aperture_size)
+    path = {k: v for k, v in path.items() if v is not None}
+    if path:
+        applied["light_path"] = client.request("set_light_path", **path)
+    pfs = {k: v for k, v in {"offset": pfs_offset, "dish": pfs_dish}.items() if v is not None}
+    if pfs:
+        applied["pfs"] = client.request("set_pfs_offset", **pfs)
+    disk = {"port": port, "disk_shutter": disk_shutter_open, "disk_speed_rpm": disk_speed_rpm}
+    disk = {k: v for k, v in disk.items() if v is not None}
+    if disk:
+        applied["port_and_disk"] = client.request("set_port", **disk)
+    if escape is not None:
+        applied["escape"] = client.request("escape", on=escape)
+    if not applied:
+        return refusal(ctx, "invalid", "name something to set", FAILURE_ADVICE)
+    return applied
+
+
+class RegionOfInterest(BaseModel):
+    """A camera region in sensor pixels: the top-left and the bottom-right corner."""
+
+    left: int
+    top: int
+    right: int
+    bottom: int
+
+
+@guarded_tool
+def set_camera(
+    ctx: RunContext[Microscope],
+    binning: int | None = None,
+    camera_format: str | None = None,
+    roi: RegionOfInterest | None = None,
+    averaging: int | None = None,
+    integration: int | None = None,
+    live: bool | None = None,
+    auto_exposure: bool | None = None,
+) -> dict[str, Any]:
+    """in: {binning?, camera_format?, roi?, averaging?, integration?, live?, auto_exposure?}.
+    out: {the camera as it is now: name, width_px, height_px, format, roi, exposure_ms,
+    averaging, integration, live?}.
+
+    Sets how the camera takes images: binning (2 for 2x2), or a format by the name
+    NIS gives it ("FMT 2x2 16"); the region of the sensor read out, in sensor
+    pixels; and how many frames each image averages or sums (1 for none). The
+    exposure is set with set_microscope, or chosen by NIS from what the camera sees
+    now with auto_exposure. live starts NIS's live view on its screen, or freezes it;
+    nothing is saved. A format the camera lacks is reported, and the camera keeps its own.
+
+    Args:
+        binning: pixels binned in each direction: 1, 2, 4 ...
+        camera_format: or a format name, as get_devices shows it under camera.
+        roi: the region read out, inside the sensor (camera width_px x height_px).
+        averaging: frames averaged into each image.
+        integration: frames summed into each image.
+        live: true starts NIS's live view; false freezes it.
+        auto_exposure: true lets NIS choose the exposure from the current picture.
+    """
+    args = {
+        "binning": binning,
+        "format": camera_format,
+        "roi": roi.model_dump() if roi is not None else None,
+        "averaging": averaging,
+        "integration": integration,
+    }
+    client = ctx.deps.client
+    settings = {k: v for k, v in args.items() if v is not None}
+    if not settings and live is None and not auto_exposure:
+        return refusal(ctx, "invalid", "name something to set", FAILURE_ADVICE)
+    try:
+        camera = client.request("set_camera", **settings) if settings else {}
+    except ValueError as exc:  # checked by the bridge before anything changed
+        return refusal(ctx, "invalid", str(exc), FAILURE_ADVICE)
+    if auto_exposure:
+        camera = {**camera, **client.request("auto_exposure")}
+    if live is not None:
+        camera = {**camera, **client.request("live", on=live)}
+    return camera
+
+
+@guarded_tool
 def focus(
     ctx: RunContext[Microscope],
     method: Literal["pfs", "image_sweep"] = "pfs",
@@ -461,7 +828,7 @@ async def look(ctx: RunContext[Microscope], question: str) -> dict[str, Any]:
         question: what to find out, e.g. "what do you see?", "is it in focus?",
             "is it sharper than the image before?".
     """
-    image = await asyncio.to_thread(snap, ctx.deps.client)
+    image = await asyncio.to_thread(ctx.deps.counted(snap), ctx.deps.client)
     stats = image_statistics(image)
     ctx.deps.on_image(image, question)
     if not ctx.deps.vision:
@@ -639,7 +1006,7 @@ async def run_acquisition(ctx: RunContext[Microscope], plan_id: str) -> dict[str
     try:
         # The run blocks for as long as the acquisition takes; a thread keeps the
         # assistant's own event loop free, which the vision request below needs.
-        await asyncio.to_thread(runner.run, sequence, output=[frames, output])
+        await asyncio.to_thread(ctx.deps.counted(runner.run), sequence, output=[frames, output])
     except Exception as exc:
         error = f"{type(exc).__name__}: {exc}"
     finally:
@@ -784,6 +1151,11 @@ TOOLS = (
     get_status,
     move_stage,
     set_microscope,
+    optical_configuration,
+    get_devices,
+    set_illumination,
+    set_optics,
+    set_camera,
     focus,
     look,
     ask_eyes,

@@ -43,7 +43,7 @@ the results.
 ```
 your Python                     NIS-Elements
 NisClient ── socket ─────────── dispatch ── readers, commands ── nis_dll ── g5_regprocs.dll
-             127.0.0.1 only     (Python inside NIS, started by a macro)
+             127.0.0.1 only     (Python inside NIS, started by a macro)  └─ nis_macro ── RunMacro
 ```
 
 Two consequences:
@@ -222,16 +222,56 @@ milliseconds for exposure, nosepiece slots numbered from 1.
 | `move` | any of `x`, `y`, `z` (um, absolute) | the position after the move |
 | `get_optical_configurations` | | the configuration names |
 | `select_optical_configuration` | `name` | the selected name |
+| `get_optical_configuration` | `name` | what it holds: objective, camera, format, binning, `exposure_ms`, `max_exposure_ms`, light path |
+| `edit_optical_configuration` | `name`, `exposure_ms` | the configuration as NIS now holds it, and `backup` |
+| `copy_optical_configuration` | `name`, `new_name`, optionally `exposure_ms` | the new configuration, and `backup` |
+| `delete_optical_configuration` | `name` | the deleted name, and `backup` |
 | `set_exposure` | `exposure_ms` | the exposure NIS applied (it may round) |
+| `get_camera` | | the camera's `name`, `driver`, `width_px`, `height_px`, `pixel_um`, `format`, `roi` and `exposure_ms` (through macros on NIS 6.10: about 0.1 s) |
 | `get_objectives` | | the current nosepiece slot and the objective in each slot |
 | `set_objective` | `position` (slot, from 1) | the current slot |
-| `get_pfs` | | whether the Perfect Focus System is present, on, and in focus |
+| `get_pfs` | | whether the Perfect Focus System is present, on, and in focus; its `offset` and `dish` |
 | `set_pfs` | `on`, optionally `timeout_s` | the PFS state after switching |
+| `set_pfs_offset` | `offset` and/or `dish` (`glass`, `plastic`) | the PFS after the change |
+| `get_lights` / `set_light` | `name`; `on`, `voltage`, `iris` | each lamp or LED: on, and voltage and iris where NIS controls them |
+| `get_lasers` / `set_laser` | `line` (from 1) or `wavelength_nm`, optionally `laser`; `on`, `power` | each multi-laser and its lines: wavelength, on, power and its steps |
+| `get_shutters` / `set_shutter` | `name`, `open` | each shutter by name, open or not |
+| `get_filters` / `set_filter` | `changer`; `position` (from 1) or `filter` (its name) | each filter changer: position and the filter in each |
+| `get_light_path` / `set_light_path` | any of `condenser`, `aperture` (`field`, `epi_field`, `dia`) with `size`, `zoom`, `analyzer` | condenser, apertures, zoom (and whether it is turned by hand), analyzer |
+| `get_environment` | | heating stages: temperature and status (read only) |
+| `set_camera` | any of `format` (e.g. `FMT 2x2 16`) or `binning`, `roi` ({left, top, right, bottom}), `averaging`, `integration` | the camera after the change (`get_camera`) |
+| `get_incubator` | optionally `key` | gas (%) and pressure (mbar), now and as set (read only) |
+| `set_port` | any of `port`, `disk_shutter`, `disk_speed_rpm` | the light path port and the spinning disk (also in `get_light_path`) |
+| `move_piezo_z` | `distance_um` (at most 50) or `center` | what was done; NIS cannot read the piezo position back |
+| `escape` | `on` (true: lower the objective away; false: back to its focus) | whether escaped, and the position |
+| `live` | `on` (true: live view; false: freeze) | the state asked for (NIS cannot read it) |
+| `auto_exposure` | | the exposure NIS chose from the current picture |
+| `probe_macro` | `function`, `arguments`, `ints`/`doubles`/`texts` | for development only: one NIS function through a macro, and only while `nis_bridge/probe.enabled` exists |
+| `safe_state` | | every laser line off, every shutter and the disk shutter closed, every lamp off; what it switched off |
 | `autofocus` | `range_um`, `speed` | the position after NIS's image-based focus sweep |
 | `snap` | `path` | the path of the saved TIFF and the pixel size in um (None when not calibrated) |
 
 A command's result is always read back from NIS after the change, so it can
 differ from what was asked (NIS rounds exposures, for instance).
+
+Laser lines and filter positions are numbered from 1, as NIS's own panels
+show them; NIS's macro functions count from 0, and the bridge converts. Laser
+power goes through a macro: the DLL's power functions answer but change
+nothing on 6.10. On an X-Light spinning disk, the `epi_field` aperture is its
+Illumination Iris. A device NIS does not have,
+or a value it cannot set (a zoom turned by hand), is refused with what it has.
+
+**Optical configurations.** A configuration may be named as NIS lists it
+("Spinning Disk (2):BF") or without the light path ("BF"). NIS 6.10 has no
+macro function that changes a saved configuration, so the bridge goes through
+NIS's own backup file: it writes all configurations to XML (`BackupOptConf`),
+changes the one block, and imports it again (`RestoreOptConfEx`), over the old
+one for an edit and only as a new name for a copy, so NIS never asks which one
+to keep. Before every change the bridge keeps a backup in
+`%TEMP%\nis-bridge-optconf`; `backup` in the reply is its path, and NIS's
+import of optical configurations brings it back. NIS ends
+each import with an "Import succesfully finished" message; the bridge presses
+its OK itself. For now the exposure is the setting that can be changed.
 
 ## Testing without a microscope
 
@@ -280,13 +320,24 @@ requests from several clients are served in turn.
 marked cancelled and never run; one that has started runs to its end, and the
 client is told it is still running.
 
-**The NIS functions.** Every NIS macro function (`StgMoveXY`, `Capture`,
-`ImageSaveAs`, ...) is also exported by `g5_regprocs.dll`, a C library that
+**The NIS functions.** Most NIS macro functions (`StgMoveXY`, `Capture`,
+`ImageSaveAs`, ...) are also exported by `g5_regprocs.dll`, a C library that
 ships with NIS. `nis_dll.py` calls them with `ctypes`, turns their return
 codes into Python exceptions and their output values into plain Python.
 Signatures come from the macro reference installed with NIS-Elements
-(`C:\Program Files\NIS-Elements\Docs\nis\eng_ar\`). `Camera_ExposureSet` is
-not exported; the bridge reaches it through NIS's own `nis.call_proc`.
+(`C:\Program Files\NIS-Elements\Docs\nis\eng_ar\`).
+
+Not every function is exported: of the 1022 hardware functions in NIS's list
+(stage, devices, camera), the DLL has 565; most camera settings are missing.
+NIS's own `nis.call_proc` reaches 769 of them by name. A function that only
+takes values in (`Camera_ExposureSet`) goes through `nis.call_proc` directly.
+One that hands values back goes through `nis_macro.py`: on NIS 6.10,
+`nis.call_proc` fails on a number handed back and corrupts NIS's memory on a
+text handed back, so the call is made inside a few lines of NIS macro, run with
+`RunMacro`, and the answer is read back from macro variables and a file. That
+costs about 20 ms per call (the DLL: under 0.1 ms), so the DLL stays the route
+for everything it exports. `get_camera` and the exposure read come through the
+macro route. Details: branch `_nis-6p1-step0`, RESULTS.md.
 
 **Standard library only** on the bridge side, because it runs inside
 NIS-Elements' own Python (NIS 6.10 bundles Python 3.12 with numpy and nothing
@@ -322,7 +373,10 @@ ruff check . && ruff format --check .   # lint and formatting, rules in pyprojec
 |---|---|
 | `nis_bridge/readers.py` | The read-only requests, one method each: they observe NIS and change nothing. |
 | `nis_bridge/commands.py` | The requests that change something, one method each, all in the same shape (check, call NIS, read back). The place to look up or add a command. |
-| `nis_bridge/nis_dll.py` | C to Python: the raw NIS functions of `g5_regprocs.dll`, one thin wrapper each. |
+| `nis_bridge/nis_dll.py` | C to Python: the raw NIS functions of `g5_regprocs.dll`, one thin wrapper each; what the DLL lacks through `nis_macro.py`. |
+| `nis_bridge/nis_macro.py` | NIS functions the DLL does not export, called inside a few lines of NIS macro. |
+| `nis_bridge/optconf.py` | NIS's optical configuration backup file: find a configuration, change it, write a file to import. |
+| `nis_bridge/dialogs.py` | Presses OK on the one NIS message that would otherwise stop the bridge. |
 | `nis_bridge/dispatch.py` | The server inside NIS: the queue, the main-thread pump, the timeouts. |
 | `nis_bridge/bridge.py` | What `start_bridge.mac` calls: start, pump, stop. |
 | `nis_bridge/settings.py` | Every constant: ports, timeouts, defaults. |

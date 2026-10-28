@@ -1,12 +1,13 @@
 """The Model panel at the top of the chat window.
 
 A single line shows which model is in use; clicking it folds the panel open.
-Inside are two boxes: the language model that runs the conversation, and the
-vision model that is shown camera images (by default the same one). Each box
-names a cloud model (provider, model, API key) or an OpenAI-style server (its
-address). "Use this model" applies the choice; the conversation so far is kept. Below them, the
-Coordinate system box says what a positive move on each axis does to the
-sample in the image, and the Preferences box where images are saved.
+Inside, the AI Model box names the model that runs the conversation and
+is shown the camera images: provider, model and API key on one line, and for an
+OpenAI-style server its address. Below it, the Stage limits box holds the limits in
+force, the Coordinate system box says what a positive move on each axis does to
+the sample in the image, and the Preferences box says where images are saved. Last, the
+Connect button asks the model for one word and uses it once it answers; the
+button then reads Connected. The conversation so far is kept.
 
 The API key typed here stays in memory for this session only.
 
@@ -21,6 +22,7 @@ Acknowledgement: if you use this code or build on its ideas, please acknowledge 
 from __future__ import annotations
 
 import os
+import threading
 from collections.abc import Callable
 from pathlib import Path
 
@@ -49,34 +51,30 @@ from .settings import (
     PROVIDERS,
 )
 
-CLOUD = "Cloud"
-SAME = "Same as language model"
+CONNECT, CONNECTING, CONNECTED = "Connect", "Connecting ...", "Connected"
 
 
 class ModelPicker(QGroupBox):
     """A titled box that names one model.
 
     The fields are the provider, the model name, the API key and, for an
-    OpenAI-style server, its address. The vision box has a Type dropdown with one
-    more choice, "Same as language model".
+    OpenAI-style server, its address.
     """
 
     changed = Signal()
 
-    def __init__(self, title: str, same_as: bool = False):
+    def __init__(self, title: str):
         super().__init__(title)
         grid = QGridLayout(self)
         grid.setHorizontalSpacing(8)
         grid.setVerticalSpacing(6)
         self.grid = grid
 
-        self.mode = QComboBox()
-        self.mode.addItems(([SAME] if same_as else []) + [CLOUD])
         self.provider = QComboBox()
         self.provider.addItems(list(PROVIDERS))
         self.provider.setSizeAdjustPolicy(QComboBox.SizeAdjustPolicy.AdjustToContents)
         self.model = QLineEdit()
-        self.model.setMinimumWidth(140)
+        self.model.setFixedWidth(170)  # room for "claude-haiku-5-5"; the key takes the rest
         self.key = QLineEdit()
         self.key.setEchoMode(QLineEdit.EchoMode.Password)
         self.key.setMinimumWidth(120)
@@ -91,45 +89,34 @@ class ModelPicker(QGroupBox):
         self.labels = {
             name: QLabel(text)
             for name, text in {
-                "mode": "Type",
                 "provider": "Provider",
                 "model": "Model",
                 "key": "API key",
                 "base_url": "Address",
             }.items()
         }
-        # Line one: the type and what names the model. Line two, cloud only: the key,
-        # and for a server its address. The model column takes the leftover width.
-        grid.addWidget(self.labels["mode"], 0, 0)
-        grid.addWidget(self.mode, 0, 1)
-        grid.addWidget(self.labels["provider"], 0, 2)
-        grid.addWidget(self.provider, 0, 3)
-        grid.addWidget(self.labels["model"], 0, 4)
-        grid.addWidget(self.model, 0, 5, 1, 3)
-        grid.addWidget(self.labels["key"], 1, 2)
-        grid.addWidget(self.key, 1, 3, 1, 2)
-        grid.addWidget(self.labels["base_url"], 1, 5)
-        grid.addWidget(self.base_url, 1, 6)
-        grid.addWidget(self.sees, 1, 7)
+        # Line one: provider, model and key; the key takes the leftover width.
+        # Line two, for a server only: its address, and whether it sees images.
+        grid.addWidget(self.labels["provider"], 0, 0)
+        grid.addWidget(self.provider, 0, 1)
+        grid.addWidget(self.labels["model"], 0, 2)
+        grid.addWidget(self.model, 0, 3)
+        grid.addWidget(self.labels["key"], 0, 4)
+        grid.addWidget(self.key, 0, 5)
+        grid.addWidget(self.labels["base_url"], 1, 0)
+        grid.addWidget(self.base_url, 1, 1, 1, 3)
+        grid.addWidget(self.sees, 1, 4, 1, 2)
         grid.setColumnStretch(5, 1)
 
         self.provider.setCurrentText(DEFAULT_PROVIDER)
-        self.mode.setCurrentText(SAME if same_as else CLOUD)
-        self.mode.currentTextChanged.connect(self._on_mode_changed)
         self.provider.currentTextChanged.connect(self._on_provider_changed)
-        for widget in (self.mode, self.provider):
-            widget.currentTextChanged.connect(lambda *_: self.changed.emit())
+        self.provider.currentTextChanged.connect(lambda *_: self.changed.emit())
+        for edit in (self.model, self.key, self.base_url):
+            edit.textEdited.connect(lambda *_: self.changed.emit())
+        self.sees.toggled.connect(lambda *_: self.changed.emit())
         self._on_provider_changed(DEFAULT_PROVIDER)
-        if not same_as:  # the language box has one type only
-            self.labels["mode"].hide()
-            self.mode.hide()
 
     # -- what is chosen -------------------------------------------------------------------
-
-    @property
-    def same(self) -> bool:
-        """True when this box defers to the language model (the vision box's first choice)."""
-        return self.mode.currentText() == SAME
 
     def cloud_endpoint(self) -> Endpoint:
         provider = self.provider.currentText()
@@ -141,7 +128,6 @@ class ModelPicker(QGroupBox):
 
     def show_endpoint(self, endpoint: Endpoint) -> None:
         """Fill the fields from an endpoint, e.g. the one named on the command line."""
-        self.mode.setCurrentText(CLOUD)
         self.provider.setCurrentText(endpoint.provider)
         self.model.setText(endpoint.model)
         if endpoint.kind == "openai-compatible":
@@ -150,13 +136,9 @@ class ModelPicker(QGroupBox):
 
     # -- the fields ----------------------------------------------------------------------
 
-    def _on_mode_changed(self, *_) -> None:
-        """Show the fields for the type chosen."""
-        cloud = self.mode.currentText() == CLOUD
-        server = cloud and PROVIDERS[self.provider.currentText()]["kind"] == ("openai-compatible")
-        for name in ("provider", "model", "key"):
-            self.labels[name].setVisible(cloud)
-            getattr(self, name).setVisible(cloud)
+    def _show_server_fields(self) -> None:
+        """The address and the image tick box, for an OpenAI-style server only."""
+        server = PROVIDERS[self.provider.currentText()]["kind"] == "openai-compatible"
         for widget in (self.labels["base_url"], self.base_url, self.sees):
             widget.setVisible(server)
 
@@ -174,7 +156,7 @@ class ModelPicker(QGroupBox):
         else:
             placeholder = f"{name} API key"
         self.key.setPlaceholderText(placeholder)
-        self._on_mode_changed()
+        self._show_server_fields()
 
 
 class AxesBox(QGroupBox):
@@ -187,7 +169,11 @@ class AxesBox(QGroupBox):
     sample"} whenever it changes.
     """
 
-    def __init__(self, axes: dict[str, str], on_change: Callable[[dict[str, str]], None]) -> None:
+    def __init__(
+        self,
+        axes: dict[str, str],
+        on_change: Callable[[dict[str, str]], None],
+    ) -> None:
         super().__init__("Coordinate system")
         self.on_change = on_change
         self.setToolTip(
@@ -259,18 +245,22 @@ class PreferencesBox(QGroupBox):
 
 
 class ModelPanel(QWidget):
-    """One line that names the model in use, folding open to the pickers and the preferences.
+    """One line that names the model in use, folding open to the picker and the preferences.
 
-    ``apply`` (also the "Use this model" button) builds the endpoints and hands
-    them to ``on_use``.
+    ``apply`` (also the Connect button) asks the chosen model for one word, in the
+    background, and hands it to ``on_use`` once it answers; the button then reads
+    Connected, until a field changes.
     """
+
+    checked = Signal(object, str)  # the endpoint, and the error ("" when it answered)
 
     def __init__(
         self,
-        on_use: Callable[[Endpoint, Endpoint | None], None],
+        on_use: Callable[[Endpoint, None], None],
         say: Callable[[str], None],
         preferences: PreferencesBox | None = None,
         axes: AxesBox | None = None,
+        limits: QWidget | None = None,
     ) -> None:
         super().__init__()
         self.on_use = on_use
@@ -292,9 +282,10 @@ class ModelPanel(QWidget):
         header.addWidget(self.toggle)
         header.addWidget(self.summary, 1)
 
-        self.language = ModelPicker("Language model")
-        self.vision = ModelPicker("Vision model", same_as=True)
-        self.use_button = QPushButton("Use this model", clicked=self.apply)
+        self.language = ModelPicker("AI Model")
+        self.use_button = QPushButton(CONNECT, clicked=self.apply)
+        self.language.changed.connect(self._not_connected)
+        self.checked.connect(self._on_checked)
         self.note = QLabel(wordWrap=True)
         self.note.setStyleSheet("color:#555")
         buttons = QHBoxLayout()
@@ -303,12 +294,13 @@ class ModelPanel(QWidget):
         body = QVBoxLayout()
         body.setContentsMargins(0, 0, 0, 0)
         body.addWidget(self.language)
-        body.addWidget(self.vision)
-        body.addLayout(buttons)
+        if limits is not None:
+            body.addWidget(limits)
         if axes is not None:
             body.addWidget(axes)
         if preferences is not None:
             body.addWidget(preferences)
+        body.addLayout(buttons)  # last: it closes the panel once connected
         self.body = QWidget()
         self.body.setLayout(body)
         self.body.hide()
@@ -327,32 +319,55 @@ class ModelPanel(QWidget):
     # -- applying a choice -----------------------------------------------------------------
 
     def apply(self) -> None:
-        """Use what the pickers say."""
+        """Connect to what the picker says; the same model is shown the camera images."""
         self.note.setText("")
-        endpoints: dict[str, Endpoint | None] = {}
-        try:
-            for role, picker in (("language", self.language), ("vision", self.vision)):
-                if picker.same:
-                    endpoints[role] = None
-                    continue
-                endpoint = picker.cloud_endpoint()
-                if endpoint.needs_key and not endpoint.api_key:
-                    raise RuntimeError(models.missing_key_advice(endpoint))
-                endpoints[role] = endpoint
-        except RuntimeError as exc:
-            self.note.setText(str(exc))
-            self.say(f"The model was not changed: {exc}")
-            self.toggle.setChecked(True)  # open, so the operator sees what to fill in
+        language = self.language.cloud_endpoint()
+        if language.needs_key and not language.api_key:
+            self._refuse(models.missing_key_advice(language))
             return
-        language, vision = endpoints["language"], endpoints["vision"]
+        self._show_button(CONNECTING)
+        self.note.setText(f"Asking {language.name} for one word ...")
+        threading.Thread(target=self._check, args=(language,), daemon=True).start()
+
+    def _check(self, endpoint: Endpoint) -> None:
+        """In the background: one short request, so a wrong key shows up now."""
         try:
-            self.on_use(language, vision)
-        except Exception as exc:  # a provider library that is not installed, most likely
-            self.note.setText(str(exc))
-            self.say(f"The model was not changed: {exc}")
+            models.check(endpoint)
+        except Exception as exc:  # a wrong key, an unknown model, a server not running
+            self.checked.emit(endpoint, str(exc) or type(exc).__name__)
+        else:
+            self.checked.emit(endpoint, "")
+
+    def _on_checked(self, endpoint: Endpoint, error: str) -> None:
+        if not error:
+            try:
+                self.on_use(endpoint, None)
+            except Exception as exc:  # a provider library that is not installed, most likely
+                error = str(exc)
+        if error:
+            self._refuse(error)
             return
-        seeing = vision or language
-        sight = "" if seeing.vision else " (cannot see images)"
-        self.summary.setText(language.name + (f", vision {vision.name}" if vision else "") + sight)
-        self.note.setText("In use.")
+        sight = "" if endpoint.vision else " (cannot see images)"
+        self.summary.setText(endpoint.name + sight)
+        self.note.setText("")
+        self._show_button(CONNECTED)
         self.toggle.setChecked(False)
+
+    def _refuse(self, reason: str) -> None:
+        """The model was not changed: say why, and open the panel to fix it."""
+        self._show_button(CONNECT)
+        self.note.setText(reason)
+        self.say(f"The model was not changed: {reason}")
+        self.toggle.setChecked(True)  # open, so the operator sees what to fill in
+
+    def _not_connected(self) -> None:
+        """A field changed: the button offers to connect to the new choice."""
+        if self.use_button.text() == CONNECTED:
+            self._show_button(CONNECT)
+
+    def _show_button(self, text: str) -> None:
+        self.use_button.setText(text)
+        self.use_button.setEnabled(text != CONNECTING)
+        self.use_button.setStyleSheet(
+            "color:#1b7f3b; font-weight:bold" if text == CONNECTED else ""
+        )

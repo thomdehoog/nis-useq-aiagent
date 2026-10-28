@@ -283,6 +283,20 @@ error-prone; that is what part 2, `nis-engine`, is for. It describes the whole
 experiment in one object (a useq sequence), checks it against the microscope
 before anything moves, and saves the result as one OME-TIFF.
 
+**Lights, filters and the camera.** Names and wavelengths come from NIS;
+`get_lights`, `get_lasers`, `get_filters`, `get_shutters` and `get_camera`
+list them. Laser lines and filter positions count from 1, as NIS shows them.
+
+```python
+with NisClient() as nis:
+    nis.request("set_filter", changer="Turret-Up", filter="DAPI")
+    nis.request("set_laser", wavelength_nm=405, on=True, power=20)  # power 0 to 100
+    nis.request("set_shutter", name="EPI", open=True)
+    nis.request("set_camera", binning=2)
+    nis.request("snap", path="dapi.tif")
+    nis.request("safe_state")  # every laser, shutter and lamp off again
+```
+
 ## Points to be aware of
 
 - **The macro keeps running.** It has to: NIS crashes if a camera command

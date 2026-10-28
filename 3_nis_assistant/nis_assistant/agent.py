@@ -21,15 +21,17 @@ Acknowledgement: if you use this code or build on its ideas, please acknowledge 
 
 from __future__ import annotations
 
+import asyncio
 import json
+import threading
 from typing import Any
 
 from pydantic_ai import Agent, RunContext, capture_run_messages
-from pydantic_ai.messages import ModelMessage, ModelRequest
+from pydantic_ai.messages import ModelMessage, ModelRequest, ModelResponse
 from pydantic_ai.tools import ToolDefinition
 
 from . import models
-from .instructions import COORDINATES, INSTRUCTIONS, SKILLS_SECTION
+from .instructions import CANCELLED_REPLY, COORDINATES, INSTRUCTIONS, SKILLS_SECTION
 from .memory import last_request_tokens, without_state_block
 from .settings import (
     AXIS_CHOICES,
@@ -39,6 +41,7 @@ from .settings import (
     DEFAULT_AXES,
     DEFAULT_MODEL_SETTINGS,
     MODEL,
+    MODEL_TIMEOUT_S,
     TOOL_CALL_RETRIES,
 )
 from .skills import listing
@@ -115,6 +118,23 @@ class Assistant:
         self.history: list[ModelMessage] = []
         self.last_turn: list[ModelMessage] = []  # the latest turn's messages, for traces
         self.tokens = 0  # the last request's input tokens: the session's size
+        # The running turn, so cancel() can stop it from another thread.
+        self._turn: tuple[asyncio.AbstractEventLoop, asyncio.Task] | None = None
+        self._turn_lock = threading.Lock()
+
+    def cancel(self) -> bool:
+        """Stop the running turn now, the request to the model included.
+
+        A tool that is running finishes first (a move, an image: the microscope is
+        never left half-way); nothing after it runs. True if a turn was running.
+        """
+        self.microscope.cancel.set()
+        with self._turn_lock:
+            if self._turn is None:
+                return False
+            loop, task = self._turn
+        loop.call_soon_threadsafe(task.cancel)
+        return True
 
     def send(self, text: str) -> str:
         """One message in, the assistant's answer out.
@@ -132,27 +152,55 @@ class Assistant:
             state = {"microscope": f"not answering: {exc}"}
         self.microscope.turn += 1
         prompt = f"{text}\n\n<microscope_state>{json.dumps(state)}</microscope_state>"
+        settings = {"timeout": MODEL_TIMEOUT_S, **self.model_settings}
+        loop = asyncio.new_event_loop()
         with capture_run_messages() as messages:
             try:
-                result = agent.run_sync(
-                    prompt,
-                    message_history=self.history,
-                    deps=self.microscope,
-                    model=self.model,
-                    model_settings=self.model_settings,
+                task = loop.create_task(
+                    agent.run(
+                        prompt,
+                        message_history=self.history,
+                        deps=self.microscope,
+                        model=self.model,
+                        model_settings=settings,
+                    )
                 )
+                with self._turn_lock:
+                    self._turn = (loop, task)
+                if self.microscope.cancel.is_set():  # cancelled before the task existed
+                    task.cancel()
+                result = loop.run_until_complete(task)
+            except asyncio.CancelledError:
+                self.microscope.wait_for_tools()  # a move or an image under way ends first
+                self._keep(messages)
+                return CANCELLED_REPLY
             except Exception:
                 # When the model call fails after tools already ran (for example an
                 # overloaded API), keep what happened: the next message then carries
                 # those tool results, and the conversation can go on.
-                if messages and isinstance(messages[-1], ModelRequest):
-                    self.last_turn = list(messages[len(self.history) :])
-                    self.history = list(messages)
+                self._keep(messages)
                 raise
+            finally:
+                with self._turn_lock:
+                    self._turn = None
+                loop.close()
         self.last_turn = result.new_messages()
         self.history = result.all_messages()
         self.tokens = last_request_tokens(self.history) or self.tokens
         return without_state_block(result.output)
+
+    def _keep(self, messages: list[ModelMessage]) -> None:
+        """Keep what happened in a turn that did not finish, so the next message carries it.
+
+        A last answer still waiting for its tool results is dropped: the history must end
+        with a request, or the next turn would hand the model a call without its result.
+        """
+        kept = list(messages)
+        while kept and isinstance(kept[-1], ModelResponse):
+            kept.pop()
+        if len(kept) > len(self.history) and isinstance(kept[-1], ModelRequest):
+            self.last_turn = kept[len(self.history) :]
+            self.history = kept
 
     def size_note(self) -> str | None:
         """Whether the session is large for this model, or full.

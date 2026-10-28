@@ -57,9 +57,9 @@ nis-assistant --start-nis --output D:\runs
 `--start-nis` starts NIS-Elements with the bridge macro when NIS is not open
 yet; leave it out if the bridge is already running. `--output` is where
 acquisitions are saved (by default `nis_assistant_runs` in your home
-folder). A window opens: the conversation on the left with its buttons and
-the stage limits below it, and on the right the latest image and the
-microscope status.
+folder). A window opens: the conversation on the left with its buttons, and
+on the right the latest image and the microscope status. The Model line at
+the top folds open to the model, the coordinate system and the stage limits.
 
 ## Step 2: choose a model
 
@@ -68,7 +68,8 @@ which. The **Model** line at the top of the window folds open.
 
 The panel opens on Anthropic, with the model claude-haiku-5-5 already filled
 in. Get an API key at [console.anthropic.com](https://console.anthropic.com),
-paste it into the panel, and press *Use this model*. The key stays in memory
+paste it into the panel, and press *Connect* at the bottom of the panel. It
+reads *Connected* once the model has answered. The key stays in memory
 for this session and is never written to disk. Gemini and OpenAI work the same
 way: choose them in the panel, with a key from
 [aistudio.google.com](https://aistudio.google.com) (it has a free tier) or
@@ -100,9 +101,9 @@ The stage moves at once, and the answer says the new position.
 
 This moves at once too: any move within the limits runs without a question,
 so a task of several steps runs through. The limits are what keep the stage
-where it may go; narrow the limit fields below the chat to keep it closer.
+where it may go; narrow the limit fields in the Model panel to keep it closer.
 
-**"Move z to 20000 um."** (or any value outside the limits shown below the chat)
+**"Move z to 20000 um."** (or any value outside the limits shown in the Model panel)
 
 Refused: a red banner appears in the window, and the assistant tells you the
 limit. It is told not to try a nearby value instead; the next number is
@@ -229,7 +230,8 @@ box.
 
 ## The stage limits
 
-Below the chat, six fields show the limits in force in micrometres: NIS's
+In the *Stage limits* box of the Model panel, six fields
+show the limits in force in micrometres: NIS's
 own, or tighter ones you type. Before working on a precious sample, narrow Z+
 to a little above your focus (for example 3000 if focus is at 2950) and
 press *Apply limits*. From then on no move, no Z-stack and no focus sweep can
@@ -239,10 +241,11 @@ it can plan within them.
 
 ## The buttons
 
-- **Cancel prompt** stops the assistant in the middle of a turn: every
-  further tool call in that turn does nothing.
-- **Stop microscope** also ends a running acquisition after the image being
-  taken. A single stage move that NIS has already started runs to its end; the joystick or NIS stops it sooner.
+- **Cancel prompt** stops the assistant in the middle of a turn, also while
+  it is still waiting for the model. A move or an image under way finishes
+  first.
+- **Stop microscope** ends a running acquisition after the image being
+  taken, and switches every laser, shutter and lamp off. A single stage move that NIS has already started runs to its end; the joystick or NIS stops it sooner.
 - **Clear context** forgets the conversation (and the eyes' images).
 - **Show tool calls** lists each tool call in the chat as it happens: which
   tool, with which arguments, and what came back. Switch it on for your
@@ -269,14 +272,13 @@ detail:
 4. The model reads the answer and either calls another tool, or writes its
    reply to you.
 
-The conversation is kept whole until *Clear context*. The status line shows
-its size; past the model's ceiling, clear it to go on.
+The conversation is kept whole until *Clear context*. When it grows large
+the chat says so; past the model's ceiling, clear it to go on.
 
 ## Good habits
 
 - Keep NIS-Elements visible next to the window, and check it after each
-  action. The status panel shows what the assistant read; NIS shows what is
-  true.
+  action. NIS shows what is true.
 - Narrow the Z limit before you start. It costs nothing and removes the one
   mistake that damages things.
 - Say numbers with units (*20 um*, *50 ms*). When the assistant asks which

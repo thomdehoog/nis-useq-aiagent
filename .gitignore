@@ -11,3 +11,4 @@ __pycache__/
 start_bridge.mac
 evals-*.jsonl
 bench-*/
+1_nis_bridge/nis_bridge/probe.enabled

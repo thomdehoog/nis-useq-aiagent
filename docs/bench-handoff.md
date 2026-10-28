@@ -33,7 +33,7 @@ Start NIS-Elements and `start_bridge.mac` (or use `nis-assistant --start-nis`).
 
 ## Before the first move
 
-1. **Set the limit fields** below the chat to a safe box around the sample.
+1. **Set the limit fields** in the Model panel to a safe box around the sample.
    Nothing asks before a long move any more; the limits are the safety.
 2. Keep the objective clear of the sample for the first run.
 3. Type the API key in the Model panel only (never in a file).

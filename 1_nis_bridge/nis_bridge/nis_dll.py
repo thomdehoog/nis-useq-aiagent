@@ -5,7 +5,9 @@ NIS-Elements ships its own Python, and every NIS macro function (``StgMoveXY``,
 library. ``NisDll`` calls them through ``ctypes``, turns their return codes
 into Python exceptions and their output values into plain Python, and does
 nothing else: the meaning of a request lives in ``readers.py`` and
-``commands.py``. Signatures
+``commands.py``. What the DLL does not export (most camera settings) goes
+through ``nis_macro.py`` instead: slower (about 24 ms), but NIS 6.10's
+``nis.call_proc`` cannot hand values back safely on its own. Signatures
 come from the macro reference installed with NIS (Docs/nis/eng_ar). Units are
 micrometres. Tests replace this class with ``fake.FakeNisApi``.
 
@@ -24,7 +26,16 @@ from __future__ import annotations
 import ctypes as ct
 from typing import Any
 
-from .settings import CLOSE_WITHOUT_ASKING, INFOSTR_VERSION, TIFF_ALL_LAYERS
+from .dialogs import ClickOk
+from .nis_macro import NisMacro
+from .settings import (
+    CAMERA_MODE,
+    CAMERA_MODES,
+    CLOSE_WITHOUT_ASKING,
+    INFOSTR_VERSION,
+    OPTCONF_IMPORT_DONE,
+    TIFF_ALL_LAYERS,
+)
 
 # What NIS's own codes mean; lookup tables, not settings. 1 and 2 mean success.
 DR_CODES = {
@@ -82,6 +93,7 @@ class NisDll:
     def __init__(self) -> None:
         self._dll = ct.cdll.g5_regprocs
         self._functions: dict[str, Any] = {}
+        self._macro = NisMacro()  # for what the DLL does not export
 
     def _fn(self, name: str, argtypes: list, restype: Any = ct.c_int32) -> Any:
         if name not in self._functions:
@@ -139,19 +151,363 @@ class NisDll:
     def select_optical_configuration(self, name: str) -> None:
         _check_negative(self._fn("SelectOptConf", [ct.c_wchar_p])(name), f"SelectOptConf({name})")
 
+    def backup_optical_configurations(self, path: str) -> None:
+        """Write every optical configuration to ``path`` as XML (see ``optconf.py``)."""
+        _check_negative(self._fn("BackupOptConf", [ct.c_wchar_p])(path), "BackupOptConf")
+
+    def import_optical_configurations(self, path: str, options: int) -> None:
+        """Import the configurations in the XML file at ``path`` into NIS's.
+
+        ``options`` says what happens to a name NIS already has (settings.py). NIS
+        ends with a message that waits for a click, and has no way to leave it out;
+        it is pressed here.
+        """
+        fn = self._fn("RestoreOptConfEx", [ct.c_wchar_p, ct.c_int32])
+        with ClickOk(*OPTCONF_IMPORT_DONE):
+            _check_negative(fn(path, options), "RestoreOptConfEx")
+
+    def delete_optical_configuration(self, name: str) -> None:
+        fn = self._fn("DeleteOptConf", [ct.c_wchar_p])
+        _check_negative(fn(name), f"DeleteOptConf({name})")
+
     def set_exposure_ms(self, exposure_ms: float) -> float:
         """Set the camera exposure; return the value NIS applied (it may round it).
 
         Not exported by the DLL; NIS registers it internally and ``nis.call_proc``
         reaches it by name. It answers with a list: the return value, then each
-        argument as it is after the call. (Reading the exposure with
-        ``Camera_ExposureGet`` opens a blocking dialog in NIS, so it is never used.)
+        argument as it is after the call. Only a value goes in, so no macro is needed.
         """
         import nis  # exists only inside NIS-Elements
 
         out = nis.call_proc("Camera_ExposureSet", float(exposure_ms))
         out = list(out) if isinstance(out, (list, tuple)) else [out]
         return float(out[1]) if len(out) > 1 else float(exposure_ms)
+
+    # lights (lamps and LEDs, by name), lasers (a multi-laser's lines) and filter changers
+    def _name(self, function: str, index: int) -> str:
+        """A device name from a Get...Name(index, buffer) function; '' when there is none."""
+        buf = ct.create_unicode_buffer(256)
+        self._fn(function, [ct.c_int32, ct.c_wchar_p])(index, buf)
+        return buf.value
+
+    def light_names(self) -> list[str]:
+        count = _check_negative(self._fn("Stg_Light_GetCount", [])(), "Stg_Light_GetCount")
+        return [self._name("Stg_Light_GetName", i) for i in range(count)]
+
+    def light_on(self, name: str) -> bool:
+        state = self._fn("Stg_Light_GetState", [ct.c_wchar_p])(name)
+        return bool(_check_negative(state, f"Stg_Light_GetState({name})"))
+
+    def set_light_on(self, name: str, on: bool) -> None:
+        fn = self._fn("Stg_Light_SetState", [ct.c_wchar_p, ct.c_int32])
+        _check(fn(name, 1 if on else 0), f"Stg_Light_SetState({name})")
+
+    def light_voltage_controllable(self, name: str) -> bool:
+        return self._fn("Stg_Light_IsVoltageControllable", [ct.c_wchar_p])(name) == 1
+
+    def light_voltage(self, name: str) -> float:
+        fn = self._fn("Stg_Light_GetVoltage", [ct.c_wchar_p], ct.c_double)
+        return float(fn(name))
+
+    def set_light_voltage(self, name: str, volts: float) -> None:
+        """NIS takes the closest voltage it can set."""
+        fn = self._fn("Stg_Light_SetVoltage", [ct.c_wchar_p, ct.c_double])
+        _check(fn(name, volts), f"Stg_Light_SetVoltage({name})")
+
+    def light_iris_controllable(self, name: str) -> bool:
+        return self._fn("Stg_Light_IsIrisControllable", [ct.c_wchar_p])(name) == 1
+
+    def light_iris(self, name: str) -> float:
+        return float(self._fn("Stg_Light_GetIrisIntensity", [ct.c_wchar_p], ct.c_double)(name))
+
+    def set_light_iris(self, name: str, intensity: float) -> None:
+        fn = self._fn("Stg_Light_SetIrisIntensity", [ct.c_wchar_p, ct.c_double])
+        if fn(name, intensity) != 1:
+            raise NisError(f"Stg_Light_SetIrisIntensity({name}, {intensity:g}) was refused")
+
+    def laser_names(self) -> list[str]:
+        count = _check_negative(self._fn("Stg_GetMultiLaserCount", [])(), "Stg_GetMultiLaserCount")
+        return [self._name("Stg_GetMultiLaserName", i) for i in range(count)]
+
+    def laser_line_count(self, laser: str) -> int:
+        return max(int(self._fn("Stg_GetMultiLaserNumLines", [ct.c_wchar_p])(laser)), 0)
+
+    def laser_line_name(self, laser: str, line: int) -> str:
+        buf = ct.create_unicode_buffer(256)
+        fn = self._fn("Stg_GetMultiLaserLineName", [ct.c_wchar_p, ct.c_int32, ct.c_wchar_p])
+        fn(laser, line, buf)
+        return buf.value
+
+    def laser_wavelength_nm(self, laser: str, line: int) -> int:
+        fn = self._fn("Stg_GetMultiLaserWavelength", [ct.c_wchar_p, ct.c_int32])
+        return int(fn(laser, line))
+
+    def laser_line_on(self, laser: str, line: int) -> bool:
+        fn = self._fn("Stg_GetMultiLaserLineUsed", [ct.c_wchar_p, ct.c_int32])
+        return fn(laser, line) == 1
+
+    def set_laser_line_on(self, laser: str, line: int, on: bool) -> None:
+        fn = self._fn("Stg_SetMultiLaserLineUsed", [ct.c_wchar_p, ct.c_int32, ct.c_int32])
+        if fn(laser, line, 1 if on else 0) != 1:
+            raise NisError(f"Stg_SetMultiLaserLineUsed({laser}, {line}) was refused")
+
+    def laser_power(self, laser: str, line: int) -> int:
+        """Through a macro: the DLL's Stg_GetMultiLaserPower reads 0 on NIS 6.10."""
+        return int(self._macro.call("Stg_GetMultiLaserPower", f'"{laser}", {line}')[0])
+
+    def laser_power_steps(self, laser: str, line: int) -> int:
+        fn = self._fn("Stg_GetMultiLaserPowerSteps", [ct.c_wchar_p, ct.c_int32])
+        return int(fn(laser, line))
+
+    def set_laser_power(self, laser: str, line: int, power: int) -> None:
+        """Through a macro: the DLL's Stg_SetMultiLaserPower answers 1 and changes nothing."""
+        result = self._macro.call("Stg_SetMultiLaserPower", f'"{laser}", {line}, {power}')[0]
+        if result != 1:
+            raise NisError(f"Stg_SetMultiLaserPower({laser}, {line}, {power}) was refused")
+
+    def shutter_names(self) -> list[str]:
+        count = _check_negative(self._fn("Stg_GetShutterCount", [])(), "Stg_GetShutterCount")
+        fn = self._fn("Stg_GetShutterName", [ct.c_int32, ct.c_wchar_p, ct.c_int32])
+        names = []
+        for index in range(count):
+            buf = ct.create_unicode_buffer(256)
+            fn(index, buf, 255)
+            names.append(buf.value)
+        return names
+
+    def shutter_open(self, name: str) -> bool:
+        return self._fn("Stg_GetShutterStateEx", [ct.c_wchar_p])(name) == 1
+
+    def set_shutter_open(self, name: str, open_: bool) -> None:
+        fn = self._fn("Stg_SetShutterStateEx", [ct.c_wchar_p, ct.c_int32])
+        _check_negative(fn(name, 1 if open_ else 0), f"Stg_SetShutterStateEx({name})")
+
+    # the transmitted light path: condenser, apertures, zoom, analyzer
+    def condenser_present(self) -> bool:
+        return self._fn("Stg_IsCondenserPresent", [])() == 1
+
+    def condenser_position(self) -> int:
+        position = self._fn("Stg_GetCondenserPosition", [])()
+        return _check_negative(position, "Stg_GetCondenserPosition")
+
+    def condenser_count(self) -> int:
+        count = self._fn("Stg_GetCondenserPositions", [])()
+        return _check_negative(count, "Stg_GetCondenserPositions")
+
+    def set_condenser_position(self, position: int) -> None:
+        fn = self._fn("Stg_SetCondenserPosition", [ct.c_int32])
+        _check_negative(fn(position), f"Stg_SetCondenserPosition({position})")
+
+    def aperture_steps(self, kind: int) -> int:
+        return max(int(self._fn("Stg_GetApertureSteps", [ct.c_int32])(kind)), 0)
+
+    def aperture(self, kind: int) -> float:
+        return float(self._fn("Stg_GetAperturePosition", [ct.c_int32], ct.c_double)(kind))
+
+    def set_aperture(self, kind: int, size: float) -> None:
+        fn = self._fn("Stg_SetAperturePosition", [ct.c_int32, ct.c_double])
+        _check_negative(fn(kind, size), f"Stg_SetAperturePosition({kind}, {size:g})")
+
+    def zoom_present(self) -> bool:
+        return self._fn("Stg_IsZoomPresent", [])() == 1
+
+    def zoom_manual(self) -> bool:
+        return self._fn("Stg_IsZoomManual", [])() == 1
+
+    def zoom(self) -> float:
+        return float(self._fn("Stg_GetZoomPosition", [], ct.c_double)())
+
+    def set_zoom(self, zoom: float) -> None:
+        """NIS takes the closest zoom the hardware has."""
+        _check_negative(self._fn("Stg_SetZoomPosition", [ct.c_double])(zoom), "Stg_SetZoomPosition")
+
+    def analyzer_present(self) -> bool:
+        return self._fn("Stg_IsAnalyzerPresent", [])() == 1
+
+    def analyzer_in(self) -> bool:
+        return self._fn("Stg_GetAnalyzerState", [])() == 1
+
+    def set_analyzer_in(self, inserted: bool) -> None:
+        fn = self._fn("Stg_SetAnalyzerState", [ct.c_int32])
+        _check_negative(fn(1 if inserted else 0), "Stg_SetAnalyzerState")
+
+    # heating and cooling stages (read only)
+    def heat_stage_names(self) -> list[str]:
+        count = max(int(self._fn("Stg_HeatStage_GetCount", [])()), 0)
+        return [self._name("Stg_HeatStage_GetName", i) for i in range(count)]
+
+    def heat_stage_temperature(self, name: str) -> float:
+        fn = self._fn("Stg_HeatStage_GetCurrentTemperature", [ct.c_wchar_p], ct.c_double)
+        return float(fn(name))
+
+    def heat_stage_status(self, name: str) -> int:
+        return int(self._fn("Stg_HeatStage_GetStatus", [ct.c_wchar_p])(name))
+
+    # the light path port (camera, eyepieces ...), the spinning disk, the piezo Z drive
+    def port_present(self) -> bool:
+        return self._fn("Stg_IsLightPathPresent", [])() == 1
+
+    def port(self) -> int:
+        return _check_negative(
+            self._fn("Stg_GetLightPathPosition", [])(), "Stg_GetLightPathPosition"
+        )
+
+    def port_count(self) -> int:
+        count = self._fn("Stg_GetLightPathPositions", [])()
+        return _check_negative(count, "Stg_GetLightPathPositions")
+
+    def set_port(self, port: int) -> None:
+        fn = self._fn("Stg_SetLightPathPosition", [ct.c_int32])
+        _check_negative(fn(port), f"Stg_SetLightPathPosition({port})")
+
+    def disk_shutter_open(self) -> bool:
+        return self._fn("Stg_GetCSUShutterState", [])() == 1
+
+    def set_disk_shutter_open(self, open_: bool) -> None:
+        fn = self._fn("Stg_SetCSUShutterState", [ct.c_int32])
+        _check_negative(fn(1 if open_ else 0), "Stg_SetCSUShutterState")
+
+    def disk_speed_rpm(self) -> int:
+        return int(self._fn("Stg_GetDiskSpeed", [])())
+
+    def set_disk_speed_rpm(self, rpm: int) -> None:
+        _check_negative(self._fn("Stg_SetDiskSpeed", [ct.c_int32])(rpm), "Stg_SetDiskSpeed")
+
+    def piezo_present(self) -> bool:
+        return self._fn("StgZ_GetPiezoDevice", [])() >= 0
+
+    def move_piezo_z(self, distance_um: float) -> None:
+        """Move the piezo Z drive by ``distance_um`` (relative). NIS cannot read its position."""
+        fn = self._fn("StgMovePiezoZ", [ct.c_double, ct.c_int32])
+        _check_negative(fn(distance_um, 1), f"StgMovePiezoZ({distance_um:g})")
+
+    def center_piezo_z(self) -> None:
+        """Center the piezo and keep the focus (Devices > Keep Z position and center Piezo Z)."""
+        _check_negative(self._fn("StgMovePiezoZToHomeKeepZ", [])(), "StgMovePiezoZToHomeKeepZ")
+
+    def filter_changer_names(self) -> list[str]:
+        count = _check_negative(self._fn("Stg_Filter_GetCount", [])(), "Stg_Filter_GetCount")
+        return [self._name("Stg_Filter_GetName", i) for i in range(count)]
+
+    def filter_position(self, changer: str) -> int:
+        position = self._fn("Stg_Filter_GetPosition", [ct.c_wchar_p])(changer)
+        return _check_negative(position, f"Stg_Filter_GetPosition({changer})")
+
+    def filter_position_count(self, changer: str) -> int:
+        count = self._fn("Stg_Filter_GetPositionCount", [ct.c_wchar_p])(changer)
+        return _check_negative(count, f"Stg_Filter_GetPositionCount({changer})")
+
+    def filter_name(self, changer: str, position: int) -> str:
+        buf = ct.create_unicode_buffer(256)
+        fn = self._fn(
+            "Stg_Filter_GetPositionName", [ct.c_wchar_p, ct.c_int32, ct.c_wchar_p, ct.c_int32]
+        )
+        fn(changer, position, buf, 255)
+        return buf.value
+
+    def set_filter_position(self, changer: str, position: int) -> None:
+        fn = self._fn("Stg_Filter_SetPosition", [ct.c_wchar_p, ct.c_int32])
+        _check_negative(fn(changer, position), f"Stg_Filter_SetPosition({changer}, {position})")
+
+    def exposure_ms(self) -> float:
+        """The camera exposure. Not exported by the DLL, and ``Camera_ExposureGet`` hands
+        the value back, so through a macro (directly it opens a blocking dialog). It
+        returns 0 even when it works, so only the value is used."""
+        return self._macro.call("Camera_ExposureGet", "{ms}", doubles=("ms",))[1]["ms"]
+
+    def camera(self) -> dict[str, Any]:
+        """The current camera: name, driver, sensor size and pixel, format and ROI.
+
+        None of these is exported by the DLL; each goes through a macro.
+        """
+        call = self._macro.call
+        name = call("GetCurrentCameraName", "{name}", texts=("name",))[1]["name"]
+        driver = call("GetCurrentCameraDriverName", "{name}", texts=("name",))[1]["name"]
+        size = call(
+            "GetCameraResolution",
+            f"{CAMERA_MODE}, {{w}}, {{h}}, {{px}}",
+            ints=("w", "h"),
+            doubles=("px",),
+        )[1]
+        fmt = call("CameraFormatGet", f"{CAMERA_MODE}, {{fmt}}", texts=("fmt",))[1]["fmt"]
+        roi = call(
+            "ROIGet", "{left}, {top}, {right}, {bottom}", ints=("left", "top", "right", "bottom")
+        )[1]
+        return {
+            "name": name,
+            "driver": driver,
+            "width_px": size["w"],
+            "height_px": size["h"],
+            "pixel_um": size["px"],
+            "format": fmt,
+            "roi": roi,
+        }
+
+    def macro(self, function: str, arguments: str, ints=(), doubles=(), texts=()) -> list:
+        """Any one NIS function, inside a macro: for probing (Commands.probe_macro)."""
+        result, values = self._macro.call(
+            function, arguments, ints=tuple(ints), doubles=tuple(doubles), texts=tuple(texts)
+        )
+        return [result, values]
+
+    def escaped(self) -> bool:
+        return self._fn("StgZ_GetEscape", [])() == 1
+
+    def escape(self) -> None:
+        """Lower the objective away from the sample (the Ti2's Escape)."""
+        _check_negative(self._fn("StgZ_Escape", [])(), "StgZ_Escape")
+
+    def refocus(self) -> None:
+        """Back from Escape, to the focus it left."""
+        _check_negative(self._fn("StgZ_Refocus", [])(), "StgZ_Refocus")
+
+    def live(self, on: bool) -> None:
+        """Start (LiveSync) or freeze NIS's live view. Not in the DLL: through a macro."""
+        self._macro.call("LiveSync" if on else "Freeze", "")
+
+    def auto_exposure(self) -> None:
+        """Let NIS choose the exposure from the current image (CameraCmd_AutoExposure)."""
+        self._macro.call("CameraCmd_AutoExposure", "")
+
+    def camera_averaging(self) -> int:
+        """Frames averaged per image (1: none). Through a macro: it hands the value back."""
+        return self._macro.call("Camera_AverageGet", "{n}", ints=("n",))[1]["n"]
+
+    def camera_integration(self) -> int:
+        """Frames summed per image (1: none)."""
+        return self._macro.call("Camera_IntegrateGet", "{n}", ints=("n",))[1]["n"]
+
+    def set_camera_format(self, camera_format: str) -> None:
+        """Set the format (binning, bit depth), e.g. "FMT 2x2 16", for live and for capture.
+
+        NIS keeps the old one when the camera has no such format; the caller reads back.
+        """
+        for mode in CAMERA_MODES:
+            self._macro.call("CameraFormatSet", f'{mode}, "{camera_format}"')
+
+    def set_roi(self, left: int, top: int, right: int, bottom: int) -> None:
+        self._macro.call("ROISet", f"{left}, {top}, {right}, {bottom}")
+
+    def set_camera_averaging(self, frames: int) -> None:
+        self._macro.call("Camera_AverageSet", f"{frames}")
+
+    def set_camera_integration(self, frames: int) -> None:
+        self._macro.call("Camera_IntegrateSet", f"{frames}")
+
+    def incubator(self, key: str) -> dict[str, float]:
+        """Gas (%) and pressure (mbar), now and as set, of the incubator ``key`` ('' = the one).
+
+        NIS has no function that lists incubators; with none, the values are 0.
+        """
+        values = {}
+        for what, function in (
+            ("gas_percent", "Stg_Incubator_GetCurrentGas"),
+            ("target_gas_percent", "Stg_Incubator_GetTargetGas"),
+            ("pressure_mbar", "Stg_Incubator_GetCurrentPressure"),
+            ("target_pressure_mbar", "Stg_Incubator_GetTargetPressure"),
+        ):
+            values[what] = self._macro.call(function, f'"{key}", {{v}}', doubles=("v",))[1]["v"]
+        return values
 
     # nosepiece
     def nosepiece_present(self) -> bool:
@@ -186,6 +542,22 @@ class NisDll:
         _check_negative(
             self._fn("Stg_SetPFSStatus", [ct.c_int32])(1 if on else 0), "Stg_SetPFSStatus"
         )
+
+    def pfs_offset(self) -> int:
+        return int(self._fn("Stg_GetPFSLensOffsetPosition", [])())
+
+    def set_pfs_offset(self, offset: int) -> None:
+        fn = self._fn("Stg_SetPFSLensOffsetPosition", [ct.c_int32])
+        _check_negative(fn(offset), f"Stg_SetPFSLensOffsetPosition({offset})")
+
+    def pfs_dish_changeable(self) -> bool:
+        return self._fn("Stg_PFSGetDishTypeChangeable", [])() == 1
+
+    def pfs_dish(self) -> int:
+        return int(self._fn("Stg_PFSGetDishType", [])())
+
+    def set_pfs_dish(self, dish: int) -> None:
+        _check_negative(self._fn("Stg_PFSSetDishType", [ct.c_int32])(dish), "Stg_PFSSetDishType")
 
     def wait_for_pfs(self, timeout_s: float) -> None:
         self._fn("Stg_WaitForPFS", [ct.c_double])(timeout_s)

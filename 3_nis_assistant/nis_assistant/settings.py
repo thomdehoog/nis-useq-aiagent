@@ -61,6 +61,7 @@ PREFIXES = {
 # is 0.
 TEMPERATURE = 0.0
 TOOL_CALL_RETRIES = 3  # a malformed tool call goes back to the model up to three times
+MODEL_TIMEOUT_S = 120.0  # one request to the model; a dead connection must not hang a turn
 MODEL_SETTINGS: dict[str, dict[str, Any]] = {
     # max_tokens: room for a full acquisition plan. parallel_tool_calls False: one
     # action at a time, so each is seen before the next.
@@ -88,6 +89,11 @@ LONG_MOVE_XY_UM = 1000.0
 LONG_MOVE_Z_UM = 100.0
 MAX_SWEEP_UM = 100.0  # the longest image-based focus sweep
 MAX_EXPOSURE_MS = 60000.0
+# The highest laser power the assistant may set, in NIS's power steps (0 to 100 on most
+# light sources). Like the stage limits, a higher value is refused whatever is asked;
+# raise it here for an experiment that needs more.
+LASER_POWER_LIMIT = 50
+SAFE_STATE_TIMEOUT_S = 20.0  # Stop switches lasers, shutters and lamps off within this
 # For the rough duration in a plan's summary: the time per image besides the
 # exposure (moves, saving), and the exposure assumed when a channel sets none.
 SECONDS_PER_IMAGE = 1.5

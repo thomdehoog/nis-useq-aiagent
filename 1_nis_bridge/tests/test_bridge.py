@@ -10,6 +10,7 @@ Acknowledgement: if you use this code or build on its ideas, please acknowledge 
 
 import importlib
 import os
+import re
 import subprocess
 import sys
 import tempfile
@@ -23,6 +24,7 @@ import tifffile
 from nis_bridge import bridge, install_macros
 from nis_bridge.client import NisClient, NisConnectionError
 from nis_bridge.fake import FakeNisApi
+from nis_bridge.nis_macro import macro_text
 from nis_bridge.protocol import decode_reply, encode_request
 
 
@@ -54,6 +56,30 @@ def test_optical_configuration_must_exist(client):
     assert client.request("select_optical_configuration", name="FITC") == {"selected": "FITC"}
     with pytest.raises(ValueError, match="unknown optical configuration"):
         client.request("select_optical_configuration", name="GFP")
+
+
+def test_camera_and_its_exposure(client):
+    camera = client.request("get_camera")
+    assert camera["name"].startswith("Hamamatsu") and camera["exposure_ms"] == 33.0
+    client.request("set_exposure", exposure_ms=50)
+    assert client.request("get_camera")["exposure_ms"] == 50.0
+
+
+def test_macro_declares_before_it_calls():
+    """NIS refuses a declaration after a statement (Command Interpreter Error)."""
+    text = macro_text(
+        "Get_Calibration",
+        "{name}, {cal}, {aspect}, {unit}",
+        "p_",
+        doubles=("cal", "aspect"),
+        ints=("unit",),
+        texts={"name": "C:/t/name.txt"},
+    )
+    lines = text.splitlines()
+    first_statement = next(i for i, line in enumerate(lines) if "=" in line or "(" in line)
+    assert all(line.startswith(("global", "char")) for line in lines[:first_statement])
+    assert "p_r = Get_Calibration(p_name, &p_cal, &p_aspect, &p_unit);" in lines
+    assert lines[-1] == 'WriteFile("C:/t/name.txt", p_name, 2 * strlen(p_name));'
 
 
 def test_objectives_skip_empty_slots(client):
@@ -194,7 +220,19 @@ def test_macro_carries_the_path_and_port(tmp_path):
     text = path.read_text()
     assert b"\r\n" in path.read_bytes() and "nis_bridge.bridge as b" in text
     # every module is reloaded, or old code stays cached in NIS
-    assert "nis_bridge.settings" in text and "nis_bridge.protocol" in text
+    assert "for n in ('settings', 'protocol'," in text
+
+
+def test_the_macro_reloads_every_module_nis_runs_after_what_it_imports():
+    package = Path(install_macros.__file__).parent
+    outside_nis = {"__init__", "client", "fake", "install_macros", "start"}
+    in_nis = {f.stem for f in package.glob("*.py")} - outside_nis
+    assert set(install_macros.MODULES) == in_nis
+    for position, name in enumerate(install_macros.MODULES):
+        source = (package / f"{name}.py").read_text(encoding="utf-8")
+        imported = re.findall(r"^from \.(\w+) import|^from \. import (\w+)", source, re.M)
+        for module in {a or b for a, b in imported}:
+            assert install_macros.MODULES.index(module) < position, (name, module)
 
 
 def test_macro_lifecycle_start_reload_stop(monkeypatch, tmp_path):

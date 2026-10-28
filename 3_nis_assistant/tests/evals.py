@@ -53,13 +53,20 @@ Expectations:
     args            {tool: {arg: value}}: some call carried these arguments; a
                     dotted name reaches inside ("z_stack.step_um", "channels.0.config")
     state           {key: value}: the microscope afterwards. Keys: x, y, z,
-                    objective, pfs_on, configuration, exposure_ms; captures (every
+                    objective, pfs_on, configuration, exposure_ms; configurations
+                    (the names NIS lists) and saved_exposures ({name: ms}, as saved
+                    in each configuration, 100 unless changed); lights_on, lasers
+                    ({nm: power} of the lines that are on), laser_power ({nm: power}
+                    of every line), shutters_open, filters ({changer: position}),
+                    condenser, pfs_offset, camera_format, camera_roi, averaging;
+                    captures (every
                     camera exposure, including looks and the size check at the
                     start of a run); files (runs that saved their data) and
                     images (the images in the OME-TIFF files)
     state_not       {key: value}: the microscope afterwards must not be so
     asks            the reply asks a question, and nothing was changed first
     no_mutations    only reading tools were called
+    max_questions   at most this many questions (question marks) in all the replies
     reply_mentions_any, reply_mentions_none   words the replies must (one of
                     them) or must not contain; case does not matter, and a
                     word right after "not" or "no" does not count
@@ -106,6 +113,7 @@ HOLDOUT = HERE / "eval_cases_holdout.json"
 READING_TOOLS = {
     "check_setup",
     "get_status",
+    "get_devices",
     "ask_eyes",
     "plan_acquisition",
     "plan_useq_sequence",
@@ -113,10 +121,13 @@ READING_TOOLS = {
     "read_source",
     "load_skill",
 }  # they change nothing at the microscope
-TOOLS = READING_TOOLS | {"move_stage", "set_microscope", "focus", "look", "run_acquisition"}
+TOOLS = READING_TOOLS | {
+    "move_stage", "set_microscope", "optical_configuration", "set_illumination",
+    "set_optics", "set_camera", "focus", "look", "run_acquisition",
+}  # fmt: skip
 EXPECTATIONS = {
     "calls", "calls_any", "not_calls", "max_calls", "min_calls", "max_tool_calls", "args",
-    "state", "state_not", "asks", "no_mutations", "reply_mentions_any",
+    "state", "state_not", "asks", "max_questions", "no_mutations", "reply_mentions_any",
     "reply_mentions_none",
 }  # fmt: skip
 ASKING = ("?", "please specify", "please tell", "please let me know", "let me know", "which ")
@@ -268,6 +279,27 @@ def _run_once(case: dict, model, vision_model) -> dict:
             "pfs_on": fake.pfs_on,
             "configuration": _last_call(fake, "config"),
             "exposure_ms": _last_call(fake, "exposure"),
+            "configurations": list(fake.configurations),
+            "saved_exposures": {n: fake.saved_exposures.get(n, 100.0) for n in fake.configurations},
+            "lights_on": sorted(n for n, light in fake.lights.items() if light["on"]),
+            "lasers": {  # wavelength: power, for the lines that are on
+                str(line["wavelength_nm"]): line["power"]
+                for lines in fake.lasers.values()
+                for line in lines
+                if line["on"]
+            },
+            "laser_power": {
+                str(line["wavelength_nm"]): line["power"]
+                for lines in fake.lasers.values()
+                for line in lines
+            },
+            "shutters_open": sorted(n for n, is_open in fake.shutters.items() if is_open),
+            "filters": {n: i + 1 for n, i in fake.filter_positions.items()},  # from 1
+            "condenser": fake.condenser["position"],
+            "pfs_offset": fake.pfs_offset_value,
+            "camera_format": fake.camera_format,
+            "camera_roi": dict(fake.roi),
+            "averaging": fake.averaging,
             "captures": fake.captures,
             **_saved(Path(output)),
         }
@@ -363,6 +395,9 @@ def score(case: dict, trace: dict) -> list[str]:
             failures.append("expected a question back")
         if changes:
             failures.append(f"expected no change before the question; called {changes}")
+    questions = sum(reply.count("?") for reply in trace["replies"])
+    if "max_questions" in expect and questions > expect["max_questions"]:
+        failures.append(f"{questions} questions, at most {expect['max_questions']} expected")
     if expect.get("no_mutations") and changes:
         failures.append(f"expected reading tools only; called {changes}")
     wanted = expect.get("reply_mentions_any")

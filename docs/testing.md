@@ -42,6 +42,14 @@ adding it:
     what they saw in step 5)
 11. *Take 3 time points, one every 30 seconds, here.* (the acquisition keeps the time;
     *Stop microscope* ends it)
+12. *Save a copy of the* configuration *called bench copy, with 30 ms exposure*, then
+    *Delete the bench copy configuration again.* (NIS lists the copy, then no longer;
+    its "Import succesfully finished" message closes by itself)
+13. *Which lights, lasers, shutters and filters does the microscope have?* and
+    *Switch on the 488 nm laser at 10 percent, then switch it off again.* (watch the
+    line in NIS's laser panel; above 50 % the assistant refuses)
+14. *Bin the camera 2 by 2, then set it back to no binning.* (the format in NIS's
+    camera panel changes, and back)
 
 ## The checklist, run automatically
 
@@ -78,11 +86,10 @@ anything that looked wrong.
 
 ## Status
 
-Validated on 2026-09-26 on NIS-Elements AR 6.10.02 with the Ti2 simulator:
-all hardware tests of the three parts, and the assistant with Gemini. The code
-was then reorganised into smaller files (2026-09-27), without changing what it
-does, and re-tested on the fake NIS only; the next run on NIS-Elements will
-confirm it there. Not yet run on a live Ti2 with a sample. Two things only a
+Validated on 2026-10-28 on NIS-Elements AR 6.10.02 with the Ti2 simulator:
+all hardware tests of the three parts (lasers, filters, shutters, light path,
+camera, optical configurations among them), the checklist above with Claude
+Haiku, and the eval benchmark. Not yet run on a live Ti2 with a sample. Two things only a
 real turret can settle: how an empty nosepiece slot is reported, and whether a
 failing `Capture` returns a negative code.
 
