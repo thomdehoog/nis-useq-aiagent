@@ -50,6 +50,9 @@ def test_reads_the_microscope(client):
     print("limits", limits)
     print("objectives", client.request("get_objectives"))
     print("PFS", client.request("get_pfs"))
+    camera = client.request("get_camera")  # the macro route: not exported by the DLL
+    assert camera["name"] and camera["width_px"] > 0 and camera["exposure_ms"] > 0
+    print("camera", camera)
 
 
 def test_moves_a_little_and_back(client):

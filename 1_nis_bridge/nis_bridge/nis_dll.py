@@ -5,7 +5,9 @@ NIS-Elements ships its own Python, and every NIS macro function (``StgMoveXY``,
 library. ``NisDll`` calls them through ``ctypes``, turns their return codes
 into Python exceptions and their output values into plain Python, and does
 nothing else: the meaning of a request lives in ``readers.py`` and
-``commands.py``. Signatures
+``commands.py``. What the DLL does not export (most camera settings) goes
+through ``nis_macro.py`` instead: slower (about 24 ms), but NIS 6.10's
+``nis.call_proc`` cannot hand values back safely on its own. Signatures
 come from the macro reference installed with NIS (Docs/nis/eng_ar). Units are
 micrometres. Tests replace this class with ``fake.FakeNisApi``.
 
@@ -24,7 +26,8 @@ from __future__ import annotations
 import ctypes as ct
 from typing import Any
 
-from .settings import CLOSE_WITHOUT_ASKING, INFOSTR_VERSION, TIFF_ALL_LAYERS
+from .nis_macro import NisMacro
+from .settings import CAMERA_MODE, CLOSE_WITHOUT_ASKING, INFOSTR_VERSION, TIFF_ALL_LAYERS
 
 # What NIS's own codes mean; lookup tables, not settings. 1 and 2 mean success.
 DR_CODES = {
@@ -82,6 +85,7 @@ class NisDll:
     def __init__(self) -> None:
         self._dll = ct.cdll.g5_regprocs
         self._functions: dict[str, Any] = {}
+        self._macro = NisMacro()  # for what the DLL does not export
 
     def _fn(self, name: str, argtypes: list, restype: Any = ct.c_int32) -> Any:
         if name not in self._functions:
@@ -144,14 +148,44 @@ class NisDll:
 
         Not exported by the DLL; NIS registers it internally and ``nis.call_proc``
         reaches it by name. It answers with a list: the return value, then each
-        argument as it is after the call. (Reading the exposure with
-        ``Camera_ExposureGet`` opens a blocking dialog in NIS, so it is never used.)
+        argument as it is after the call. Only a value goes in, so no macro is needed.
         """
         import nis  # exists only inside NIS-Elements
 
         out = nis.call_proc("Camera_ExposureSet", float(exposure_ms))
         out = list(out) if isinstance(out, (list, tuple)) else [out]
         return float(out[1]) if len(out) > 1 else float(exposure_ms)
+
+    def exposure_ms(self) -> float:
+        """The camera exposure. Not exported by the DLL, and ``Camera_ExposureGet`` hands
+        the value back, so through a macro (directly it opens a blocking dialog). It
+        returns 0 even when it works, so only the value is used."""
+        return self._macro.call("Camera_ExposureGet", "{ms}", doubles=("ms",))[1]["ms"]
+
+    def camera(self) -> dict[str, Any]:
+        """The current camera: name, driver, sensor size and pixel, format and ROI.
+
+        None of these is exported by the DLL; each goes through a macro.
+        """
+        call = self._macro.call
+        name = call("GetCurrentCameraName", "{name}", texts=("name",))[1]["name"]
+        driver = call("GetCurrentCameraDriverName", "{name}", texts=("name",))[1]["name"]
+        size = call(
+            "GetCameraResolution", f"{CAMERA_MODE}, {{w}}, {{h}}, {{px}}",
+            ints=("w", "h"), doubles=("px",),
+        )[1]
+        fmt = call("CameraFormatGet", f"{CAMERA_MODE}, {{fmt}}", texts=("fmt",))[1]["fmt"]
+        roi = call("ROIGet", "{left}, {top}, {right}, {bottom}",
+                   ints=("left", "top", "right", "bottom"))[1]
+        return {
+            "name": name,
+            "driver": driver,
+            "width_px": size["w"],
+            "height_px": size["h"],
+            "pixel_um": size["px"],
+            "format": fmt,
+            "roi": roi,
+        }
 
     # nosepiece
     def nosepiece_present(self) -> bool:

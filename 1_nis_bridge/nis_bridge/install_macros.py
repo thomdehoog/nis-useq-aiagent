@@ -31,7 +31,7 @@ MACRO = PACKAGE_DIR / MACRO_FILE  # where the macro goes unless another folder i
 PROJECT_DIR = PACKAGE_DIR.parent  # the folder that contains the nis_bridge package
 
 TEMPLATE = """WaitText(1, "nis-bridge: starting");
-Python_RunString("import sys; p = r'{project_dir}'; sys.path.insert(0, p) if p not in sys.path else None; import importlib, nis_bridge.settings, nis_bridge.protocol, nis_bridge.nis_dll, nis_bridge.readers, nis_bridge.commands, nis_bridge.dispatch, nis_bridge.bridge as b; [importlib.reload(m) for m in (nis_bridge.settings, nis_bridge.protocol, nis_bridge.nis_dll, nis_bridge.readers, nis_bridge.commands, nis_bridge.dispatch, b)]; import nis; nis.log(b.start(port={port}))");
+Python_RunString("import sys; p = r'{project_dir}'; sys.path.insert(0, p) if p not in sys.path else None; import importlib, nis_bridge.settings, nis_bridge.protocol, nis_bridge.nis_macro, nis_bridge.nis_dll, nis_bridge.readers, nis_bridge.commands, nis_bridge.dispatch, nis_bridge.bridge as b; [importlib.reload(m) for m in (nis_bridge.settings, nis_bridge.protocol, nis_bridge.nis_macro, nis_bridge.nis_dll, nis_bridge.readers, nis_bridge.commands, nis_bridge.dispatch, b)]; import nis; nis.log(b.start(port={port}))");
 WaitText(1, "nis-bridge: running on port {port}. Press the macro Stop button to end it.");
 while (ExistFile("{stop_file}") == 0)
 {{
