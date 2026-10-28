@@ -203,6 +203,7 @@ class AssistantWindow(QMainWindow):
         self._show_limits()
         if endpoint is not None:
             self.panel.language.show_endpoint(endpoint)
+            self._quiet_connect = True  # the Model line says which; the chat stays empty
             self.panel.apply()
 
     def _wait_for_bridge(self) -> None:
@@ -260,7 +261,10 @@ class AssistantWindow(QMainWindow):
         note = (
             f" The eyes start afresh; the {seen} images seen so far are forgotten." if seen else ""
         )
-        self._say("system", f"Talking to {endpoint.name}.{note}")
+        if getattr(self, "_quiet_connect", False):
+            self._quiet_connect = False
+        else:
+            self._say("system", f"Talking to {endpoint.name}.{note}")
 
     def closeEvent(self, event: QCloseEvent) -> None:
         """Do not close in the middle of an action: the microscope would be left mid-way."""

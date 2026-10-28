@@ -337,6 +337,22 @@ def test_the_limit_buttons_say_so_when_the_microscope_does_not_answer(qtbot, ope
 
 def test_the_chat_is_empty_until_the_operator_speaks(qtbot, open_window):
     window = open_window("Hi.")
-    assert "assistant" not in window.transcript.toPlainText()  # nothing said for it
+    assert window.transcript.toPlainText().strip() == ""  # nothing said for anyone
     window.clear_context()
     assert "assistant" not in window.transcript.toPlainText()
+
+
+def test_connecting_at_start_says_nothing_in_the_chat(qtbot, port, tmp_path, monkeypatch):
+    from nis_assistant.models import Endpoint
+
+    monkeypatch.setattr("nis_assistant.models.check", lambda endpoint: None)
+    monkeypatch.setenv("GEMINI_API_KEY", "secret")  # as the operator starts it, key set
+    engine = NisEngine("127.0.0.1", port, timeout=5.0)
+    microscope = Microscope(engine, output_dir=tmp_path)
+    endpoint = Endpoint.from_preset("Gemini")
+    window = AssistantWindow(Assistant(microscope, model=Script("Hi.").model()), endpoint)
+    qtbot.addWidget(window)
+    qtbot.waitUntil(lambda: window.panel.use_button.text() == "Connected", timeout=5000)
+    assert window.transcript.toPlainText().strip() == ""  # the Model line says which model
+    assert "Gemini" in window.panel.summary.text()
+    engine.close()
