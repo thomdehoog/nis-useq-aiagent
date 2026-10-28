@@ -97,7 +97,7 @@ model needs an API key, which you type into the panel; it stays in memory for
 this session only and is never written anywhere. Each message costs a small
 amount; the provider's pricing page says how much. The panel opens on
 Anthropic with `claude-haiku-5-5` filled in, so with a Claude key you only
-paste the key and press *Use this model*.
+paste the key and press *Connect*.
 
 | Provider | Default model | Key from |
 |---|---|---|
@@ -106,7 +106,9 @@ paste the key and press *Use this model*.
 | OpenAI | `gpt-5-mini` | [platform.openai.com](https://platform.openai.com) |
 | OpenAI-style server | `gemma4:31b` at `http://localhost:11434/v1` | none, unless the server asks |
 
-Press *Use this model*; the conversation so far is kept. A key can also come
+Press *Connect* at the bottom of the panel: the model is asked for one word,
+and the button reads *Connected* once it answers (a wrong key is said at once);
+the conversation so far is kept. A key can also come
 from the environment (`GEMINI_API_KEY`, `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`):
 the panel then says so, and the field can stay empty. `--model openai:gpt-5-mini`
 on the command line starts with that choice. Anthropic and OpenAI (and an
@@ -121,9 +123,6 @@ An **OpenAI-style server** is anything that speaks the OpenAI chat API: Ollama,
 vLLM, LM Studio, or a gateway at your institute. Tick *Can see images* when its
 model can look at pictures. Such a server must allow requests of about 6,000
 tokens; Ollama does not by default (set `OLLAMA_CONTEXT_LENGTH=16384`).
-
-The **Vision model** box names the model shown camera images; by default it is
-the same one. A separate choice helps when the language model cannot see.
 
 Things to try: *Where is the stage?* · *What do you see?* · *Is it in focus?* ·
 *Switch to FITC at 50 ms* · *Take a Z-stack of 10 um in 1 um steps in DAPI and FITC here* ·
@@ -143,8 +142,8 @@ did, as opposed to what it says.
 |---|---|
 | *Where is the stage, and which objective is in use?* | The assistant reads the microscope and answers with the position in um and the objective. Nothing moves. The status panel on the right shows the same numbers. |
 | *Move x by 20 um.* | The stage moves at once; the answer gives the new position. |
-| *Move x by 5 mm.* (within the limits) | The stage moves at once, like a short move. Narrow the limit fields below the chat to keep the stage closer. |
-| *Move z to 20000 um.* (outside the limits shown below the chat) | Refused: a red banner in the window, and the assistant names the limit. It is told not to try a nearby value instead. |
+| *Move x by 5 mm.* (within the limits) | The stage moves at once, like a short move. Narrow the limit fields in the Model panel to keep the stage closer. |
+| *Move z to 20000 um.* (outside the limits shown in the Model panel) | Refused: a red banner in the window, and the assistant names the limit. It is told not to try a nearby value instead. |
 | *Switch to DAPI at 50 ms.* (a configuration your NIS has) | The optical configuration and exposure change. A misspelt name is refused with the list of names NIS has; the assistant corrects an obvious spelling or asks which you meant, and may not choose another on its own. |
 | *What do you see?* | One image is taken, appears on the right, and is described in a few sentences by the vision model (see *The eyes remember* below). |
 | *Take a Z-stack of 4 um in 2 um steps here in DAPI.* | The assistant builds a useq sequence and has the engine check every image of it without moving; the plan's summary states images, channel, Z range, duration and stage travel. Then the run starts: each image appears as it is taken, and the files land in the output folder. The last image is described. |
@@ -272,7 +271,7 @@ each lab writes its own. Test a new skill by asking for its task once with
 
 ## How it stays safe
 
-- **Stage limits you can see and narrow.** Below the chat, six fields (X-, X+,
+- **Stage limits you can see and narrow.** In the Model panel, six fields (X-, X+,
   Y-, Y+, Z-, Z+) show the limits in force in um. Type a tighter value (for
   example 3000 in Z+) and press *Apply limits*; an empty field keeps NIS's own
   limit on that side, and *Use NIS limits* goes back to NIS's limits

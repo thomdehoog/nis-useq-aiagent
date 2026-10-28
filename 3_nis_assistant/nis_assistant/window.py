@@ -4,8 +4,9 @@
 
 Needs the bridge running in NIS-Elements and a model to talk to: the Model panel
 at the top of the window chooses one (a cloud model with its API key, a server you
-run yourself, or a model file on this computer). Left: the conversation, the buttons,
-and the stage limits in force, which the operator can narrow. Right: the latest
+run yourself, or a model file on this computer); folded open, it also holds the
+coordinate system and the stage limits in force, which the operator can narrow.
+Left: the conversation and the buttons. Right: the latest
 image, the microscope status, and a red banner for anything refused. The divider
 between the two halves can be dragged. The status line shows the session's size;
 past the model's ceiling no message is sent until Clear.
@@ -39,6 +40,7 @@ from PySide6.QtGui import QCloseEvent, QFont, QPixmap
 from PySide6.QtWidgets import (
     QApplication,
     QCheckBox,
+    QGroupBox,
     QHBoxLayout,
     QLabel,
     QLineEdit,
@@ -132,7 +134,8 @@ class AssistantWindow(QMainWindow):
         buttons_row.addWidget(self.clear_button)
         buttons_row.addWidget(self.show_tools)
         buttons_row.addStretch(1)
-        # below: the stage limits in force, one field per side; the operator can narrow them
+        # the stage limits in force, one field per side; the operator can narrow them.
+        # They sit in their own box in the panel.
         self.limit_fields = {
             (axis, side): QLineEdit(placeholderText="NIS") for axis in "xyz" for side in "-+"
         }
@@ -140,14 +143,14 @@ class AssistantWindow(QMainWindow):
             edit.setMinimumWidth(64)  # room for "-57000" in full: a sign cut off would mislead
         self.apply_limits_button = QPushButton("Apply limits", clicked=self.apply_limits)
         self.nis_limits_button = QPushButton("Use NIS limits", clicked=self.use_nis_limits)
-        # The buttons sit on the row above, so the left half can be made narrow.
-        buttons_row.addWidget(self.apply_limits_button)
-        buttons_row.addWidget(self.nis_limits_button)
-        limits_row = QHBoxLayout()
-        limits_row.addWidget(QLabel("Stage limits (um):"))
+        self.limits_box = QGroupBox("Stage limits (um)")
+        limits_row = QHBoxLayout(self.limits_box)
+        limits_row.setSpacing(6)  # a label touching its field reads as part of the number
         for (axis, side), edit in self.limit_fields.items():
             limits_row.addWidget(QLabel(f"{axis.upper()}{side}"))
             limits_row.addWidget(edit, 1)
+        limits_row.addWidget(self.apply_limits_button)
+        limits_row.addWidget(self.nis_limits_button)
 
         # top: which model, folding open to the choice and the preferences
         self.preferences = PreferencesBox(
@@ -159,6 +162,7 @@ class AssistantWindow(QMainWindow):
             lambda text: self._say("system", text),
             self.preferences,
             axes=self.axes_box,
+            limits=self.limits_box,
         )
 
         left = QVBoxLayout()
@@ -166,7 +170,6 @@ class AssistantWindow(QMainWindow):
         left.addWidget(self.transcript, 1)
         left.addLayout(input_row)
         left.addLayout(buttons_row)
-        left.addLayout(limits_row)
 
         # right: warning, image, status
         self.warning = QLabel(wordWrap=True)

@@ -152,21 +152,40 @@ def test_the_model_panel_folds_and_applies_a_choice(qtbot, open_window, monkeypa
     panel.apply()
     assert "The model was not changed" in window.transcript.toPlainText()
     assert "GEMINI_API_KEY" in panel.note.text() and not panel.body.isHidden()
-    # with a key, the assistant talks to that model and the panel folds shut
+    # with a key that the model accepts, the assistant talks to it and the panel folds shut
+    monkeypatch.setattr("nis_assistant.models.check", lambda endpoint: None)
     picker.key.setText("secret")
     panel.apply()
+    qtbot.waitUntil(lambda: panel.use_button.text() == "Connected", timeout=5000)
     assert window.assistant.endpoint.provider == "Gemini"
     assert type(window.assistant.model).__name__ == "GoogleModel"
     assert "Gemini" in panel.summary.text() and panel.body.isHidden()
     assert "Talking to Gemini" in window.transcript.toPlainText()
     assert "secret" not in window.transcript.toPlainText()
+    # a changed field offers to connect again
+    picker.key.textEdited.emit("other")
+    assert panel.use_button.text() == "Connect"
+
+
+def test_a_refused_key_leaves_the_model_and_says_why(qtbot, open_window, monkeypatch):
+    def refuse(endpoint):
+        raise RuntimeError("invalid x-api-key")
+
+    monkeypatch.setattr("nis_assistant.models.check", refuse)
+    window = open_window()
+    panel, before = window.panel, window.assistant.model
+    panel.language.key.setText("wrong")
+    panel.apply()
+    qtbot.waitUntil(lambda: panel.use_button.isEnabled(), timeout=5000)
+    assert panel.use_button.text() == "Connect" and "invalid x-api-key" in panel.note.text()
+    assert window.assistant.model is before and not panel.body.isHidden()
+    assert "The model was not changed: invalid x-api-key" in window.transcript.toPlainText()
 
 
 def test_a_server_picker_shows_its_address(qtbot, open_window):
     window = open_window()
-    picker = window.panel.vision
-    assert picker.same and window.panel.language.mode.isHidden()  # one type for the language box
-    picker.mode.setCurrentText("Cloud")
+    picker = window.panel.language
+    assert picker.base_url.isHidden() and picker.sees.isHidden()  # a cloud model has neither
     picker.provider.setCurrentText("OpenAI-style server")
     assert not picker.base_url.isHidden() and not picker.sees.isHidden()
     picker.sees.setChecked(True)
