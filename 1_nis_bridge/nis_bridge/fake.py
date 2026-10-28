@@ -127,7 +127,7 @@ class FakeNisApi:
 
     def backup_optical_configurations(self, path: str) -> None:
         blocks = "".join(
-            _BLOCK.format(i=i, name=name, ms=self.saved_exposures[name])
+            _BLOCK.format(i=i, name=name, ms=self.saved_exposures.get(name, 100.0))
             for i, name in enumerate(self.configurations)
         )
         optconf.write(path, _BACKUP.format(blocks=blocks))
@@ -154,7 +154,7 @@ class FakeNisApi:
         self.calls.append(f"delete({name})")
         if name in self.configurations:  # like NIS: an unknown name is no error
             self.configurations.remove(name)
-            del self.saved_exposures[name]
+            self.saved_exposures.pop(name, None)
 
     def set_exposure_ms(self, exposure_ms: float) -> float:
         self.calls.append(f"exposure({exposure_ms:g})")

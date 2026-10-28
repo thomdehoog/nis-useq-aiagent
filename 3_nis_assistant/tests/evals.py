@@ -53,7 +53,9 @@ Expectations:
     args            {tool: {arg: value}}: some call carried these arguments; a
                     dotted name reaches inside ("z_stack.step_um", "channels.0.config")
     state           {key: value}: the microscope afterwards. Keys: x, y, z,
-                    objective, pfs_on, configuration, exposure_ms; captures (every
+                    objective, pfs_on, configuration, exposure_ms; configurations
+                    (the names NIS lists) and saved_exposures ({name: ms}, as saved
+                    in each configuration, 100 unless changed); captures (every
                     camera exposure, including looks and the size check at the
                     start of a run); files (runs that saved their data) and
                     images (the images in the OME-TIFF files)
@@ -113,7 +115,9 @@ READING_TOOLS = {
     "read_source",
     "load_skill",
 }  # they change nothing at the microscope
-TOOLS = READING_TOOLS | {"move_stage", "set_microscope", "focus", "look", "run_acquisition"}
+TOOLS = READING_TOOLS | {
+    "move_stage", "set_microscope", "optical_configuration", "focus", "look", "run_acquisition",
+}  # fmt: skip
 EXPECTATIONS = {
     "calls", "calls_any", "not_calls", "max_calls", "min_calls", "max_tool_calls", "args",
     "state", "state_not", "asks", "no_mutations", "reply_mentions_any",
@@ -268,6 +272,8 @@ def _run_once(case: dict, model, vision_model) -> dict:
             "pfs_on": fake.pfs_on,
             "configuration": _last_call(fake, "config"),
             "exposure_ms": _last_call(fake, "exposure"),
+            "configurations": list(fake.configurations),
+            "saved_exposures": {n: fake.saved_exposures.get(n, 100.0) for n in fake.configurations},
             "captures": fake.captures,
             **_saved(Path(output)),
         }

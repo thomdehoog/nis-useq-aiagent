@@ -392,6 +392,67 @@ def set_microscope(
 
 
 @guarded_tool
+def optical_configuration(
+    ctx: RunContext[Microscope],
+    action: Literal["show", "edit", "copy", "delete"],
+    name: str,
+    exposure_ms: float | None = None,
+    new_name: str | None = None,
+) -> dict[str, Any]:
+    """in: {action, name, exposure_ms?, new_name?}. out: {the configuration as NIS
+    now holds it (name, objective, camera, format, binning, exposure_ms, light_path),
+    backup?} or, for delete, {deleted, backup}.
+
+    Reads or changes an optical configuration as saved in NIS-Elements, which the
+    operator and later sessions will use; set_microscope changes the current
+    settings only. "show" reads what it holds. "edit" saves another exposure in it.
+    "copy" saves it under new_name, with exposure_ms if given. "delete" removes it.
+    Change or delete a saved configuration only when the operator asks for that.
+    Every change keeps a backup file of all configurations first; backup is its path.
+
+    Args:
+        action: "show", "edit", "copy" or "delete".
+        name: the optical configuration, as NIS lists it or without the light path
+            in front ("BF" for "Spinning Disk (2):BF").
+        exposure_ms: the camera exposure to save, in milliseconds (edit, copy).
+        new_name: the name of the copy (copy only), without ":".
+    """
+    client = ctx.deps.client
+    # Everything is checked first; only then does anything change.
+    known = client.request("get_optical_configurations")
+    if not any(listed == name or listed.rsplit(":", 1)[-1] == name for listed in known):
+        return refusal(
+            ctx,
+            "invalid",
+            f"{name!r} is not an optical configuration in NIS-Elements",
+            OPTIONS_ADVICE,
+            configured_options=known,
+        )
+    if exposure_ms is not None and not 0 < exposure_ms <= MAX_EXPOSURE_MS:
+        return refusal(
+            ctx,
+            "invalid",
+            f"the exposure must be between 0 and {MAX_EXPOSURE_MS:g} ms",
+            FAILURE_ADVICE,
+        )
+    if action == "edit" and exposure_ms is None:
+        return refusal(
+            ctx, "invalid", "edit needs exposure_ms: the exposure to save", FAILURE_ADVICE
+        )
+    if action == "copy" and not new_name:
+        return refusal(ctx, "invalid", "copy needs new_name: the name of the copy", FAILURE_ADVICE)
+
+    if action == "show":
+        return client.request("get_optical_configuration", name=name)
+    if action == "edit":
+        return client.request("edit_optical_configuration", name=name, exposure_ms=exposure_ms)
+    if action == "copy":
+        args = {"exposure_ms": exposure_ms} if exposure_ms is not None else {}
+        return client.request("copy_optical_configuration", name=name, new_name=new_name, **args)
+    return client.request("delete_optical_configuration", name=name)
+
+
+@guarded_tool
 def focus(
     ctx: RunContext[Microscope],
     method: Literal["pfs", "image_sweep"] = "pfs",
@@ -784,6 +845,7 @@ TOOLS = (
     get_status,
     move_stage,
     set_microscope,
+    optical_configuration,
     focus,
     look,
     ask_eyes,

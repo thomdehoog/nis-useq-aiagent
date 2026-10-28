@@ -42,6 +42,9 @@ adding it:
     what they saw in step 5)
 11. *Take 3 time points, one every 30 seconds, here.* (the acquisition keeps the time;
     *Stop microscope* ends it)
+12. *Save a copy of the* configuration *called bench copy, with 30 ms exposure*, then
+    *Delete the bench copy configuration again.* (NIS lists the copy, then no longer;
+    its "Import succesfully finished" message closes by itself)
 
 ## The checklist, run automatically
 

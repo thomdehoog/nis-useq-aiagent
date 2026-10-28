@@ -58,7 +58,9 @@ from nis_assistant.tools import TOOLS, Microscope
 
 BOX_XY_UM = 500.0  # the limits are narrowed to this far from the start, each way
 BOX_Z_UM = 100.0
-CHANGING_TOOLS = {"move_stage", "set_microscope", "focus", "look", "run_acquisition"}
+CHANGING_TOOLS = {
+    "move_stage", "set_microscope", "optical_configuration", "focus", "look", "run_acquisition",
+}  # fmt: skip
 
 # The skill the last step asks for: the example from the README.
 SKILL = """---
@@ -158,6 +160,12 @@ def checklist(configurations: list[str]) -> list[Step]:
         Step("Move x by 20 um.", both(calls("move_stage"), moved_x_by(20))),
         Step("Move z to 20000 um.", refused_and_still),
         Step(f"Switch to {first} at 50 ms.", calls("set_microscope")),
+        Step(
+            f"Save a copy of the {first} configuration called bench copy, with 30 ms exposure.",
+            calls("optical_configuration"),
+            watch="NIS shows 'Import succesfully finished' for a moment; the bridge closes it.",
+        ),
+        Step("Delete the bench copy configuration again.", calls("optical_configuration")),
         Step("What do you see?", calls("look")),
         Step(f"Take one image in {first} and one in {second} here.", saved_images),
         Step(

@@ -225,6 +225,48 @@ def test_a_nis_error_becomes_a_failure_with_advice(microscope, fake):
     assert error["code"] == "failed" and "propose one fix as a question" in error["advice"]
 
 
+# -- saved optical configurations ---------------------------------------------------------
+
+
+def test_a_saved_configuration_is_shown_edited_copied_and_deleted(microscope, fake):
+    assistant, _ = talk(
+        microscope,
+        ("optical_configuration", {"action": "show", "name": "FITC"}),
+        ("optical_configuration", {"action": "edit", "name": "FITC", "exposure_ms": 250}),
+        ("optical_configuration", {"action": "copy", "name": "FITC", "new_name": "FITC fast",
+                                   "exposure_ms": 20}),
+        ("optical_configuration", {"action": "delete", "name": "TxRed"}),
+        "Done.",
+    )  # fmt: skip
+    assistant.send("save FITC at 250 ms, make a fast copy at 20 ms, and delete TxRed")
+    shown, edited, copied, deleted = tool_results(assistant)
+    assert shown["name"] == "FITC" and shown["exposure_ms"] == 100.0
+    assert edited["exposure_ms"] == 250.0 and edited["backup"]
+    assert copied["name"] == "FITC fast" and copied["exposure_ms"] == 20.0
+    assert deleted["deleted"] == "TxRed" and "TxRed" not in fake.configurations
+    assert fake.saved_exposures == {"DAPI": 100.0, "FITC": 250.0, "Brightfield": 100.0,
+                                    "FITC fast": 20.0}  # fmt: skip
+
+
+@pytest.mark.parametrize(
+    ("call", "message"),
+    [
+        ({"action": "edit", "name": "GFP", "exposure_ms": 50}, "'GFP' is not an optical"),
+        ({"action": "edit", "name": "FITC"}, "edit needs exposure_ms"),
+        ({"action": "edit", "name": "FITC", "exposure_ms": 1e9}, "between 0 and 60000 ms"),
+        ({"action": "copy", "name": "FITC"}, "copy needs new_name"),
+    ],
+)
+def test_a_bad_configuration_change_is_refused_before_anything_changes(
+    microscope, fake, call, message
+):
+    assistant, _ = talk(microscope, ("optical_configuration", call), "Not possible.")
+    assistant.send("change it")
+    error = tool_results(assistant)[0]["error"]
+    assert error["code"] == "invalid" and message in error["message"]
+    assert not any(c.startswith(("import", "delete")) for c in fake.calls)
+
+
 # -- cancelling and failing ------------------------------------------------------------------
 
 

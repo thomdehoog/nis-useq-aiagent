@@ -163,7 +163,10 @@ the full path of `start_bridge.mac` and how to run it, or how to add an
 optical configuration in NIS), read the microscope, move the stage, change the
 optical configuration, exposure, objective and PFS, focus (PFS or the NIS
 image sweep), look at an image and describe it, ask about the images already
-seen. Acquisitions go through useq:
+seen. It can also show, change (the exposure, for now), copy and delete the
+optical configurations saved in NIS-Elements, when you ask for that; the
+bridge keeps a backup of all of them before every change. Acquisitions go
+through useq:
 
 - `plan_acquisition` turns a plan into a `useq.MDASequence` and has the engine
   check every event without moving. A plan has positions, channels (each with
