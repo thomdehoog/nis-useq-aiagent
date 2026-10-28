@@ -52,3 +52,4 @@ HEAT_STAGE_STATUS = {0: "none", 1: "cooling", 2: "heating", 3: "holding", 4: "at
 TIFF_ALL_LAYERS = 18  # ImageSaveAs: file type
 CLOSE_WITHOUT_ASKING = 2  # CloseCurrentDocument: do not ask about unsaved changes
 INFOSTR_VERSION = 1  # Get_InfoStr: the NIS version string
+CAMERA_MODE = 2  # GetCameraResolution, CameraFormatGet: 2 = quality capture (1 = live)

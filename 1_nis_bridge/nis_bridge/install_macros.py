@@ -37,6 +37,7 @@ MODULES = (
     "settings",
     "protocol",
     "dialogs",
+    "nis_macro",
     "nis_dll",
     "optconf",
     "readers",

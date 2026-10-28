@@ -201,6 +201,10 @@ class Readers:
             "objectives": {p: name for p, name in names.items() if name},
         }
 
+    def get_camera(self, args: dict) -> dict:
+        """The current camera and its exposure (through macros on 6.10: about 0.1 s)."""
+        return {**self.api.camera(), "exposure_ms": self.api.exposure_ms()}
+
     def get_pfs(self, args: dict) -> dict:
         if not self.api.pfs_present():
             return {"present": False, "on": False, "status": None, "meaning": "no PFS"}
@@ -230,4 +234,5 @@ READS = (
     "get_light_path",
     "get_environment",
     "get_pfs",
+    "get_camera",
 )

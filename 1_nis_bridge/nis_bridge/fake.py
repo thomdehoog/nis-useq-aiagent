@@ -105,6 +105,7 @@ class FakeNisApi:
         self.image_shape = IMAGE_SHAPE
         self.frame: np.ndarray | None = None  # a picture to save instead of the plain one
         self.camera_fails = False
+        self.exposure = 33.0  # ms, as the Ti2 simulator starts
         self.captures = 0
         self.open_images = 0
         self.calls: list[str] = []
@@ -180,7 +181,22 @@ class FakeNisApi:
 
     def set_exposure_ms(self, exposure_ms: float) -> float:
         self.calls.append(f"exposure({exposure_ms:g})")
-        return max(1.0, round(exposure_ms))  # the camera applies whole milliseconds
+        self.exposure = max(1.0, round(exposure_ms))  # the camera applies whole milliseconds
+        return self.exposure
+
+    def exposure_ms(self) -> float:
+        return self.exposure
+
+    def camera(self) -> dict:
+        return {  # as the Ti2 simulator answers
+            "name": "Hamamatsu C11440-22C 9Z0022",
+            "driver": "Hamamatsu Simulator",
+            "width_px": 2048,
+            "height_px": 2048,
+            "pixel_um": 6.5,
+            "format": "FMT 1x1 16",
+            "roi": {"left": 512, "top": 512, "right": 1536, "bottom": 1536},
+        }
 
     # lights, lasers and filter changers
     def _light(self, name: str) -> dict:
