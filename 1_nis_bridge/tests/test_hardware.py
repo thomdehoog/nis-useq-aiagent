@@ -130,3 +130,31 @@ def test_lights_lasers_and_filters_change_and_go_back(client):
             client.request("set_light", name=light["name"], on=light["on"])
             assert switched["on"] is (not light["on"])
             break
+
+
+def test_shutters_light_path_and_pfs_change_and_go_back(client):
+    shutters = client.request("get_shutters")
+    path = client.request("get_light_path")
+    pfs = client.request("get_pfs")
+    print("shutters", shutters)
+    print("light path", path)
+    print("pfs", pfs, "environment", client.request("get_environment"))
+    for shutter in shutters:
+        flipped = client.request("set_shutter", name=shutter["name"], open=not shutter["open"])
+        client.request("set_shutter", name=shutter["name"], open=shutter["open"])
+        assert flipped["open"] is (not shutter["open"])
+    if path["condenser"]:
+        here = path["condenser"]["position"]
+        other = 1 if here != 1 else 2
+        moved = client.request("set_light_path", condenser=other)
+        client.request("set_light_path", condenser=here)
+        assert moved["condenser"]["position"] == other
+    for name, aperture in path["apertures"].items():
+        smaller = aperture["size"] - 1 if aperture["size"] > 1 else aperture["size"] + 1
+        moved = client.request("set_light_path", aperture=name, size=smaller)
+        client.request("set_light_path", aperture=name, size=aperture["size"])
+        assert moved["apertures"][name]["size"] == pytest.approx(smaller, abs=0.5)
+    if pfs["present"]:
+        moved = client.request("set_pfs_offset", offset=pfs["offset"] + 10)
+        client.request("set_pfs_offset", offset=pfs["offset"])
+        assert moved["offset"] == pfs["offset"] + 10

@@ -22,7 +22,13 @@ from typing import Any
 
 from . import optconf
 from .nis_dll import PFS_STATUS
-from .settings import OPTCONF_FOLDER, PFS_ON_STATUSES
+from .settings import (
+    APERTURES,
+    HEAT_STAGE_STATUS,
+    OPTCONF_FOLDER,
+    PFS_DISHES,
+    PFS_ON_STATUSES,
+)
 
 
 def _or_none(read: Any, *args: Any) -> Any:
@@ -112,20 +118,23 @@ class Readers:
         ]
 
     def get_lasers(self, args: dict) -> list:
-        """Each multi-laser light source and its lines (numbered from 1): wavelength, on, power."""
+        """Each multi-laser light source and its lines: wavelength, on, power.
+
+        Lines are numbered from 1 here, as NIS shows them; NIS's own index is one less.
+        """
         return [
             {
                 "name": laser,
                 "lines": [
                     {
-                        "line": line,
-                        "name": self.api.laser_line_name(laser, line),
-                        "wavelength_nm": self.api.laser_wavelength_nm(laser, line),
-                        "on": self.api.laser_line_on(laser, line),
-                        "power": self.api.laser_power(laser, line),
-                        "power_steps": self.api.laser_power_steps(laser, line),
+                        "line": index + 1,
+                        "name": self.api.laser_line_name(laser, index),
+                        "wavelength_nm": self.api.laser_wavelength_nm(laser, index),
+                        "on": self.api.laser_line_on(laser, index),
+                        "power": self.api.laser_power(laser, index),
+                        "power_steps": self.api.laser_power_steps(laser, index),
                     }
-                    for line in range(1, self.api.laser_line_count(laser) + 1)
+                    for index in range(self.api.laser_line_count(laser))
                 ],
             }
             for laser in self.api.laser_names()
@@ -145,6 +154,44 @@ class Readers:
             )
         return changers
 
+    def get_shutters(self, args: dict) -> list:
+        """Each shutter NIS has, by name, and whether it is open."""
+        return [{"name": n, "open": self.api.shutter_open(n)} for n in self.api.shutter_names()]
+
+    def get_light_path(self, args: dict) -> dict:
+        """The transmitted light path: condenser, apertures, zoom, analyzer.
+
+        A part NIS does not have is None; an aperture is listed only when NIS has
+        steps for it. ``zoom_manual``: the zoom is turned by hand, NIS cannot set it.
+        """
+        api = self.api
+        condenser = (
+            {"position": api.condenser_position(), "positions": api.condenser_count()}
+            if api.condenser_present()
+            else None
+        )
+        apertures = {
+            name: {"size": api.aperture(kind), "steps": api.aperture_steps(kind)}
+            for name, kind in APERTURES.items()
+            if api.aperture_steps(kind) > 0
+        }
+        zoom = {"zoom": api.zoom(), "manual": api.zoom_manual()} if api.zoom_present() else None
+        analyzer = {"inserted": api.analyzer_in()} if api.analyzer_present() else None
+        return {"condenser": condenser, "apertures": apertures, "zoom": zoom, "analyzer": analyzer}
+
+    def get_environment(self, args: dict) -> dict:
+        """Heating and cooling stages: temperature and what they are doing. Reads only."""
+        return {
+            "heat_stages": [
+                {
+                    "name": name,
+                    "temperature": self.api.heat_stage_temperature(name),
+                    "status": HEAT_STAGE_STATUS.get(self.api.heat_stage_status(name), "unknown"),
+                }
+                for name in self.api.heat_stage_names()
+            ]
+        }
+
     def get_objectives(self, args: dict) -> dict:
         if not self.api.nosepiece_present():
             return {"current": None, "objectives": {}}
@@ -158,11 +205,14 @@ class Readers:
         if not self.api.pfs_present():
             return {"present": False, "on": False, "status": None, "meaning": "no PFS"}
         status = self.api.pfs_status()
+        dishes = {number: name for name, number in PFS_DISHES.items()}
         return {
             "present": True,
             "on": status in PFS_ON_STATUSES,
             "status": status,
             "meaning": PFS_STATUS.get(status, "unknown"),
+            "offset": self.api.pfs_offset(),
+            "dish": dishes.get(self.api.pfs_dish()) if self.api.pfs_dish_changeable() else None,
         }
 
 
@@ -176,5 +226,8 @@ READS = (
     "get_lights",
     "get_lasers",
     "get_filters",
+    "get_shutters",
+    "get_light_path",
+    "get_environment",
     "get_pfs",
 )

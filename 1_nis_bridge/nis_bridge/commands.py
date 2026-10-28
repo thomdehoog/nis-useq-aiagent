@@ -30,11 +30,13 @@ from typing import Any
 from . import optconf
 from .readers import Readers
 from .settings import (
+    APERTURES,
     AUTOFOCUS_MAX_SPEED,
     AUTOFOCUS_RANGE_UM,
     AUTOFOCUS_SPEED,
     OPTCONF_NEW_ONLY,
     OPTCONF_OVERWRITE,
+    PFS_DISHES,
     PFS_SETTLE_S,
 )
 
@@ -205,11 +207,91 @@ class Commands:
             top = line["power_steps"] - 1
             if not isinstance(power, int) or isinstance(power, bool) or not 0 <= power <= top:
                 raise ValueError(f"'power' must be a whole number from 0 to {top}")
-            self.api.set_laser_power(name, line["line"], power)
+            self.api.set_laser_power(name, line["line"] - 1, power)
         if on is not None:
-            self.api.set_laser_line_on(name, line["line"], on)
+            self.api.set_laser_line_on(name, line["line"] - 1, on)
         again = next(laser for laser in self.read.get_lasers({}) if laser["name"] == name)
         return {"laser": name, **next(x for x in again["lines"] if x["line"] == line["line"])}
+
+    def set_shutter(self, args: dict) -> dict:
+        """Open or close a shutter, by name."""
+        names = self.api.shutter_names()
+        name, open_ = args.get("name"), args.get("open")
+        if name not in names:
+            raise ValueError(f"unknown shutter {name!r}; NIS has: {', '.join(names) or 'none'}")
+        if not isinstance(open_, bool):
+            raise ValueError("'open' must be true or false")
+        self.api.set_shutter_open(name, open_)
+        return {"name": name, "open": self.api.shutter_open(name)}
+
+    def set_light_path(self, args: dict) -> dict:
+        """Set any of: ``condenser`` (position), ``aperture`` with ``size`` (field,
+        epi_field or dia), ``zoom``, ``analyzer`` (inserted or not). Reads the path back.
+
+        Everything is checked before anything moves.
+        """
+        path = self.read.get_light_path({})
+        condenser, zoom, analyzer = args.get("condenser"), args.get("zoom"), args.get("analyzer")
+        aperture, size = args.get("aperture"), args.get("size")
+        if all(v is None for v in (condenser, aperture, zoom, analyzer)):
+            raise ValueError(
+                "nothing to change: give 'condenser', 'aperture', 'zoom' or 'analyzer'"
+            )
+        if condenser is not None:
+            if path["condenser"] is None:
+                raise ValueError("NIS has no condenser it controls")
+            top = path["condenser"]["positions"]
+            if (
+                not isinstance(condenser, int)
+                or isinstance(condenser, bool)
+                or not 0 <= condenser <= top
+            ):
+                raise ValueError(f"'condenser' must be a position from 0 to {top}")
+        if aperture is not None:
+            if aperture not in path["apertures"]:
+                known = ", ".join(path["apertures"]) or "none"
+                raise ValueError(f"unknown aperture {aperture!r}; NIS controls: {known}")
+            size = _number(args, "size")
+        if zoom is not None:
+            if path["zoom"] is None or path["zoom"]["manual"]:
+                raise ValueError("NIS cannot set the zoom: there is none, or it is turned by hand")
+            zoom = _number(args, "zoom")
+        if analyzer is not None:
+            if path["analyzer"] is None:
+                raise ValueError("NIS has no analyzer it controls")
+            if not isinstance(analyzer, bool):
+                raise ValueError("'analyzer' must be true (in) or false (out)")
+        if condenser is not None:
+            self.api.set_condenser_position(condenser)
+        if aperture is not None:
+            self.api.set_aperture(APERTURES[aperture], size)
+        if zoom is not None:
+            self.api.set_zoom(zoom)
+        if analyzer is not None:
+            self.api.set_analyzer_in(analyzer)
+            if self.api.analyzer_in() is not analyzer:
+                raise RuntimeError("Stg_SetAnalyzerState returned but the analyzer did not move")
+        return self.read.get_light_path({})
+
+    def set_pfs_offset(self, args: dict) -> dict:
+        """Set the PFS offset (the plane PFS keeps, NIS's units) and dish (glass, plastic)."""
+        if not self.api.pfs_present():
+            raise RuntimeError("no Perfect Focus System (PFS) is connected")
+        offset, dish = args.get("offset"), args.get("dish")
+        if offset is None and dish is None:
+            raise ValueError("nothing to change: give 'offset' or 'dish'")
+        if offset is not None and (not isinstance(offset, int) or isinstance(offset, bool)):
+            raise ValueError("'offset' must be a whole number")
+        if dish is not None:
+            if dish not in PFS_DISHES:
+                raise ValueError(f"'dish' must be one of {', '.join(PFS_DISHES)}")
+            if not self.api.pfs_dish_changeable():
+                raise ValueError("this PFS does not let the dish type be changed")
+        if offset is not None:
+            self.api.set_pfs_offset(offset)
+        if dish is not None:
+            self.api.set_pfs_dish(PFS_DISHES[dish])
+        return self.read.get_pfs({})
 
     def set_filter(self, args: dict) -> dict:
         """Turn a filter changer to ``position`` (from 1) or to the filter named ``filter``."""
@@ -301,6 +383,9 @@ COMMANDS = (
     "set_light",
     "set_laser",
     "set_filter",
+    "set_shutter",
+    "set_light_path",
+    "set_pfs_offset",
     "set_pfs",
     "autofocus",
     "snap",

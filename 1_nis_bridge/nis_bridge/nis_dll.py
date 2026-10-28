@@ -253,6 +253,84 @@ class NisDll:
         if fn(laser, line, power) != 1:
             raise NisError(f"Stg_SetMultiLaserPower({laser}, {line}, {power}) was refused")
 
+    def shutter_names(self) -> list[str]:
+        count = _check_negative(self._fn("Stg_GetShutterCount", [])(), "Stg_GetShutterCount")
+        fn = self._fn("Stg_GetShutterName", [ct.c_int32, ct.c_wchar_p, ct.c_int32])
+        names = []
+        for index in range(count):
+            buf = ct.create_unicode_buffer(256)
+            fn(index, buf, 255)
+            names.append(buf.value)
+        return names
+
+    def shutter_open(self, name: str) -> bool:
+        return self._fn("Stg_GetShutterStateEx", [ct.c_wchar_p])(name) == 1
+
+    def set_shutter_open(self, name: str, open_: bool) -> None:
+        fn = self._fn("Stg_SetShutterStateEx", [ct.c_wchar_p, ct.c_int32])
+        _check_negative(fn(name, 1 if open_ else 0), f"Stg_SetShutterStateEx({name})")
+
+    # the transmitted light path: condenser, apertures, zoom, analyzer
+    def condenser_present(self) -> bool:
+        return self._fn("Stg_IsCondenserPresent", [])() == 1
+
+    def condenser_position(self) -> int:
+        position = self._fn("Stg_GetCondenserPosition", [])()
+        return _check_negative(position, "Stg_GetCondenserPosition")
+
+    def condenser_count(self) -> int:
+        count = self._fn("Stg_GetCondenserPositions", [])()
+        return _check_negative(count, "Stg_GetCondenserPositions")
+
+    def set_condenser_position(self, position: int) -> None:
+        fn = self._fn("Stg_SetCondenserPosition", [ct.c_int32])
+        _check_negative(fn(position), f"Stg_SetCondenserPosition({position})")
+
+    def aperture_steps(self, kind: int) -> int:
+        return max(int(self._fn("Stg_GetApertureSteps", [ct.c_int32])(kind)), 0)
+
+    def aperture(self, kind: int) -> float:
+        return float(self._fn("Stg_GetAperturePosition", [ct.c_int32], ct.c_double)(kind))
+
+    def set_aperture(self, kind: int, size: float) -> None:
+        fn = self._fn("Stg_SetAperturePosition", [ct.c_int32, ct.c_double])
+        _check_negative(fn(kind, size), f"Stg_SetAperturePosition({kind}, {size:g})")
+
+    def zoom_present(self) -> bool:
+        return self._fn("Stg_IsZoomPresent", [])() == 1
+
+    def zoom_manual(self) -> bool:
+        return self._fn("Stg_IsZoomManual", [])() == 1
+
+    def zoom(self) -> float:
+        return float(self._fn("Stg_GetZoomPosition", [], ct.c_double)())
+
+    def set_zoom(self, zoom: float) -> None:
+        """NIS takes the closest zoom the hardware has."""
+        _check_negative(self._fn("Stg_SetZoomPosition", [ct.c_double])(zoom), "Stg_SetZoomPosition")
+
+    def analyzer_present(self) -> bool:
+        return self._fn("Stg_IsAnalyzerPresent", [])() == 1
+
+    def analyzer_in(self) -> bool:
+        return self._fn("Stg_GetAnalyzerState", [])() == 1
+
+    def set_analyzer_in(self, inserted: bool) -> None:
+        fn = self._fn("Stg_SetAnalyzerState", [ct.c_int32])
+        _check_negative(fn(1 if inserted else 0), "Stg_SetAnalyzerState")
+
+    # heating and cooling stages (read only)
+    def heat_stage_names(self) -> list[str]:
+        count = max(int(self._fn("Stg_HeatStage_GetCount", [])()), 0)
+        return [self._name("Stg_HeatStage_GetName", i) for i in range(count)]
+
+    def heat_stage_temperature(self, name: str) -> float:
+        fn = self._fn("Stg_HeatStage_GetCurrentTemperature", [ct.c_wchar_p], ct.c_double)
+        return float(fn(name))
+
+    def heat_stage_status(self, name: str) -> int:
+        return int(self._fn("Stg_HeatStage_GetStatus", [ct.c_wchar_p])(name))
+
     def filter_changer_names(self) -> list[str]:
         count = _check_negative(self._fn("Stg_Filter_GetCount", [])(), "Stg_Filter_GetCount")
         return [self._name("Stg_Filter_GetName", i) for i in range(count)]
@@ -310,6 +388,22 @@ class NisDll:
         _check_negative(
             self._fn("Stg_SetPFSStatus", [ct.c_int32])(1 if on else 0), "Stg_SetPFSStatus"
         )
+
+    def pfs_offset(self) -> int:
+        return int(self._fn("Stg_GetPFSLensOffsetPosition", [])())
+
+    def set_pfs_offset(self, offset: int) -> None:
+        fn = self._fn("Stg_SetPFSLensOffsetPosition", [ct.c_int32])
+        _check_negative(fn(offset), f"Stg_SetPFSLensOffsetPosition({offset})")
+
+    def pfs_dish_changeable(self) -> bool:
+        return self._fn("Stg_PFSGetDishTypeChangeable", [])() == 1
+
+    def pfs_dish(self) -> int:
+        return int(self._fn("Stg_PFSGetDishType", [])())
+
+    def set_pfs_dish(self, dish: int) -> None:
+        _check_negative(self._fn("Stg_PFSSetDishType", [ct.c_int32])(dish), "Stg_PFSSetDishType")
 
     def wait_for_pfs(self, timeout_s: float) -> None:
         self._fn("Stg_WaitForPFS", [ct.c_double])(timeout_s)

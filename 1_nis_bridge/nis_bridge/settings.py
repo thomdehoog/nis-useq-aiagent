@@ -46,6 +46,9 @@ POLL_S = 2.0  # how often to try the bridge while NIS-Elements starts
 MACRO_FILE = "start_bridge.mac"  # written next to the package by install_macros
 
 # -- NIS function arguments ----------------------------------------------------------
+APERTURES = {"field": 0, "epi_field": 1, "dia": 2}  # Stg_..Aperture..: aperture type
+PFS_DISHES = {"glass": 0, "plastic": 1}  # Stg_PFSSetDishType
+HEAT_STAGE_STATUS = {0: "none", 1: "cooling", 2: "heating", 3: "holding", 4: "at limit"}
 TIFF_ALL_LAYERS = 18  # ImageSaveAs: file type
 CLOSE_WITHOUT_ASKING = 2  # CloseCurrentDocument: do not ask about unsaved changes
 INFOSTR_VERSION = 1  # Get_InfoStr: the NIS version string

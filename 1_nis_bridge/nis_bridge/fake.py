@@ -88,6 +88,14 @@ class FakeNisApi:
             "Turret-Lo": ["", "Empty"],
         }
         self.filter_positions = dict.fromkeys(self.filters, 1)
+        self.shutters = {"DIA LED": False, "EPI": False}  # open or not
+        self.condenser = {"position": 1, "positions": 7}
+        self.apertures = {1: {"size": 100.0, "steps": 1001}}  # by NIS's type: 1 epi-field
+        self.zoom_state = {"zoom": 1.0, "manual": True}
+        self.analyzer = False
+        self.analyzer_moves = True  # the simulator's analyzer does not
+        self.pfs_offset_value, self.pfs_dish_value = 3000, 0
+        self.heat_stages = {}  # name: temperature
         self.nosepiece = 1
         self.has_pfs = pfs
         self.pfs_on = False
@@ -216,8 +224,8 @@ class FakeNisApi:
     def laser_line_count(self, laser: str) -> int:
         return len(self.lasers.get(laser, []))
 
-    def _line(self, laser: str, line: int) -> dict:
-        return self.lasers[laser][line - 1]
+    def _line(self, laser: str, index: int) -> dict:
+        return self.lasers[laser][index]  # NIS counts lines from 0
 
     def laser_line_name(self, laser: str, line: int) -> str:
         return self._line(laser, line)["name"]
@@ -241,6 +249,89 @@ class FakeNisApi:
     def set_laser_power(self, laser: str, line: int, power: int) -> None:
         self.calls.append(f"power({laser},{line},{power})")
         self._line(laser, line)["power"] = power
+
+    def shutter_names(self) -> list[str]:
+        return list(self.shutters)
+
+    def shutter_open(self, name: str) -> bool:
+        return self.shutters[name]
+
+    def set_shutter_open(self, name: str, open_: bool) -> None:
+        self.calls.append(f"shutter({name},{'open' if open_ else 'closed'})")
+        self.shutters[name] = open_
+
+    def condenser_present(self) -> bool:
+        return self.condenser is not None
+
+    def condenser_position(self) -> int:
+        return self.condenser["position"]
+
+    def condenser_count(self) -> int:
+        return self.condenser["positions"]
+
+    def set_condenser_position(self, position: int) -> None:
+        self.calls.append(f"condenser({position})")
+        self.condenser["position"] = position
+
+    def aperture_steps(self, kind: int) -> int:
+        return self.apertures.get(kind, {"steps": 0})["steps"]
+
+    def aperture(self, kind: int) -> float:
+        return self.apertures[kind]["size"]
+
+    def set_aperture(self, kind: int, size: float) -> None:
+        self.calls.append(f"aperture({kind},{size:g})")
+        self.apertures[kind]["size"] = size
+
+    def zoom_present(self) -> bool:
+        return self.zoom_state is not None
+
+    def zoom_manual(self) -> bool:
+        return self.zoom_state["manual"]
+
+    def zoom(self) -> float:
+        return self.zoom_state["zoom"]
+
+    def set_zoom(self, zoom: float) -> None:
+        self.calls.append(f"zoom({zoom:g})")
+        self.zoom_state["zoom"] = 1.5 if zoom > 1.25 else 1.0  # the closest step NIS has
+
+    def analyzer_present(self) -> bool:
+        return True
+
+    def analyzer_in(self) -> bool:
+        return self.analyzer
+
+    def set_analyzer_in(self, inserted: bool) -> None:
+        self.calls.append(f"analyzer({'in' if inserted else 'out'})")
+        if self.analyzer_moves:
+            self.analyzer = inserted
+
+    def heat_stage_names(self) -> list[str]:
+        return list(self.heat_stages)
+
+    def heat_stage_temperature(self, name: str) -> float:
+        return self.heat_stages[name]
+
+    def heat_stage_status(self, name: str) -> int:
+        return 3  # holding
+
+    def pfs_offset(self) -> int:
+        return self.pfs_offset_value
+
+    def set_pfs_offset(self, offset: int) -> None:
+        self.calls.append(f"pfs_offset({offset})")
+        self.pfs_offset_value = offset
+
+    def pfs_dish_changeable(self) -> bool:
+        return True
+
+    def pfs_dish(self) -> int:
+        return self.pfs_dish_value
+
+    def set_pfs_dish(self, dish: int) -> None:
+        self.calls.append(f"pfs_dish({dish})")
+        self.pfs_dish_value = dish
 
     def filter_changer_names(self) -> list[str]:
         return list(self.filters)
