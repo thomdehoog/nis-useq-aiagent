@@ -58,7 +58,8 @@ Expectations:
                     in each configuration, 100 unless changed); lights_on, lasers
                     ({nm: power} of the lines that are on), laser_power ({nm: power}
                     of every line), shutters_open, filters ({changer: position}),
-                    condenser, pfs_offset; captures (every
+                    condenser, pfs_offset, camera_format, camera_roi, averaging;
+                    captures (every
                     camera exposure, including looks and the size check at the
                     start of a run); files (runs that saved their data) and
                     images (the images in the OME-TIFF files)
@@ -121,7 +122,7 @@ READING_TOOLS = {
 }  # they change nothing at the microscope
 TOOLS = READING_TOOLS | {
     "move_stage", "set_microscope", "optical_configuration", "set_illumination",
-    "set_optics", "focus", "look", "run_acquisition",
+    "set_optics", "set_camera", "focus", "look", "run_acquisition",
 }  # fmt: skip
 EXPECTATIONS = {
     "calls", "calls_any", "not_calls", "max_calls", "min_calls", "max_tool_calls", "args",
@@ -295,6 +296,9 @@ def _run_once(case: dict, model, vision_model) -> dict:
             "filters": dict(fake.filter_positions),
             "condenser": fake.condenser["position"],
             "pfs_offset": fake.pfs_offset_value,
+            "camera_format": fake.camera_format,
+            "camera_roi": dict(fake.roi),
+            "averaging": fake.averaging,
             "captures": fake.captures,
             **_saved(Path(output)),
         }

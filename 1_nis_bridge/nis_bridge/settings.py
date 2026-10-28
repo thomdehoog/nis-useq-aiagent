@@ -53,3 +53,5 @@ TIFF_ALL_LAYERS = 18  # ImageSaveAs: file type
 CLOSE_WITHOUT_ASKING = 2  # CloseCurrentDocument: do not ask about unsaved changes
 INFOSTR_VERSION = 1  # Get_InfoStr: the NIS version string
 CAMERA_MODE = 2  # GetCameraResolution, CameraFormatGet: 2 = quality capture (1 = live)
+CAMERA_MODES = (1, 2)  # CameraFormatSet sets both: live, and capture
+MAX_FRAMES = 256  # the most frames set_camera averages or integrates

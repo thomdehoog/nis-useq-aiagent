@@ -168,7 +168,8 @@ optical configurations saved in NIS-Elements, when you ask for that; the
 bridge keeps a backup of all of them before every change. It reads and sets
 the other devices too: lamps and LEDs, laser lines (by wavelength), shutters,
 filter changers (by filter name), the condenser, apertures, zoom and analyzer,
-and the Perfect Focus offset and dish type. Laser power above
+the Perfect Focus offset and dish type, and the camera's binning, region of
+interest and frame averaging; it reads the incubator. Laser power above
 `LASER_POWER_LIMIT` in `settings.py` (50 of 100 steps) is refused, like a move
 beyond the stage limits, whatever is asked in the chat. Acquisitions go
 through useq:

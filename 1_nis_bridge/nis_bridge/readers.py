@@ -202,8 +202,21 @@ class Readers:
         }
 
     def get_camera(self, args: dict) -> dict:
-        """The current camera and its exposure (through macros on 6.10: about 0.1 s)."""
-        return {**self.api.camera(), "exposure_ms": self.api.exposure_ms()}
+        """The current camera: name, sensor, format, ROI, exposure, frames averaged and
+        summed (through macros on 6.10: about 0.2 s)."""
+        return {
+            **self.api.camera(),
+            "exposure_ms": self.api.exposure_ms(),
+            "averaging": self.api.camera_averaging(),
+            "integration": self.api.camera_integration(),
+        }
+
+    def get_incubator(self, args: dict) -> dict:
+        """Gas and pressure of an incubator, now and as set; ``key`` names one ('' = the one)."""
+        key = args.get("key", "")
+        if not isinstance(key, str):
+            raise ValueError("'key' must be the incubator's name")
+        return {"key": key, **self.api.incubator(key)}
 
     def get_pfs(self, args: dict) -> dict:
         if not self.api.pfs_present():
@@ -235,4 +248,5 @@ READS = (
     "get_environment",
     "get_pfs",
     "get_camera",
+    "get_incubator",
 )

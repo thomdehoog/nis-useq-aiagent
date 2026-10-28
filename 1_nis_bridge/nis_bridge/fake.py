@@ -106,6 +106,11 @@ class FakeNisApi:
         self.frame: np.ndarray | None = None  # a picture to save instead of the plain one
         self.camera_fails = False
         self.exposure = 33.0  # ms, as the Ti2 simulator starts
+        self.camera_format = "FMT 1x1 16"
+        self.camera_formats = ("FMT 1x1 16", "FMT 2x2 16", "FMT 4x4 16")  # what it has
+        self.roi = {"left": 512, "top": 512, "right": 1536, "bottom": 1536}
+        self.averaging = self.integration = 1
+        self.incubators = {}  # key: {gas_percent, ...}
         self.captures = 0
         self.open_images = 0
         self.calls: list[str] = []
@@ -194,9 +199,38 @@ class FakeNisApi:
             "width_px": 2048,
             "height_px": 2048,
             "pixel_um": 6.5,
-            "format": "FMT 1x1 16",
-            "roi": {"left": 512, "top": 512, "right": 1536, "bottom": 1536},
+            "format": self.camera_format,
+            "roi": dict(self.roi),
         }
+
+    def camera_averaging(self) -> int:
+        return self.averaging
+
+    def camera_integration(self) -> int:
+        return self.integration
+
+    def set_camera_format(self, camera_format: str) -> None:
+        self.calls.append(f"format({camera_format})")
+        if camera_format in self.camera_formats:  # like NIS: an unknown one changes nothing
+            self.camera_format = camera_format
+
+    def set_roi(self, left: int, top: int, right: int, bottom: int) -> None:
+        self.calls.append(f"roi({left},{top},{right},{bottom})")
+        self.roi = {"left": left, "top": top, "right": right, "bottom": bottom}
+
+    def set_camera_averaging(self, frames: int) -> None:
+        self.calls.append(f"averaging({frames})")
+        self.averaging = frames
+
+    def set_camera_integration(self, frames: int) -> None:
+        self.calls.append(f"integration({frames})")
+        self.integration = frames
+
+    def incubator(self, key: str) -> dict:
+        zero = dict.fromkeys(
+            ("gas_percent", "target_gas_percent", "pressure_mbar", "target_pressure_mbar"), 0.0
+        )
+        return self.incubators.get(key, zero)  # like NIS without one: zeros
 
     # lights, lasers and filter changers
     def _light(self, name: str) -> dict:

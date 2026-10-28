@@ -179,3 +179,52 @@ def test_reads_the_heat_stages(client, fake):
     assert client.request("get_environment")["heat_stages"] == [
         {"name": "Tokai Hit", "temperature": 37.0, "status": "holding"}
     ]
+
+
+# -- camera settings and the incubator ---------------------------------------------------
+
+
+def test_reads_the_camera_with_its_frames(client):
+    camera = client.request("get_camera")
+    assert camera["format"] == "FMT 1x1 16" and camera["averaging"] == 1
+    assert camera["integration"] == 1 and camera["width_px"] == 2048
+
+
+def test_sets_binning_roi_and_averaging(client, fake):
+    roi = {"left": 0, "top": 0, "right": 1024, "bottom": 1024}
+    camera = client.request("set_camera", binning=2, roi=roi, averaging=4)
+    assert camera["format"] == "FMT 2x2 16" and camera["roi"] == roi and camera["averaging"] == 4
+    assert fake.calls == ["format(FMT 2x2 16)", "roi(0,0,1024,1024)", "averaging(4)"]
+
+
+def test_a_format_the_camera_lacks_is_reported(client, fake):
+    with pytest.raises(RuntimeError, match="no format 'FMT 3x3 16'; it kept 'FMT 1x1 16'"):
+        client.request("set_camera", binning=3)
+
+
+@pytest.mark.parametrize(
+    ("args", "message"),
+    [
+        ({"roi": {"left": 0, "top": 0, "right": 4096, "bottom": 100}}, "inside the sensor"),
+        ({"roi": {"left": 10, "top": 0, "right": 5, "bottom": 100}}, "inside the sensor"),
+        ({"averaging": 0}, "from 1 to 256"),
+        ({"binning": 2, "format": "FMT 2x2 16"}, "not both"),
+        ({"binning": 16}, "from 1 to 8"),
+        ({}, "nothing to change"),
+    ],
+)
+def test_a_camera_change_is_checked_first(client, fake, args, message):
+    with pytest.raises(ValueError, match=message):
+        client.request("set_camera", **args)
+    assert fake.calls == []
+
+
+def test_reads_an_incubator(client, fake):
+    assert client.request("get_incubator")["gas_percent"] == 0.0  # none: zeros, as NIS
+    fake.incubators["Okolab"] = {
+        "gas_percent": 5.0,
+        "target_gas_percent": 5.0,
+        "pressure_mbar": 1013.0,
+        "target_pressure_mbar": 1013.0,
+    }
+    assert client.request("get_incubator", key="Okolab")["gas_percent"] == 5.0

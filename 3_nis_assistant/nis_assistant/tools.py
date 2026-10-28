@@ -455,13 +455,15 @@ def optical_configuration(
 
 @guarded_tool
 def get_devices(ctx: RunContext[Microscope]) -> dict[str, Any]:
-    """in: {}. out: {lights, lasers, shutters, filters, light_path, environment}.
+    """in: {}. out: {lights, lasers, shutters, filters, light_path, environment, camera,
+    incubator}.
 
     The devices besides stage, objectives and configurations, as NIS-Elements
     reports them now: lamps and LEDs (on, iris, voltage), laser lines (wavelength,
     on, power), shutters (open), filter changers (position and the filter in each
     position), the transmitted light path (condenser, apertures, zoom, analyzer)
-    and heating stages (temperature). A part NIS cannot read is null.
+    heating stages (temperature), the camera (format, ROI, exposure, frames averaged
+    or summed) and the incubator (gas, pressure). A part NIS cannot read is null.
     """
     client = ctx.deps.client
     parts = {
@@ -471,6 +473,8 @@ def get_devices(ctx: RunContext[Microscope]) -> dict[str, Any]:
         "filters": "get_filters",
         "light_path": "get_light_path",
         "environment": "get_environment",
+        "camera": "get_camera",
+        "incubator": "get_incubator",
     }
     devices = {key: _read_or_none(client, op) for key, op in parts.items()}
     return {**devices, "laser_power_limit": LASER_POWER_LIMIT}
@@ -629,6 +633,55 @@ def set_optics(
     if not applied:
         return refusal(ctx, "invalid", "name something to set", FAILURE_ADVICE)
     return applied
+
+
+class RegionOfInterest(BaseModel):
+    """A camera region in sensor pixels: the top-left and the bottom-right corner."""
+
+    left: int
+    top: int
+    right: int
+    bottom: int
+
+
+@guarded_tool
+def set_camera(
+    ctx: RunContext[Microscope],
+    binning: int | None = None,
+    camera_format: str | None = None,
+    roi: RegionOfInterest | None = None,
+    averaging: int | None = None,
+    integration: int | None = None,
+) -> dict[str, Any]:
+    """in: {binning?, camera_format?, roi?, averaging?, integration?}. out: {the camera
+    as it is now: name, width_px, height_px, format, roi, exposure_ms, averaging, integration}.
+
+    Sets how the camera takes images: binning (2 for 2x2), or a format by the name
+    NIS gives it ("FMT 2x2 16"); the region of the sensor read out, in sensor
+    pixels; and how many frames each image averages or sums (1 for none). The
+    exposure is set with set_microscope. A format the camera lacks is reported,
+    and the camera keeps its own.
+
+    Args:
+        binning: pixels binned in each direction: 1, 2, 4 ...
+        camera_format: or a format name, as get_devices shows it under camera.
+        roi: the region read out, inside the sensor (camera width_px x height_px).
+        averaging: frames averaged into each image.
+        integration: frames summed into each image.
+    """
+    args = {
+        "binning": binning,
+        "format": camera_format,
+        "roi": roi.model_dump() if roi is not None else None,
+        "averaging": averaging,
+        "integration": integration,
+    }
+    try:
+        return ctx.deps.client.request(
+            "set_camera", **{k: v for k, v in args.items() if v is not None}
+        )
+    except ValueError as exc:  # checked by the bridge before anything changed
+        return refusal(ctx, "invalid", str(exc), FAILURE_ADVICE)
 
 
 @guarded_tool
@@ -1028,6 +1081,7 @@ TOOLS = (
     get_devices,
     set_illumination,
     set_optics,
+    set_camera,
     focus,
     look,
     ask_eyes,

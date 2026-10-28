@@ -30,6 +30,7 @@ from .dialogs import ClickOk
 from .nis_macro import NisMacro
 from .settings import (
     CAMERA_MODE,
+    CAMERA_MODES,
     CLOSE_WITHOUT_ASKING,
     INFOSTR_VERSION,
     OPTCONF_IMPORT_DONE,
@@ -397,6 +398,46 @@ class NisDll:
             "format": fmt,
             "roi": roi,
         }
+
+    def camera_averaging(self) -> int:
+        """Frames averaged per image (1: none). Through a macro: it hands the value back."""
+        return self._macro.call("Camera_AverageGet", "{n}", ints=("n",))[1]["n"]
+
+    def camera_integration(self) -> int:
+        """Frames summed per image (1: none)."""
+        return self._macro.call("Camera_IntegrateGet", "{n}", ints=("n",))[1]["n"]
+
+    def set_camera_format(self, camera_format: str) -> None:
+        """Set the format (binning, bit depth), e.g. "FMT 2x2 16", for live and for capture.
+
+        NIS keeps the old one when the camera has no such format; the caller reads back.
+        """
+        for mode in CAMERA_MODES:
+            self._macro.call("CameraFormatSet", f'{mode}, "{camera_format}"')
+
+    def set_roi(self, left: int, top: int, right: int, bottom: int) -> None:
+        self._macro.call("ROISet", f"{left}, {top}, {right}, {bottom}")
+
+    def set_camera_averaging(self, frames: int) -> None:
+        self._macro.call("Camera_AverageSet", f"{frames}")
+
+    def set_camera_integration(self, frames: int) -> None:
+        self._macro.call("Camera_IntegrateSet", f"{frames}")
+
+    def incubator(self, key: str) -> dict[str, float]:
+        """Gas (%) and pressure (mbar), now and as set, of the incubator ``key`` ('' = the one).
+
+        NIS has no function that lists incubators; with none, the values are 0.
+        """
+        values = {}
+        for what, function in (
+            ("gas_percent", "Stg_Incubator_GetCurrentGas"),
+            ("target_gas_percent", "Stg_Incubator_GetTargetGas"),
+            ("pressure_mbar", "Stg_Incubator_GetCurrentPressure"),
+            ("target_pressure_mbar", "Stg_Incubator_GetTargetPressure"),
+        ):
+            values[what] = self._macro.call(function, f'"{key}", {{v}}', doubles=("v",))[1]["v"]
+        return values
 
     # nosepiece
     def nosepiece_present(self) -> bool:

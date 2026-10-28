@@ -74,5 +74,10 @@
   {"id": "h-dev-filter-name", "category": "devices", "prompt": "Switch the upper turret to the Cy5 cube.", "expect": {"state": {"filters": {"Turret-Up": 5, "Turret-Lo": 1}}}},
   {"id": "h-dev-condenser", "category": "devices", "prompt": "Condenser to position 6.", "expect": {"state": {"condenser": 6}}},
   {"id": "h-dev-pfs-offset", "category": "devices", "prompt": "Change the Perfect Focus offset to 2850.", "expect": {"state": {"pfs_offset": 2850}}},
-  {"id": "h-dev-zoom-manual", "category": "devices", "prompt": "Zoom in to 1.5x.", "expect": {"reply_mentions_any": ["hand", "manual"]}}
+  {"id": "h-dev-zoom-manual", "category": "devices", "prompt": "Zoom in to 1.5x.", "expect": {"reply_mentions_any": ["hand", "manual"]}},
+  {"id": "h-cam-binning", "category": "camera", "prompt": "Use 4x4 binning on the camera.", "expect": {"state": {"camera_format": "FMT 4x4 16"}}},
+  {"id": "h-cam-averaging", "category": "camera", "prompt": "Each image should be the mean of 8 frames.", "expect": {"state": {"averaging": 8}}},
+  {"id": "h-cam-roi", "category": "camera", "prompt": "Crop the camera to the central 1024 x 1024 pixels of the 2048 x 2048 sensor.", "expect": {"state": {"camera_roi": {"left": 512, "top": 512, "right": 1536, "bottom": 1536}}, "calls_any": ["set_camera", "get_devices"]}},
+  {"id": "h-cam-format-missing", "category": "camera", "prompt": "Bin 3 by 3, please.", "expect": {"state": {"camera_format": "FMT 1x1 16"}, "reply_mentions_any": ["1x1", "2x2", "4x4", "not", "no "]}},
+  {"id": "h-cam-incubator", "category": "camera", "prompt": "Check the gas concentration of the incubator.", "expect": {"no_mutations": true, "reply_mentions_any": ["0"]}}
 ]

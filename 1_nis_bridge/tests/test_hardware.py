@@ -161,3 +161,17 @@ def test_shutters_light_path_and_pfs_change_and_go_back(client):
         moved = client.request("set_pfs_offset", offset=pfs["offset"] + 10)
         client.request("set_pfs_offset", offset=pfs["offset"])
         assert moved["offset"] == pfs["offset"] + 10
+
+
+def test_camera_settings_change_and_go_back(client):
+    camera = client.request("get_camera")
+    print("camera", camera, "incubator", client.request("get_incubator"))
+    roi = camera["roi"]
+    smaller = {**roi, "right": roi["right"] - 64}
+    changed = client.request("set_camera", roi=smaller, averaging=2)
+    client.request("set_camera", roi=roi, averaging=camera["averaging"])
+    assert changed["roi"] == smaller and changed["averaging"] == 2
+    binned = client.request("set_camera", binning=2)
+    client.request("set_camera", format=camera["format"])
+    assert binned["format"] != camera["format"]
+    assert client.request("get_camera")["format"] == camera["format"]

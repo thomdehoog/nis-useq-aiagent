@@ -48,6 +48,8 @@ adding it:
 13. *Which lights, lasers, shutters and filters does the microscope have?* and
     *Switch on the 488 nm laser at 10 percent, then switch it off again.* (watch the
     line in NIS's laser panel; above 50 % the assistant refuses)
+14. *Bin the camera 2 by 2, then set it back to no binning.* (the format in NIS's
+    camera panel changes, and back)
 
 ## The checklist, run automatically
 

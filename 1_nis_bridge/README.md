@@ -239,6 +239,8 @@ milliseconds for exposure, nosepiece slots numbered from 1.
 | `get_filters` / `set_filter` | `changer`; `position` (from 1) or `filter` (its name) | each filter changer: position and the filter in each |
 | `get_light_path` / `set_light_path` | any of `condenser`, `aperture` (`field`, `epi_field`, `dia`) with `size`, `zoom`, `analyzer` | condenser, apertures, zoom (and whether it is turned by hand), analyzer |
 | `get_environment` | | heating stages: temperature and status (read only) |
+| `set_camera` | any of `format` (e.g. `FMT 2x2 16`) or `binning`, `roi` ({left, top, right, bottom}), `averaging`, `integration` | the camera after the change (`get_camera`) |
+| `get_incubator` | optionally `key` | gas (%) and pressure (mbar), now and as set (read only) |
 | `autofocus` | `range_um`, `speed` | the position after NIS's image-based focus sweep |
 | `snap` | `path` | the path of the saved TIFF and the pixel size in um (None when not calibrated) |
 

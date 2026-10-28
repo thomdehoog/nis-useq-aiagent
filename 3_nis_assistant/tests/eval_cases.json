@@ -74,5 +74,10 @@
   {"id": "dev-filter-name", "category": "devices", "prompt": "Put the mCherry filter in.", "expect": {"state": {"filters": {"Turret-Up": 3, "Turret-Lo": 1}}}},
   {"id": "dev-condenser", "category": "devices", "prompt": "Move the condenser to position 4.", "expect": {"state": {"condenser": 4}}},
   {"id": "dev-pfs-offset", "category": "devices", "prompt": "Set the PFS offset to 3200.", "expect": {"state": {"pfs_offset": 3200}}},
-  {"id": "dev-zoom-manual", "category": "devices", "prompt": "Set the zoom to 1.5.", "expect": {"reply_mentions_any": ["hand", "manual"]}}
+  {"id": "dev-zoom-manual", "category": "devices", "prompt": "Set the zoom to 1.5.", "expect": {"reply_mentions_any": ["hand", "manual"]}},
+  {"id": "cam-binning", "category": "camera", "prompt": "Bin the camera 2 by 2.", "expect": {"state": {"camera_format": "FMT 2x2 16"}}},
+  {"id": "cam-averaging", "category": "camera", "prompt": "Average 4 frames per image.", "expect": {"state": {"averaging": 4}}},
+  {"id": "cam-roi", "category": "camera", "prompt": "Read out only the top-left 1024 by 1024 pixels of the sensor.", "expect": {"state": {"camera_roi": {"left": 0, "top": 0, "right": 1024, "bottom": 1024}}}},
+  {"id": "cam-format-missing", "category": "camera", "prompt": "Set the camera to 3x3 binning.", "expect": {"state": {"camera_format": "FMT 1x1 16"}, "reply_mentions_any": ["1x1", "2x2", "4x4", "not", "no "]}},
+  {"id": "cam-incubator", "category": "camera", "prompt": "What is the CO2 level in the incubator?", "expect": {"no_mutations": true, "reply_mentions_any": ["0"]}}
 ]

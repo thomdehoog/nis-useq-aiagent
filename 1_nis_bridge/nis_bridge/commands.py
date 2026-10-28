@@ -25,6 +25,7 @@ Acknowledgement: if you use this code or build on its ideas, please acknowledge 
 from __future__ import annotations
 
 import os
+import re
 from typing import Any
 
 from . import optconf
@@ -34,6 +35,7 @@ from .settings import (
     AUTOFOCUS_MAX_SPEED,
     AUTOFOCUS_RANGE_UM,
     AUTOFOCUS_SPEED,
+    MAX_FRAMES,
     OPTCONF_NEW_ONLY,
     OPTCONF_OVERWRITE,
     PFS_DISHES,
@@ -48,6 +50,10 @@ def _number(args: dict, key: str) -> float:
         raise ValueError(f"missing argument {key!r}") from None
     except (TypeError, ValueError):
         raise ValueError(f"argument {key!r} must be a number") from None
+
+
+def _whole(value: object) -> bool:
+    return isinstance(value, int) and not isinstance(value, bool)
 
 
 class Commands:
@@ -293,6 +299,56 @@ class Commands:
             self.api.set_pfs_dish(PFS_DISHES[dish])
         return self.read.get_pfs({})
 
+    def set_camera(self, args: dict) -> dict:
+        """Set any of: ``format`` (NIS's name, e.g. "FMT 2x2 16") or ``binning`` (2 for
+        2x2, in the current format), ``roi`` ({left, top, right, bottom} in sensor
+        pixels), ``averaging`` and ``integration`` (frames per image, 1 = none).
+
+        Everything is checked first; the camera is read back after.
+        """
+        camera = self.read.get_camera({})
+        fmt, binning, roi = args.get("format"), args.get("binning"), args.get("roi")
+        averaging, integration = args.get("averaging"), args.get("integration")
+        if all(v is None for v in (fmt, binning, roi, averaging, integration)):
+            raise ValueError(
+                "nothing to change: give 'format', 'binning', 'roi', 'averaging' or 'integration'"
+            )
+        if fmt is not None and binning is not None:
+            raise ValueError("give 'format' or 'binning', not both")
+        if binning is not None:
+            if not _whole(binning) or not 1 <= binning <= 8:
+                raise ValueError("'binning' must be a whole number from 1 to 8")
+            if not re.search(r"\b\d+x\d+\b", camera["format"]):
+                raise ValueError(f"the format {camera['format']!r} names no binning to change")
+            fmt = re.sub(r"\b\d+x\d+\b", f"{binning}x{binning}", camera["format"], count=1)
+        if fmt is not None and (not isinstance(fmt, str) or not fmt or '"' in fmt):
+            raise ValueError("'format' must be a format name, such as 'FMT 1x1 16'")
+        if roi is not None:
+            corners = ("left", "top", "right", "bottom")
+            if not isinstance(roi, dict) or not all(_whole(roi.get(c)) for c in corners):
+                raise ValueError("'roi' must be {left, top, right, bottom} in whole pixels")
+            width, height = camera["width_px"], camera["height_px"]
+            if not (
+                0 <= roi["left"] < roi["right"] <= width
+                and 0 <= roi["top"] < roi["bottom"] <= height
+            ):
+                raise ValueError(f"the ROI must lie inside the sensor, {width} x {height} pixels")
+        for key, value in (("averaging", averaging), ("integration", integration)):
+            if value is not None and (not _whole(value) or not 1 <= value <= MAX_FRAMES):
+                raise ValueError(f"'{key}' must be a whole number from 1 to {MAX_FRAMES}")
+        if fmt is not None:
+            self.api.set_camera_format(fmt)
+        if roi is not None:
+            self.api.set_roi(roi["left"], roi["top"], roi["right"], roi["bottom"])
+        if averaging is not None:
+            self.api.set_camera_averaging(averaging)
+        if integration is not None:
+            self.api.set_camera_integration(integration)
+        now = self.read.get_camera({})
+        if fmt is not None and now["format"] != fmt:
+            raise RuntimeError(f"the camera has no format {fmt!r}; it kept {now['format']!r}")
+        return now
+
     def set_filter(self, args: dict) -> dict:
         """Turn a filter changer to ``position`` (from 1) or to the filter named ``filter``."""
         changers = {c["name"]: c for c in self.read.get_filters({})}
@@ -386,6 +442,7 @@ COMMANDS = (
     "set_shutter",
     "set_light_path",
     "set_pfs_offset",
+    "set_camera",
     "set_pfs",
     "autofocus",
     "snap",

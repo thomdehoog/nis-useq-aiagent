@@ -60,7 +60,7 @@ BOX_XY_UM = 500.0  # the limits are narrowed to this far from the start, each wa
 BOX_Z_UM = 100.0
 CHANGING_TOOLS = {
     "move_stage", "set_microscope", "optical_configuration", "set_illumination",
-    "set_optics", "focus", "look", "run_acquisition",
+    "set_optics", "set_camera", "focus", "look", "run_acquisition",
 }  # fmt: skip
 
 # The skill the last step asks for: the example from the README.
@@ -176,6 +176,7 @@ def checklist(configurations: list[str]) -> list[Step]:
             calls("set_illumination"),
             watch="It needs a 488 nm line; without one it should name the lines it has.",
         ),
+        Step("Bin the camera 2 by 2, then set it back to no binning.", calls("set_camera")),
         Step("What do you see?", calls("look")),
         Step(f"Take one image in {first} and one in {second} here.", saved_images),
         Step(
