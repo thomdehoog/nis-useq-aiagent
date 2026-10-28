@@ -163,7 +163,21 @@ the full path of `start_bridge.mac` and how to run it, or how to add an
 optical configuration in NIS), read the microscope, move the stage, change the
 optical configuration, exposure, objective and PFS, focus (PFS or the NIS
 image sweep), look at an image and describe it, ask about the images already
-seen. Acquisitions go through useq:
+seen. It can also show, change (the exposure, for now), copy and delete the
+optical configurations saved in NIS-Elements, when you ask for that; the
+bridge keeps a backup of all of them before every change. It reads and sets
+the other devices too: lamps and LEDs, laser lines (by wavelength), shutters,
+filter changers (by filter name), the condenser, apertures, zoom and analyzer,
+the Perfect Focus offset and dish type, and the camera's binning, region of
+interest and frame averaging, live view and auto exposure, Escape, the light
+path port and the spinning disk; it reads the incubator. *Stop microscope* also switches every laser, shutter and
+lamp off (the bridge's `safe_state`), and so does asking it to switch all light
+off. It works toward what you ask: a clear request is carried out without
+questions, and it asks at most one, with its suggestion, when the answer
+changes what it would do. Laser power above
+`LASER_POWER_LIMIT` in `settings.py` (50 of 100 steps) is refused, like a move
+beyond the stage limits, whatever is asked in the chat. Acquisitions go
+through useq:
 
 - `plan_acquisition` turns a plan into a `useq.MDASequence` and has the engine
   check every event without moving. A plan has positions, channels (each with

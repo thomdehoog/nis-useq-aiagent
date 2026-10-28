@@ -30,6 +30,13 @@ PUMP_WAIT_S = 0.05  # how long one macro-loop pass waits for a request to arrive
 SERVE_POLL_S = 0.05  # how often the socket thread checks for shutdown
 STALE_SERVER_S = 2.0  # a server not pumped for this long is from an earlier macro run
 LOG_FILE = "nis-bridge.log"  # in the Windows temp folder
+OPTCONF_FOLDER = "nis-bridge-optconf"  # in the Windows temp folder: a backup before each change
+# RestoreOptConfEx, for a name NIS already has: 1 overwrites it, 2 leaves it (0 asks in a dialog)
+OPTCONF_OVERWRITE = 1
+OPTCONF_NEW_ONLY = 2
+# the message RestoreOptConfEx ends with; the bridge presses its OK (NIS's spelling)
+OPTCONF_IMPORT_DONE = ("Import Optical Configurations", "Import succesfully finished")
+DIALOG_POLL_S = 0.1  # how often to look for that message while an import runs
 
 # -- starting NIS-Elements from outside (start.py) ------------------------------------
 NIS_EXECUTABLE = r"C:\Program Files\NIS-Elements\nis_ar.exe"
@@ -39,7 +46,14 @@ POLL_S = 2.0  # how often to try the bridge while NIS-Elements starts
 MACRO_FILE = "start_bridge.mac"  # written next to the package by install_macros
 
 # -- NIS function arguments ----------------------------------------------------------
+APERTURES = {"field": 0, "epi_field": 1, "dia": 2}  # Stg_..Aperture..: aperture type
+PFS_DISHES = {"glass": 0, "plastic": 1}  # Stg_PFSSetDishType
+HEAT_STAGE_STATUS = {0: "none", 1: "cooling", 2: "heating", 3: "holding", 4: "at limit"}
 TIFF_ALL_LAYERS = 18  # ImageSaveAs: file type
 CLOSE_WITHOUT_ASKING = 2  # CloseCurrentDocument: do not ask about unsaved changes
 INFOSTR_VERSION = 1  # Get_InfoStr: the NIS version string
 CAMERA_MODE = 2  # GetCameraResolution, CameraFormatGet: 2 = quality capture (1 = live)
+CAMERA_MODES = (1, 2)  # CameraFormatSet sets both: live, and capture
+MAX_FRAMES = 256  # the most frames set_camera averages or integrates
+PROBE_SWITCH = "probe.enabled"  # probe_macro works only while this file is in the package
+PIEZO_MAX_STEP_UM = 50.0  # the longest relative piezo Z move: NIS cannot read its position

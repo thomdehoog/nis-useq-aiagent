@@ -88,6 +88,11 @@ LONG_MOVE_XY_UM = 1000.0
 LONG_MOVE_Z_UM = 100.0
 MAX_SWEEP_UM = 100.0  # the longest image-based focus sweep
 MAX_EXPOSURE_MS = 60000.0
+# The highest laser power the assistant may set, in NIS's power steps (0 to 100 on most
+# light sources). Like the stage limits, a higher value is refused whatever is asked;
+# raise it here for an experiment that needs more.
+LASER_POWER_LIMIT = 50
+SAFE_STATE_TIMEOUT_S = 20.0  # Stop switches lasers, shutters and lamps off within this
 # For the rough duration in a plan's summary: the time per image besides the
 # exposure (moves, saving), and the exposure assumed when a channel sets none.
 SECONDS_PER_IMAGE = 1.5

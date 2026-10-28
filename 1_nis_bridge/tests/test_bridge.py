@@ -10,6 +10,7 @@ Acknowledgement: if you use this code or build on its ideas, please acknowledge 
 
 import importlib
 import os
+import re
 import subprocess
 import sys
 import tempfile
@@ -67,8 +68,12 @@ def test_camera_and_its_exposure(client):
 def test_macro_declares_before_it_calls():
     """NIS refuses a declaration after a statement (Command Interpreter Error)."""
     text = macro_text(
-        "Get_Calibration", "{name}, {cal}, {aspect}, {unit}", "p_",
-        doubles=("cal", "aspect"), ints=("unit",), texts={"name": "C:/t/name.txt"},
+        "Get_Calibration",
+        "{name}, {cal}, {aspect}, {unit}",
+        "p_",
+        doubles=("cal", "aspect"),
+        ints=("unit",),
+        texts={"name": "C:/t/name.txt"},
     )
     lines = text.splitlines()
     first_statement = next(i for i, line in enumerate(lines) if "=" in line or "(" in line)
@@ -215,7 +220,19 @@ def test_macro_carries_the_path_and_port(tmp_path):
     text = path.read_text()
     assert b"\r\n" in path.read_bytes() and "nis_bridge.bridge as b" in text
     # every module is reloaded, or old code stays cached in NIS
-    assert "nis_bridge.settings" in text and "nis_bridge.protocol" in text
+    assert "for n in ('settings', 'protocol'," in text
+
+
+def test_the_macro_reloads_every_module_nis_runs_after_what_it_imports():
+    package = Path(install_macros.__file__).parent
+    outside_nis = {"__init__", "client", "fake", "install_macros", "start"}
+    in_nis = {f.stem for f in package.glob("*.py")} - outside_nis
+    assert set(install_macros.MODULES) == in_nis
+    for position, name in enumerate(install_macros.MODULES):
+        source = (package / f"{name}.py").read_text(encoding="utf-8")
+        imported = re.findall(r"^from \.(\w+) import|^from \. import (\w+)", source, re.M)
+        for module in {a or b for a, b in imported}:
+            assert install_macros.MODULES.index(module) < position, (name, module)
 
 
 def test_macro_lifecycle_start_reload_stop(monkeypatch, tmp_path):

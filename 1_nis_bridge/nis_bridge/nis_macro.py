@@ -29,6 +29,7 @@ Acknowledgement: if you use this code or build on its ideas, please acknowledge 
 
 from __future__ import annotations
 
+import contextlib
 import itertools
 import os
 import tempfile
@@ -119,10 +120,8 @@ class NisMacro:
                     os.remove(path)
             result = _first(nis.call_proc("GetVariableValue", prefix + "r"))
         finally:
-            try:
+            with contextlib.suppress(Exception):  # a leftover global does no harm
                 nis.call_proc("DeleteVariables", prefix)
-            except Exception:  # noqa: BLE001 - a leftover global does no harm; names are unique
-                pass
         return (int(result) if float(result).is_integer() else result), answers
 
 

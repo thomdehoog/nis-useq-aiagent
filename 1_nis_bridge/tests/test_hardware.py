@@ -77,3 +77,134 @@ def test_snaps_an_image(client, tmp_path):
     image = tifffile.imread(reply["path"])
     print("image", image.shape, image.dtype, "pixel size (um)", reply["pixel_size_um"])
     assert image.ndim >= 2 and image.max() > 0
+
+
+def test_copies_edits_and_deletes_a_configuration(client):
+    """On a copy only; NIS's own configurations are left as they are."""
+    name = client.request("get_optical_configurations")[0]
+    original = client.request("get_optical_configuration", name=name)
+    print("configuration", original)
+    copy = client.request("copy_optical_configuration", name=name, new_name="nis-bridge test")
+    try:
+        assert copy["exposure_ms"] == original["exposure_ms"]
+        edited = client.request("edit_optical_configuration", name=copy["name"], exposure_ms=37)
+        assert edited["exposure_ms"] == 37.0 and edited["name"] == copy["name"]
+        client.request("select_optical_configuration", name=edited["name"])
+    finally:
+        client.request("select_optical_configuration", name=name)
+        client.request("delete_optical_configuration", name=copy["name"])
+    assert client.request("get_optical_configurations").count(name) == 1
+    assert client.request("get_optical_configuration", name=name) == original
+
+
+def test_lights_lasers_and_filters_change_and_go_back(client):
+    """Each change is read back, then undone."""
+    lights, lasers, filters = (
+        client.request(op) for op in ("get_lights", "get_lasers", "get_filters")
+    )
+    print("lights", lights)
+    for laser in lasers:
+        print(
+            "laser",
+            laser["name"],
+            [(x["wavelength_nm"], x["on"], x["power"]) for x in laser["lines"]],
+        )
+    print("filters", filters)
+    for changer in filters:
+        if len(changer["filters"]) > 1:
+            here = changer["position"]
+            other = next(int(p) for p in changer["filters"] if int(p) != here)
+            moved = client.request("set_filter", changer=changer["name"], position=other)
+            client.request("set_filter", changer=changer["name"], position=here)
+            assert moved["position"] == other
+            break
+    if lasers and lasers[0]["lines"]:
+        laser, line = lasers[0]["name"], lasers[0]["lines"][0]
+        changed = client.request(
+            "set_laser", laser=laser, line=line["line"], on=not line["on"], power=37
+        )
+        client.request(
+            "set_laser", laser=laser, line=line["line"], on=line["on"], power=line["power"]
+        )
+        print("laser", changed)  # the simulator takes the power but reads 0 back: a note says so
+        assert changed["on"] is (not line["on"])
+        assert changed["power"] == 37 or "not the 37 asked" in changed["note"]
+    for light in lights:
+        if light["on"] is not None:
+            try:
+                switched = client.request("set_light", name=light["name"], on=not light["on"])
+            except RuntimeError as exc:  # the Ti2 simulator's DIA LED goes by its shutter
+                print("light not switched:", exc)
+                continue
+            client.request("set_light", name=light["name"], on=light["on"])
+            assert switched["on"] is (not light["on"])
+            break
+
+
+def test_shutters_light_path_and_pfs_change_and_go_back(client):
+    shutters = client.request("get_shutters")
+    path = client.request("get_light_path")
+    pfs = client.request("get_pfs")
+    print("shutters", shutters)
+    print("light path", path)
+    print("pfs", pfs, "environment", client.request("get_environment"))
+    for shutter in shutters:
+        flipped = client.request("set_shutter", name=shutter["name"], open=not shutter["open"])
+        client.request("set_shutter", name=shutter["name"], open=shutter["open"])
+        assert flipped["open"] is (not shutter["open"])
+    if path["condenser"]:
+        here = path["condenser"]["position"]
+        other = 1 if here != 1 else 2
+        moved = client.request("set_light_path", condenser=other)
+        client.request("set_light_path", condenser=here)
+        assert moved["condenser"]["position"] == other
+    for name, aperture in path["apertures"].items():
+        smaller = aperture["size"] - 1 if aperture["size"] > 1 else aperture["size"] + 1
+        moved = client.request("set_light_path", aperture=name, size=smaller)
+        client.request("set_light_path", aperture=name, size=aperture["size"])
+        assert moved["apertures"][name]["size"] == pytest.approx(smaller, abs=0.5)
+    if pfs["present"]:
+        moved = client.request("set_pfs_offset", offset=pfs["offset"] + 10)
+        client.request("set_pfs_offset", offset=pfs["offset"])
+        assert moved["offset"] == pfs["offset"] + 10
+
+
+def test_camera_settings_change_and_go_back(client):
+    camera = client.request("get_camera")
+    print("camera", camera, "incubator", client.request("get_incubator"))
+    roi = camera["roi"]
+    smaller = {**roi, "right": roi["right"] - 64}
+    changed = client.request("set_camera", roi=smaller, averaging=2)
+    client.request("set_camera", roi=roi, averaging=camera["averaging"])
+    assert changed["roi"] == smaller and changed["averaging"] == 2
+    binned = client.request("set_camera", binning=2)
+    client.request("set_camera", format=camera["format"])
+    assert binned["format"] != camera["format"]
+    assert client.request("get_camera")["format"] == camera["format"]
+
+
+def test_port_and_disk_change_and_go_back_and_safe_state_runs(client):
+    state = client.request("get_light_path")
+    print("port", state["port"], "disk", state["disk"], "piezo", state["piezo_z"])
+    if state["port"]:
+        here = state["port"]["position"]
+        other = 1 if here != 1 else 2
+        moved = client.request("set_port", port=other)
+        client.request("set_port", port=here)
+        assert moved["port"]["position"] == other
+    opened = client.request("set_port", disk_shutter=True)
+    print("disk shutter opened:", opened["disk"])
+    off = client.request("safe_state")
+    print("safe state", off)
+    assert not off["failed"] and not client.request("get_light_path")["disk"]["shutter_open"]
+
+
+def test_escape_and_auto_exposure_and_back(client):
+    escaped = client.request("escape", on=True)
+    back = client.request("escape", on=False)
+    assert escaped["escaped"] is True and back["escaped"] is False
+    before = client.request("get_camera")["exposure_ms"]
+    chosen = client.request("auto_exposure")["exposure_ms"]
+    client.request("set_exposure", exposure_ms=before)
+    print("auto exposure chose", chosen, "ms; back to", before)
+    assert chosen > 0
