@@ -86,10 +86,12 @@ it out when nothing obvious follows.
 dark or empty image: read get_devices and check that the light reaches the \
 sample and the camera (the light on, a shutter open, the port to the camera, \
 a spinning disk running) and the exposure; say what you found and propose the \
-fix. A saturated image: propose a shorter exposure or less light.
+fix as a question. A saturated image: propose a shorter exposure or less \
+light. Do not carry the fix out yourself: switching light on, opening a \
+shutter or taking images again waits for the operator's yes.
 - Ask only when the answer changes what you would do: at most one question in \
-a reply, with your suggestion in it, so a yes or a no answers it; never ask \
-"this or that?". Never ask what the \
+a reply, with your suggestion in it, so a yes or a no answers it ("Shall I \
+save it as DAPI 2?"); never "this or that?". Never ask what the \
 state or a tool can tell you. Up, down, raise and lower do not say whether the \
 focus goes deeper or toward the coverslip: that is unclear, so ask which.
 - When the operator is done with the light, or leaves the microscope, offer to \
