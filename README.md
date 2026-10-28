@@ -95,26 +95,26 @@ image it took.*
 
 What the assistant can call:
 
-| Call | What it does |
-|---|---|
-| `check_setup` | Checks that NIS-Elements and the bridge answer; if not, says how to start them. |
-| `get_status` | Reads the stage position and limits, objectives, optical configurations and PFS. |
-| `get_devices` | Reads lamps, lasers, shutters, filters, light path, camera and incubator. |
-| `move_stage` | Moves the stage in x, y and z, within the stage limits. |
-| `focus` | Finds focus with the Perfect Focus System, or by an image sweep. |
-| `set_microscope` | Sets the optical configuration, exposure, objective and PFS. |
-| `optical_configuration` | Shows, edits, copies or deletes a saved optical configuration. |
-| `set_illumination` | Switches lamps, laser lines (with power) and shutters; or all light off. |
-| `set_optics` | Sets filters, condenser, apertures and iris, zoom, analyzer, port, spinning disk, PFS offset and Escape. |
-| `set_camera` | Sets binning, region, frame averaging; live view; auto exposure. |
-| `look` | Takes one image and describes it; nothing is saved. |
-| `ask_eyes` | Answers a question about the images already seen, or compares them. |
-| `plan_acquisition` | Turns a request into a useq plan and checks it, without moving. |
-| `plan_useq_sequence` | Loads and checks a useq sequence from a file or text. |
-| `run_acquisition` | Runs a checked plan and saves it as OME-TIFF. |
-| `search_source` | Searches the source code of the three parts and useq. |
-| `read_source` | Reads a part of that source code. |
-| `load_skill` | Loads one of your step-by-step procedures. |
+| Call | Options | What it controls |
+|---|---|---|
+| `check_setup` | – | whether NIS-Elements and the bridge answer, and how to start them |
+| `get_status` | – | reads stage position and limits, objectives, configurations, PFS |
+| `get_devices` | – | reads lamps, lasers, shutters, filters, light path, camera, incubator |
+| `move_stage` | 3 | x, y, z, within the stage limits |
+| `focus` | 2 | Perfect Focus, or an image sweep over a range |
+| `set_microscope` | 4 | optical configuration, exposure, objective, PFS on/off |
+| `optical_configuration` | 4 | show, edit, copy, delete a saved configuration |
+| `set_illumination` | 11 | lamp on/off, iris, voltage; laser line by wavelength, on/off, power; shutters; all off |
+| `set_optics` | 14 | filters by name or position, condenser, apertures and iris, zoom, analyzer, PFS offset and dish, port, spinning disk shutter and speed, Escape |
+| `set_camera` | 7 | binning, format, ROI, averaging, integration, live view, auto exposure |
+| `look` | 1 | one image, described; nothing is saved |
+| `ask_eyes` | 1 | a question about the images already seen |
+| `plan_acquisition` | 1 | a useq plan (channels, Z-stack, positions, tiles, time points), checked without moving |
+| `plan_useq_sequence` | 3 | a useq sequence from a file or text, checked |
+| `run_acquisition` | 1 | runs a checked plan, saves OME-TIFF |
+| `search_source` | 1 | searches the source code of the three parts and useq |
+| `read_source` | 3 | reads a part of that source code |
+| `load_skill` | 1 | one of your step-by-step procedures |
 
 ## Licence and acknowledgement
 

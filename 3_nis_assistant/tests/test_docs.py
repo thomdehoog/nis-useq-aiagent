@@ -10,7 +10,9 @@ Acknowledgement: if you use this code or build on its ideas, please acknowledge 
 
 
 def test_the_front_page_lists_every_tool_and_only_those():
-    """README.md's table of what the assistant can call stays the same as TOOLS."""
+    """README.md's table of what the assistant can call stays the same as TOOLS:
+    every tool, and the number of options each takes."""
+    import inspect
     import re
     from pathlib import Path
 
@@ -18,5 +20,10 @@ def test_the_front_page_lists_every_tool_and_only_those():
 
     front = Path(__file__).parents[2] / "README.md"
     table = front.read_text(encoding="utf-8").split("What the assistant can call:", 1)[1]
-    listed = re.findall(r"^\| `(\w+)` \|", table, re.M)
-    assert sorted(listed) == sorted(tool.__name__ for tool in TOOLS)
+    listed = dict(re.findall(r"^\| `(\w+)` \| ([^|]+) \|", table, re.M))
+    options = {}
+    for tool in TOOLS:
+        params = inspect.signature(getattr(tool, "__wrapped__", tool)).parameters
+        count = len([name for name in params if name != "ctx"])
+        options[tool.__name__] = str(count) if count else "–"  # noqa: RUF001 - the table's en dash for "none"
+    assert {name: shown.strip() for name, shown in listed.items()} == options
