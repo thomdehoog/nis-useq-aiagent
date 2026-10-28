@@ -132,6 +132,9 @@ def test_reads_and_sets_the_light_path(client, fake):
         "apertures": {"epi_field": {"size": 100.0, "steps": 1001}},
         "zoom": {"zoom": 1.0, "manual": True},
         "analyzer": {"inserted": False},
+        "port": {"position": 1, "positions": 4},
+        "disk": {"shutter_open": False, "speed_rpm": 4000},
+        "piezo_z": False,
     }
     path = client.request(
         "set_light_path", condenser=3, aperture="epi_field", size=60, analyzer=True
@@ -228,3 +231,40 @@ def test_reads_an_incubator(client, fake):
         "target_pressure_mbar": 1013.0,
     }
     assert client.request("get_incubator", key="Okolab")["gas_percent"] == 5.0
+
+
+# -- light path port, spinning disk, piezo Z, safe state -----------------------------------
+
+
+def test_sends_the_light_to_a_port_and_runs_the_disk(client, fake):
+    state = client.request("set_port", port=2, disk_speed_rpm=4000, disk_shutter=True)
+    assert state["port"]["position"] == 2 and state["disk"]["shutter_open"] is True
+    assert fake.calls == ["port(2)", "disk_speed(4000)", "disk_shutter(open)"]
+    with pytest.raises(ValueError, match="from 0 to 4"):
+        client.request("set_port", port=7)
+
+
+def test_a_piezo_moves_only_where_there_is_one_and_only_a_little(client, fake):
+    with pytest.raises(RuntimeError, match="no piezo Z drive"):
+        client.request("move_piezo_z", distance_um=5)
+    fake.piezo = 0.0
+    assert client.request("move_piezo_z", distance_um=-5) == {"moved_um": -5}
+    with pytest.raises(ValueError, match="at most 50 um"):
+        client.request("move_piezo_z", distance_um=80)
+    assert client.request("move_piezo_z", center=True) == {"centered": True}
+    assert fake.calls == ["piezo(-5)", "piezo(center)"]
+
+
+def test_safe_state_switches_off_everything_that_lights_the_sample(client, fake):
+    fake.lasers["SpectraIII"][2]["on"] = True  # 475 nm
+    fake.shutters["EPI"] = True
+    fake.disk["shutter_open"] = True
+    fake.lights["DIA"]["on"] = True
+    assert client.request("safe_state") == {
+        "lasers_off": [475],
+        "shutters_closed": ["EPI", "spinning disk"],
+        "lights_off": ["DIA"],
+        "failed": [],
+    }
+    assert not fake.lasers["SpectraIII"][2]["on"] and not fake.lights["DIA"]["on"]
+    assert client.request("safe_state")["lasers_off"] == []  # nothing left to switch off

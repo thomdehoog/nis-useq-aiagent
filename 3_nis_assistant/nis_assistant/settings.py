@@ -92,6 +92,7 @@ MAX_EXPOSURE_MS = 60000.0
 # light sources). Like the stage limits, a higher value is refused whatever is asked;
 # raise it here for an experiment that needs more.
 LASER_POWER_LIMIT = 50
+SAFE_STATE_TIMEOUT_S = 20.0  # Stop switches lasers, shutters and lamps off within this
 # For the rough duration in a plan's summary: the time per image besides the
 # exposure (moves, saving), and the exposure assumed when a channel sets none.
 SECONDS_PER_IMAGE = 1.5

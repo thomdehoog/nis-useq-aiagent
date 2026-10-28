@@ -96,6 +96,9 @@ class FakeNisApi:
         self.analyzer_moves = True  # the simulator's analyzer does not
         self.pfs_offset_value, self.pfs_dish_value = 3000, 0
         self.heat_stages = {}  # name: temperature
+        self.port_state = {"position": 1, "positions": 4}  # None: no light path port
+        self.disk = {"shutter_open": False, "speed_rpm": 4000}
+        self.piezo = None  # um moved in all, or None: no piezo Z drive
         self.nosepiece = 1
         self.has_pfs = pfs
         self.pfs_on = False
@@ -382,6 +385,44 @@ class FakeNisApi:
     def set_pfs_dish(self, dish: int) -> None:
         self.calls.append(f"pfs_dish({dish})")
         self.pfs_dish_value = dish
+
+    def port_present(self) -> bool:
+        return self.port_state is not None
+
+    def port(self) -> int:
+        return self.port_state["position"]
+
+    def port_count(self) -> int:
+        return self.port_state["positions"]
+
+    def set_port(self, port: int) -> None:
+        self.calls.append(f"port({port})")
+        self.port_state["position"] = port
+
+    def disk_shutter_open(self) -> bool:
+        return self.disk["shutter_open"]
+
+    def set_disk_shutter_open(self, open_: bool) -> None:
+        self.calls.append(f"disk_shutter({'open' if open_ else 'closed'})")
+        self.disk["shutter_open"] = open_
+
+    def disk_speed_rpm(self) -> int:
+        return self.disk["speed_rpm"]
+
+    def set_disk_speed_rpm(self, rpm: int) -> None:
+        self.calls.append(f"disk_speed({rpm})")
+        self.disk["speed_rpm"] = rpm
+
+    def piezo_present(self) -> bool:
+        return self.piezo is not None
+
+    def move_piezo_z(self, distance_um: float) -> None:
+        self.calls.append(f"piezo({distance_um:g})")
+        self.piezo += distance_um
+
+    def center_piezo_z(self) -> None:
+        self.calls.append("piezo(center)")
+        self.piezo = 0.0
 
     def filter_changer_names(self) -> list[str]:
         return list(self.filters)

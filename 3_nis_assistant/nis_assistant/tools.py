@@ -28,6 +28,7 @@ Acknowledgement: if you use this code or build on its ideas, please acknowledge 
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import functools
 import inspect
 import os
@@ -71,6 +72,7 @@ from .settings import (
     MAX_EXPOSURE_MS,
     MAX_SWEEP_UM,
     MODEL,
+    SAFE_STATE_TIMEOUT_S,
     SOURCE_LINES,
     SOURCE_MATCHES,
 )
@@ -155,6 +157,15 @@ class Microscope:
         self.cancel.set()
         if self.runner is not None:
             self.runner.cancel()
+        # Lasers, shutters and lamps off; in the background, since a turn may still be
+        # using the bridge and the window must not wait for it.
+        threading.Thread(target=self._safe_state, daemon=True).start()
+
+    def _safe_state(self) -> None:
+        # Best effort: an older bridge, NIS not answering or a closed connection must not
+        # turn Stop into an error; the turn is cancelled either way.
+        with contextlib.suppress(Exception):
+            self.client.request("safe_state", timeout=SAFE_STATE_TIMEOUT_S)
 
 
 def refusal(
@@ -501,9 +512,11 @@ def set_illumination(
     laser: str | None = None,
     shutter: str | None = None,
     shutter_open: bool | None = None,
+    all_off: bool | None = None,
 ) -> dict[str, Any]:
     """in: {light?, light_on?, light_iris?, light_voltage?, wavelength_nm?, laser_on?,
-    laser_power?, laser?, shutter?, shutter_open?}. out: {each device as it is now}.
+    laser_power?, laser?, shutter?, shutter_open?, all_off?}. out: {each device as it is now}
+    or, for all_off, {lasers_off, shutters_closed, lights_off, failed}.
 
     Switches and sets the light: a lamp or LED by name (on, iris, voltage), a
     laser line by its wavelength (on, power in NIS's steps, usually 0 to 100), a
@@ -521,8 +534,11 @@ def set_illumination(
         laser: the laser light source, when NIS has more than one.
         shutter: name of a shutter.
         shutter_open: open (true) or close (false) that shutter.
+        all_off: true switches every laser line, shutter and lamp off at once.
     """
     client = ctx.deps.client
+    if all_off:
+        return client.request("safe_state")
     if all(v is None for v in (light, wavelength_nm, shutter)):
         return refusal(
             ctx, "invalid", "name a light, a laser wavelength or a shutter", FAILURE_ADVICE
@@ -588,13 +604,19 @@ def set_optics(
     analyzer_in: bool | None = None,
     pfs_offset: int | None = None,
     pfs_dish: Literal["glass", "plastic"] | None = None,
+    port: int | None = None,
+    disk_shutter_open: bool | None = None,
+    disk_speed_rpm: int | None = None,
 ) -> dict[str, Any]:
     """in: {filter_changer?, filter?, filter_position?, condenser?, aperture?,
-    aperture_size?, zoom?, analyzer_in?, pfs_offset?, pfs_dish?}. out: {each part as it is now}.
+    aperture_size?, zoom?, analyzer_in?, pfs_offset?, pfs_dish?, port?, disk_shutter_open?,
+    disk_speed_rpm?}. out: {each part as it is now}.
 
     Sets the optics in the light path: a filter changer (turret, wheel) to a
     filter by name or to a position, the condenser position, an aperture's size,
-    the zoom, the analyzer in or out, and the Perfect Focus offset and dish type.
+    the zoom, the analyzer in or out, the Perfect Focus offset and dish type, the
+    light path port (where the light goes: camera, eyepieces ...), and the spinning
+    disk (its shutter, its speed).
     Names are the ones get_devices lists. Everything is checked first.
 
     Args:
@@ -608,6 +630,9 @@ def set_optics(
         analyzer_in: put the analyzer in (true) or take it out (false).
         pfs_offset: the Perfect Focus offset, a whole number in NIS's units.
         pfs_dish: what the sample sits on, for the Perfect Focus.
+        port: the light path port, as get_devices lists it under light_path.port.
+        disk_shutter_open: open (true) or close (false) the spinning disk's shutter.
+        disk_speed_rpm: the spinning disk's speed in RPM.
     """
     client = ctx.deps.client
     if filter_changer is not None:
@@ -630,6 +655,10 @@ def set_optics(
     pfs = {k: v for k, v in {"offset": pfs_offset, "dish": pfs_dish}.items() if v is not None}
     if pfs:
         applied["pfs"] = client.request("set_pfs_offset", **pfs)
+    disk = {"port": port, "disk_shutter": disk_shutter_open, "disk_speed_rpm": disk_speed_rpm}
+    disk = {k: v for k, v in disk.items() if v is not None}
+    if disk:
+        applied["port_and_disk"] = client.request("set_port", **disk)
     if not applied:
         return refusal(ctx, "invalid", "name something to set", FAILURE_ADVICE)
     return applied

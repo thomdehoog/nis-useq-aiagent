@@ -341,6 +341,48 @@ class NisDll:
     def heat_stage_status(self, name: str) -> int:
         return int(self._fn("Stg_HeatStage_GetStatus", [ct.c_wchar_p])(name))
 
+    # the light path port (camera, eyepieces ...), the spinning disk, the piezo Z drive
+    def port_present(self) -> bool:
+        return self._fn("Stg_IsLightPathPresent", [])() == 1
+
+    def port(self) -> int:
+        return _check_negative(
+            self._fn("Stg_GetLightPathPosition", [])(), "Stg_GetLightPathPosition"
+        )
+
+    def port_count(self) -> int:
+        count = self._fn("Stg_GetLightPathPositions", [])()
+        return _check_negative(count, "Stg_GetLightPathPositions")
+
+    def set_port(self, port: int) -> None:
+        fn = self._fn("Stg_SetLightPathPosition", [ct.c_int32])
+        _check_negative(fn(port), f"Stg_SetLightPathPosition({port})")
+
+    def disk_shutter_open(self) -> bool:
+        return self._fn("Stg_GetCSUShutterState", [])() == 1
+
+    def set_disk_shutter_open(self, open_: bool) -> None:
+        fn = self._fn("Stg_SetCSUShutterState", [ct.c_int32])
+        _check_negative(fn(1 if open_ else 0), "Stg_SetCSUShutterState")
+
+    def disk_speed_rpm(self) -> int:
+        return int(self._fn("Stg_GetDiskSpeed", [])())
+
+    def set_disk_speed_rpm(self, rpm: int) -> None:
+        _check_negative(self._fn("Stg_SetDiskSpeed", [ct.c_int32])(rpm), "Stg_SetDiskSpeed")
+
+    def piezo_present(self) -> bool:
+        return self._fn("StgZ_GetPiezoDevice", [])() >= 0
+
+    def move_piezo_z(self, distance_um: float) -> None:
+        """Move the piezo Z drive by ``distance_um`` (relative). NIS cannot read its position."""
+        fn = self._fn("StgMovePiezoZ", [ct.c_double, ct.c_int32])
+        _check_negative(fn(distance_um, 1), f"StgMovePiezoZ({distance_um:g})")
+
+    def center_piezo_z(self) -> None:
+        """Center the piezo and keep the focus (Devices > Keep Z position and center Piezo Z)."""
+        _check_negative(self._fn("StgMovePiezoZToHomeKeepZ", [])(), "StgMovePiezoZToHomeKeepZ")
+
     def filter_changer_names(self) -> list[str]:
         count = _check_negative(self._fn("Stg_Filter_GetCount", [])(), "Stg_Filter_GetCount")
         return [self._name("Stg_Filter_GetName", i) for i in range(count)]

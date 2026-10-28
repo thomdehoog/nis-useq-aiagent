@@ -169,7 +169,12 @@ bridge keeps a backup of all of them before every change. It reads and sets
 the other devices too: lamps and LEDs, laser lines (by wavelength), shutters,
 filter changers (by filter name), the condenser, apertures, zoom and analyzer,
 the Perfect Focus offset and dish type, and the camera's binning, region of
-interest and frame averaging; it reads the incubator. Laser power above
+interest and frame averaging, the light path port and the spinning disk; it
+reads the incubator. *Stop microscope* also switches every laser, shutter and
+lamp off (the bridge's `safe_state`), and so does asking it to switch all light
+off. It works toward what you ask: a clear request is carried out without
+questions, and it asks at most one, with its suggestion, when the answer
+changes what it would do. Laser power above
 `LASER_POWER_LIMIT` in `settings.py` (50 of 100 steps) is refused, like a move
 beyond the stage limits, whatever is asked in the chat. Acquisitions go
 through useq:

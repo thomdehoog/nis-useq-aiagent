@@ -177,7 +177,29 @@ class Readers:
         }
         zoom = {"zoom": api.zoom(), "manual": api.zoom_manual()} if api.zoom_present() else None
         analyzer = {"inserted": api.analyzer_in()} if api.analyzer_present() else None
-        return {"condenser": condenser, "apertures": apertures, "zoom": zoom, "analyzer": analyzer}
+        return {
+            "condenser": condenser,
+            "apertures": apertures,
+            "zoom": zoom,
+            "analyzer": analyzer,
+            **self.get_port(),
+        }
+
+    def get_port(self) -> dict:
+        """Where the light goes (the light path port) and the spinning disk; None when absent."""
+        port = (
+            {"position": self.api.port(), "positions": self.api.port_count()}
+            if self.api.port_present()
+            else None
+        )
+        return {
+            "port": port,
+            "disk": {
+                "shutter_open": self.api.disk_shutter_open(),
+                "speed_rpm": self.api.disk_speed_rpm(),
+            },
+            "piezo_z": self.api.piezo_present(),
+        }
 
     def get_environment(self, args: dict) -> dict:
         """Heating and cooling stages: temperature and what they are doing. Reads only."""

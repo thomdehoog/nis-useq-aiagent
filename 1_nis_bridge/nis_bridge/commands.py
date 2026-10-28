@@ -40,6 +40,7 @@ from .settings import (
     OPTCONF_OVERWRITE,
     PFS_DISHES,
     PFS_SETTLE_S,
+    PIEZO_MAX_STEP_UM,
 )
 
 
@@ -349,6 +350,86 @@ class Commands:
             raise RuntimeError(f"the camera has no format {fmt!r}; it kept {now['format']!r}")
         return now
 
+    def set_port(self, args: dict) -> dict:
+        """Send the light to a port (``port``), and set the spinning disk: ``disk_shutter``
+        (open or not) and ``disk_speed_rpm``. Reads them back."""
+        state = self.read.get_port()
+        port, shutter, rpm = args.get("port"), args.get("disk_shutter"), args.get("disk_speed_rpm")
+        if port is None and shutter is None and rpm is None:
+            raise ValueError("nothing to change: give 'port', 'disk_shutter' or 'disk_speed_rpm'")
+        if port is not None:
+            if state["port"] is None:
+                raise ValueError("NIS has no light path port it controls")
+            top = state["port"]["positions"]
+            if not _whole(port) or not 0 <= port <= top:
+                raise ValueError(f"'port' must be a position from 0 to {top}")
+        if shutter is not None and not isinstance(shutter, bool):
+            raise ValueError("'disk_shutter' must be true (open) or false (closed)")
+        if rpm is not None and (not _whole(rpm) or rpm < 0):
+            raise ValueError("'disk_speed_rpm' must be a whole number of RPM, 0 or more")
+        if port is not None:
+            self.api.set_port(port)
+        if rpm is not None:
+            self.api.set_disk_speed_rpm(rpm)
+        if shutter is not None:
+            self.api.set_disk_shutter_open(shutter)
+        return self.read.get_port()
+
+    def move_piezo_z(self, args: dict) -> dict:
+        """Move the piezo Z drive by ``distance_um`` (at most PIEZO_MAX_STEP_UM), or
+        ``center`` it keeping the focus. NIS has no call that reads the piezo position."""
+        if not self.api.piezo_present():
+            raise RuntimeError("no piezo Z drive is connected")
+        if args.get("center") is True:
+            self.api.center_piezo_z()
+            return {"centered": True}
+        distance = _number(args, "distance_um")
+        if abs(distance) > PIEZO_MAX_STEP_UM:
+            raise ValueError(f"a piezo move is at most {PIEZO_MAX_STEP_UM:g} um")
+        self.api.move_piezo_z(distance)
+        return {"moved_um": distance}
+
+    def safe_state(self, args: dict) -> dict:
+        """Everything that sends light to the sample off: every laser line, every shutter
+        and the spinning disk shutter closed, every lamp off. Says what it switched off.
+
+        Each part is tried even when another fails; the failures are reported.
+        """
+        done: dict = {"lasers_off": [], "shutters_closed": [], "lights_off": [], "failed": []}
+
+        def attempt(what: str, action) -> bool:
+            try:
+                action()
+                return True
+            except RuntimeError as exc:
+                done["failed"].append(f"{what}: {exc}")
+                return False
+
+        for laser in self.read.get_lasers({}):
+            for line in laser["lines"]:
+                if line["on"] and attempt(
+                    f"{line['wavelength_nm']} nm",
+                    lambda name=laser["name"], index=line["line"] - 1: self.api.set_laser_line_on(
+                        name, index, False
+                    ),
+                ):
+                    done["lasers_off"].append(line["wavelength_nm"])
+        for shutter in self.read.get_shutters({}):
+            if shutter["open"] and attempt(
+                shutter["name"], lambda n=shutter["name"]: self.api.set_shutter_open(n, False)
+            ):
+                done["shutters_closed"].append(shutter["name"])
+        if self.api.disk_shutter_open() and attempt(
+            "disk shutter", lambda: self.api.set_disk_shutter_open(False)
+        ):
+            done["shutters_closed"].append("spinning disk")
+        for light in self.read.get_lights({}):
+            if light["on"] and attempt(
+                light["name"], lambda n=light["name"]: self.api.set_light_on(n, False)
+            ):
+                done["lights_off"].append(light["name"])
+        return done
+
     def set_filter(self, args: dict) -> dict:
         """Turn a filter changer to ``position`` (from 1) or to the filter named ``filter``."""
         changers = {c["name"]: c for c in self.read.get_filters({})}
@@ -443,6 +524,9 @@ COMMANDS = (
     "set_light_path",
     "set_pfs_offset",
     "set_camera",
+    "set_port",
+    "move_piezo_z",
+    "safe_state",
     "set_pfs",
     "autofocus",
     "snap",

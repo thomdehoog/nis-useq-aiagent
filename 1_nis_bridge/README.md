@@ -241,6 +241,9 @@ milliseconds for exposure, nosepiece slots numbered from 1.
 | `get_environment` | | heating stages: temperature and status (read only) |
 | `set_camera` | any of `format` (e.g. `FMT 2x2 16`) or `binning`, `roi` ({left, top, right, bottom}), `averaging`, `integration` | the camera after the change (`get_camera`) |
 | `get_incubator` | optionally `key` | gas (%) and pressure (mbar), now and as set (read only) |
+| `set_port` | any of `port`, `disk_shutter`, `disk_speed_rpm` | the light path port and the spinning disk (also in `get_light_path`) |
+| `move_piezo_z` | `distance_um` (at most 50) or `center` | what was done; NIS cannot read the piezo position back |
+| `safe_state` | | every laser line off, every shutter and the disk shutter closed, every lamp off; what it switched off |
 | `autofocus` | `range_um`, `speed` | the position after NIS's image-based focus sweep |
 | `snap` | `path` | the path of the saved TIFF and the pixel size in um (None when not calibrated) |
 

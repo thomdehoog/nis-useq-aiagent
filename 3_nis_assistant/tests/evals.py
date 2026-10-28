@@ -66,6 +66,7 @@ Expectations:
     state_not       {key: value}: the microscope afterwards must not be so
     asks            the reply asks a question, and nothing was changed first
     no_mutations    only reading tools were called
+    max_questions   at most this many questions (question marks) in all the replies
     reply_mentions_any, reply_mentions_none   words the replies must (one of
                     them) or must not contain; case does not matter, and a
                     word right after "not" or "no" does not count
@@ -126,7 +127,7 @@ TOOLS = READING_TOOLS | {
 }  # fmt: skip
 EXPECTATIONS = {
     "calls", "calls_any", "not_calls", "max_calls", "min_calls", "max_tool_calls", "args",
-    "state", "state_not", "asks", "no_mutations", "reply_mentions_any",
+    "state", "state_not", "asks", "max_questions", "no_mutations", "reply_mentions_any",
     "reply_mentions_none",
 }  # fmt: skip
 ASKING = ("?", "please specify", "please tell", "please let me know", "let me know", "which ")
@@ -394,6 +395,9 @@ def score(case: dict, trace: dict) -> list[str]:
             failures.append("expected a question back")
         if changes:
             failures.append(f"expected no change before the question; called {changes}")
+    questions = sum(reply.count("?") for reply in trace["replies"])
+    if "max_questions" in expect and questions > expect["max_questions"]:
+        failures.append(f"{questions} questions, at most {expect['max_questions']} expected")
     if expect.get("no_mutations") and changes:
         failures.append(f"expected reading tools only; called {changes}")
     wanted = expect.get("reply_mentions_any")

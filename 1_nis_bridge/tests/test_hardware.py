@@ -175,3 +175,19 @@ def test_camera_settings_change_and_go_back(client):
     client.request("set_camera", format=camera["format"])
     assert binned["format"] != camera["format"]
     assert client.request("get_camera")["format"] == camera["format"]
+
+
+def test_port_and_disk_change_and_go_back_and_safe_state_runs(client):
+    state = client.request("get_light_path")
+    print("port", state["port"], "disk", state["disk"], "piezo", state["piezo_z"])
+    if state["port"]:
+        here = state["port"]["position"]
+        other = 1 if here != 1 else 2
+        moved = client.request("set_port", port=other)
+        client.request("set_port", port=here)
+        assert moved["port"]["position"] == other
+    opened = client.request("set_port", disk_shutter=True)
+    print("disk shutter opened:", opened["disk"])
+    off = client.request("safe_state")
+    print("safe state", off)
+    assert not off["failed"] and not client.request("get_light_path")["disk"]["shutter_open"]
