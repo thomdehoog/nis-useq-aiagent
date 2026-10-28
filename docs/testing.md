@@ -45,6 +45,9 @@ adding it:
 12. *Save a copy of the* configuration *called bench copy, with 30 ms exposure*, then
     *Delete the bench copy configuration again.* (NIS lists the copy, then no longer;
     its "Import succesfully finished" message closes by itself)
+13. *Which lights, lasers, shutters and filters does the microscope have?* and
+    *Switch on the 488 nm laser at 10 percent, then switch it off again.* (watch the
+    line in NIS's laser panel; above 50 % the assistant refuses)
 
 ## The checklist, run automatically
 

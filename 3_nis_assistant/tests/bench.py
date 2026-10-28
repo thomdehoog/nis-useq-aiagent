@@ -59,7 +59,8 @@ from nis_assistant.tools import TOOLS, Microscope
 BOX_XY_UM = 500.0  # the limits are narrowed to this far from the start, each way
 BOX_Z_UM = 100.0
 CHANGING_TOOLS = {
-    "move_stage", "set_microscope", "optical_configuration", "focus", "look", "run_acquisition",
+    "move_stage", "set_microscope", "optical_configuration", "set_illumination",
+    "set_optics", "focus", "look", "run_acquisition",
 }  # fmt: skip
 
 # The skill the last step asks for: the example from the README.
@@ -166,6 +167,15 @@ def checklist(configurations: list[str]) -> list[Step]:
             watch="NIS shows 'Import succesfully finished' for a moment; the bridge closes it.",
         ),
         Step("Delete the bench copy configuration again.", calls("optical_configuration")),
+        Step(
+            "Which lights, lasers, shutters and filters does the microscope have?",
+            calls("get_devices"),
+        ),
+        Step(
+            "Switch on the 488 nm laser at 10 percent, then switch it off again.",
+            calls("set_illumination"),
+            watch="It needs a 488 nm line; without one it should name the lines it has.",
+        ),
         Step("What do you see?", calls("look")),
         Step(f"Take one image in {first} and one in {second} here.", saved_images),
         Step(

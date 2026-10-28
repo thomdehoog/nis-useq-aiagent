@@ -55,7 +55,10 @@ Expectations:
     state           {key: value}: the microscope afterwards. Keys: x, y, z,
                     objective, pfs_on, configuration, exposure_ms; configurations
                     (the names NIS lists) and saved_exposures ({name: ms}, as saved
-                    in each configuration, 100 unless changed); captures (every
+                    in each configuration, 100 unless changed); lights_on, lasers
+                    ({nm: power} of the lines that are on), laser_power ({nm: power}
+                    of every line), shutters_open, filters ({changer: position}),
+                    condenser, pfs_offset; captures (every
                     camera exposure, including looks and the size check at the
                     start of a run); files (runs that saved their data) and
                     images (the images in the OME-TIFF files)
@@ -108,6 +111,7 @@ HOLDOUT = HERE / "eval_cases_holdout.json"
 READING_TOOLS = {
     "check_setup",
     "get_status",
+    "get_devices",
     "ask_eyes",
     "plan_acquisition",
     "plan_useq_sequence",
@@ -116,7 +120,8 @@ READING_TOOLS = {
     "load_skill",
 }  # they change nothing at the microscope
 TOOLS = READING_TOOLS | {
-    "move_stage", "set_microscope", "optical_configuration", "focus", "look", "run_acquisition",
+    "move_stage", "set_microscope", "optical_configuration", "set_illumination",
+    "set_optics", "focus", "look", "run_acquisition",
 }  # fmt: skip
 EXPECTATIONS = {
     "calls", "calls_any", "not_calls", "max_calls", "min_calls", "max_tool_calls", "args",
@@ -274,6 +279,22 @@ def _run_once(case: dict, model, vision_model) -> dict:
             "exposure_ms": _last_call(fake, "exposure"),
             "configurations": list(fake.configurations),
             "saved_exposures": {n: fake.saved_exposures.get(n, 100.0) for n in fake.configurations},
+            "lights_on": sorted(n for n, light in fake.lights.items() if light["on"]),
+            "lasers": {  # wavelength: power, for the lines that are on
+                str(line["wavelength_nm"]): line["power"]
+                for lines in fake.lasers.values()
+                for line in lines
+                if line["on"]
+            },
+            "laser_power": {
+                str(line["wavelength_nm"]): line["power"]
+                for lines in fake.lasers.values()
+                for line in lines
+            },
+            "shutters_open": sorted(n for n, is_open in fake.shutters.items() if is_open),
+            "filters": dict(fake.filter_positions),
+            "condenser": fake.condenser["position"],
+            "pfs_offset": fake.pfs_offset_value,
             "captures": fake.captures,
             **_saved(Path(output)),
         }

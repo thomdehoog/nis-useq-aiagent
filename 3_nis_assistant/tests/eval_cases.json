@@ -64,5 +64,15 @@
   {"id": "oc-delete", "category": "saved-configurations", "prompt": "Delete the TxRed optical configuration.", "expect": {"args": {"optical_configuration": {"action": "delete", "name": "TxRed"}}, "state": {"configurations": ["DAPI", "FITC", "Brightfield"], "saved_exposures": {"DAPI": 100, "FITC": 100, "Brightfield": 100}}}},
   {"id": "oc-session-only", "category": "saved-configurations", "prompt": "Set the exposure to 80 ms for now.", "expect": {"args": {"set_microscope": {"exposure_ms": 80}}, "not_calls": ["optical_configuration"], "state": {"configurations": ["DAPI", "FITC", "TxRed", "Brightfield"], "saved_exposures": {"DAPI": 100, "FITC": 100, "TxRed": 100, "Brightfield": 100}}}},
   {"id": "oc-delete-unknown", "category": "saved-configurations", "prompt": "Delete the GFP configuration.", "expect": {"state": {"configurations": ["DAPI", "FITC", "TxRed", "Brightfield"], "saved_exposures": {"DAPI": 100, "FITC": 100, "TxRed": 100, "Brightfield": 100}}, "reply_mentions_any": ["DAPI", "FITC", "TxRed", "Brightfield"]}},
-  {"id": "oc-copy-taken", "category": "saved-configurations", "prompt": "Copy FITC and call the copy DAPI.", "expect": {"state": {"configurations": ["DAPI", "FITC", "TxRed", "Brightfield"], "saved_exposures": {"DAPI": 100, "FITC": 100, "TxRed": 100, "Brightfield": 100}}, "reply_mentions_any": ["already", "exists", "taken", "in use"]}}
+  {"id": "oc-copy-taken", "category": "saved-configurations", "prompt": "Copy FITC and call the copy DAPI.", "expect": {"state": {"configurations": ["DAPI", "FITC", "TxRed", "Brightfield"], "saved_exposures": {"DAPI": 100, "FITC": 100, "TxRed": 100, "Brightfield": 100}}, "reply_mentions_any": ["already", "exists", "taken", "in use"]}},
+  {"id": "dev-read-lasers", "category": "devices", "prompt": "Which laser lines does the light source have?", "expect": {"no_mutations": true, "reply_mentions_any": ["475"]}},
+  {"id": "dev-laser-on", "category": "devices", "prompt": "Switch on the 475 nm laser at 20 percent.", "expect": {"state": {"lasers": {"475": 20}}}},
+  {"id": "dev-laser-limit", "category": "devices", "prompt": "Set the 555 nm laser to 90 percent power.", "expect": {"state": {"laser_power": {"405": 0, "440": 0, "475": 0, "510": 0, "555": 0, "575": 0, "637": 0, "748": 0}}, "max_calls": {"set_illumination": 1}, "reply_mentions_any": ["limit", "50"]}},
+  {"id": "dev-laser-unknown", "category": "devices", "prompt": "Turn on the 488 laser.", "expect": {"state": {"lasers": {}}, "reply_mentions_any": ["475", "510"]}},
+  {"id": "dev-lamp-on", "category": "devices", "prompt": "Switch the DIA lamp on.", "expect": {"state": {"lights_on": ["DIA"]}}},
+  {"id": "dev-shutter", "category": "devices", "prompt": "Open the EPI shutter.", "expect": {"state": {"shutters_open": ["EPI"]}}},
+  {"id": "dev-filter-name", "category": "devices", "prompt": "Put the mCherry filter in.", "expect": {"state": {"filters": {"Turret-Up": 3, "Turret-Lo": 1}}}},
+  {"id": "dev-condenser", "category": "devices", "prompt": "Move the condenser to position 4.", "expect": {"state": {"condenser": 4}}},
+  {"id": "dev-pfs-offset", "category": "devices", "prompt": "Set the PFS offset to 3200.", "expect": {"state": {"pfs_offset": 3200}}},
+  {"id": "dev-zoom-manual", "category": "devices", "prompt": "Set the zoom to 1.5.", "expect": {"reply_mentions_any": ["hand", "manual"]}}
 ]

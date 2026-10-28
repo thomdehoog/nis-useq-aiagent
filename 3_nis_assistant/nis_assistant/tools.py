@@ -67,6 +67,7 @@ from .plans import AcquisitionPlan, PositionSpec, count_images, describe, plan_t
 from .settings import (
     CLOCK_FORMAT,
     DEFAULT_AXES,
+    LASER_POWER_LIMIT,
     MAX_EXPOSURE_MS,
     MAX_SWEEP_UM,
     MODEL,
@@ -450,6 +451,184 @@ def optical_configuration(
         args = {"exposure_ms": exposure_ms} if exposure_ms is not None else {}
         return client.request("copy_optical_configuration", name=name, new_name=new_name, **args)
     return client.request("delete_optical_configuration", name=name)
+
+
+@guarded_tool
+def get_devices(ctx: RunContext[Microscope]) -> dict[str, Any]:
+    """in: {}. out: {lights, lasers, shutters, filters, light_path, environment}.
+
+    The devices besides stage, objectives and configurations, as NIS-Elements
+    reports them now: lamps and LEDs (on, iris, voltage), laser lines (wavelength,
+    on, power), shutters (open), filter changers (position and the filter in each
+    position), the transmitted light path (condenser, apertures, zoom, analyzer)
+    and heating stages (temperature). A part NIS cannot read is null.
+    """
+    client = ctx.deps.client
+    parts = {
+        "lights": "get_lights",
+        "lasers": "get_lasers",
+        "shutters": "get_shutters",
+        "filters": "get_filters",
+        "light_path": "get_light_path",
+        "environment": "get_environment",
+    }
+    devices = {key: _read_or_none(client, op) for key, op in parts.items()}
+    return {**devices, "laser_power_limit": LASER_POWER_LIMIT}
+
+
+def _read_or_none(client: Any, op: str) -> Any:
+    """A bridge reading, or None from an older bridge or when NIS cannot say."""
+    try:
+        return client.request(op)
+    except (ValueError, RuntimeError):
+        return None
+
+
+@guarded_tool
+def set_illumination(
+    ctx: RunContext[Microscope],
+    light: str | None = None,
+    light_on: bool | None = None,
+    light_iris: float | None = None,
+    light_voltage: float | None = None,
+    wavelength_nm: int | None = None,
+    laser_on: bool | None = None,
+    laser_power: int | None = None,
+    laser: str | None = None,
+    shutter: str | None = None,
+    shutter_open: bool | None = None,
+) -> dict[str, Any]:
+    """in: {light?, light_on?, light_iris?, light_voltage?, wavelength_nm?, laser_on?,
+    laser_power?, laser?, shutter?, shutter_open?}. out: {each device as it is now}.
+
+    Switches and sets the light: a lamp or LED by name (on, iris, voltage), a
+    laser line by its wavelength (on, power in NIS's steps, usually 0 to 100), a
+    shutter by name (open). Names and wavelengths are the ones get_devices lists.
+    A laser power above the limit is refused. Everything is checked first.
+
+    Args:
+        light: name of a lamp or LED, e.g. "DIA".
+        light_on: switch that light on (true) or off (false).
+        light_iris: its iris intensity, where NIS controls it.
+        light_voltage: its voltage in V, where NIS controls it.
+        wavelength_nm: the laser line, by wavelength, e.g. 488.
+        laser_on: switch that line on (true) or off (false).
+        laser_power: its power, a whole number of NIS's steps.
+        laser: the laser light source, when NIS has more than one.
+        shutter: name of a shutter.
+        shutter_open: open (true) or close (false) that shutter.
+    """
+    client = ctx.deps.client
+    if all(v is None for v in (light, wavelength_nm, shutter)):
+        return refusal(
+            ctx, "invalid", "name a light, a laser wavelength or a shutter", FAILURE_ADVICE
+        )
+    if laser_power is not None and laser_power > LASER_POWER_LIMIT:
+        return refusal(
+            ctx,
+            "limit",
+            f"laser power {laser_power} is above the limit of {LASER_POWER_LIMIT}",
+            LIMIT_ADVICE,
+        )
+    if light is not None:
+        known = [x["name"] for x in client.request("get_lights")]
+        if light not in known:
+            return refusal(
+                ctx, "invalid", f"{light!r} is not a light NIS has", OPTIONS_ADVICE,
+                configured_options=known,
+            )  # fmt: skip
+    if wavelength_nm is not None:
+        lines = [x for source in client.request("get_lasers") for x in source["lines"]]
+        offered = sorted({x["wavelength_nm"] for x in lines if x["wavelength_nm"]})
+        if wavelength_nm not in offered:
+            return refusal(
+                ctx, "invalid", f"no laser line at {wavelength_nm} nm", OPTIONS_ADVICE,
+                configured_options=offered,
+            )  # fmt: skip
+    if shutter is not None:
+        known = [x["name"] for x in client.request("get_shutters")]
+        if shutter not in known:
+            return refusal(
+                ctx, "invalid", f"{shutter!r} is not a shutter NIS has", OPTIONS_ADVICE,
+                configured_options=known,
+            )  # fmt: skip
+
+    applied: dict[str, Any] = {}
+    if light is not None:
+        args = {"on": light_on, "iris": light_iris, "voltage": light_voltage}
+        applied["light"] = client.request(
+            "set_light", name=light, **{k: v for k, v in args.items() if v is not None}
+        )
+    if wavelength_nm is not None:
+        args = {"on": laser_on, "power": laser_power, "laser": laser}
+        applied["laser"] = client.request(
+            "set_laser",
+            wavelength_nm=wavelength_nm,
+            **{k: v for k, v in args.items() if v is not None},
+        )
+    if shutter is not None:
+        applied["shutter"] = client.request("set_shutter", name=shutter, open=bool(shutter_open))
+    return applied
+
+
+@guarded_tool
+def set_optics(
+    ctx: RunContext[Microscope],
+    filter_changer: str | None = None,
+    filter: str | None = None,
+    filter_position: int | None = None,
+    condenser: int | None = None,
+    aperture: Literal["field", "epi_field", "dia"] | None = None,
+    aperture_size: float | None = None,
+    zoom: float | None = None,
+    analyzer_in: bool | None = None,
+    pfs_offset: int | None = None,
+    pfs_dish: Literal["glass", "plastic"] | None = None,
+) -> dict[str, Any]:
+    """in: {filter_changer?, filter?, filter_position?, condenser?, aperture?,
+    aperture_size?, zoom?, analyzer_in?, pfs_offset?, pfs_dish?}. out: {each part as it is now}.
+
+    Sets the optics in the light path: a filter changer (turret, wheel) to a
+    filter by name or to a position, the condenser position, an aperture's size,
+    the zoom, the analyzer in or out, and the Perfect Focus offset and dish type.
+    Names are the ones get_devices lists. Everything is checked first.
+
+    Args:
+        filter_changer: name of the filter changer, e.g. "Turret-Up".
+        filter: the filter to turn to, by the name the changer gives it.
+        filter_position: or the position to turn to, from 1.
+        condenser: condenser position.
+        aperture: which aperture: "field", "epi_field" or "dia".
+        aperture_size: its size, in NIS's units.
+        zoom: the zoom factor; NIS takes its closest step.
+        analyzer_in: put the analyzer in (true) or take it out (false).
+        pfs_offset: the Perfect Focus offset, a whole number in NIS's units.
+        pfs_dish: what the sample sits on, for the Perfect Focus.
+    """
+    client = ctx.deps.client
+    if filter_changer is not None:
+        known = [x["name"] for x in client.request("get_filters")]
+        if filter_changer not in known:
+            return refusal(
+                ctx, "invalid", f"{filter_changer!r} is not a filter changer NIS has",
+                OPTIONS_ADVICE, configured_options=known,
+            )  # fmt: skip
+    applied: dict[str, Any] = {}
+    if filter_changer is not None:
+        target = {"filter": filter} if filter is not None else {"position": filter_position}
+        applied["filter"] = client.request("set_filter", changer=filter_changer, **target)
+    path = {"condenser": condenser, "zoom": zoom, "analyzer": analyzer_in}
+    if aperture is not None:
+        path.update(aperture=aperture, size=aperture_size)
+    path = {k: v for k, v in path.items() if v is not None}
+    if path:
+        applied["light_path"] = client.request("set_light_path", **path)
+    pfs = {k: v for k, v in {"offset": pfs_offset, "dish": pfs_dish}.items() if v is not None}
+    if pfs:
+        applied["pfs"] = client.request("set_pfs_offset", **pfs)
+    if not applied:
+        return refusal(ctx, "invalid", "name something to set", FAILURE_ADVICE)
+    return applied
 
 
 @guarded_tool
@@ -846,6 +1025,9 @@ TOOLS = (
     move_stage,
     set_microscope,
     optical_configuration,
+    get_devices,
+    set_illumination,
+    set_optics,
     focus,
     look,
     ask_eyes,

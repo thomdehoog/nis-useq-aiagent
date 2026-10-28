@@ -229,13 +229,24 @@ milliseconds for exposure, nosepiece slots numbered from 1.
 | `set_exposure` | `exposure_ms` | the exposure NIS applied (it may round) |
 | `get_objectives` | | the current nosepiece slot and the objective in each slot |
 | `set_objective` | `position` (slot, from 1) | the current slot |
-| `get_pfs` | | whether the Perfect Focus System is present, on, and in focus |
+| `get_pfs` | | whether the Perfect Focus System is present, on, and in focus; its `offset` and `dish` |
 | `set_pfs` | `on`, optionally `timeout_s` | the PFS state after switching |
+| `set_pfs_offset` | `offset` and/or `dish` (`glass`, `plastic`) | the PFS after the change |
+| `get_lights` / `set_light` | `name`; `on`, `voltage`, `iris` | each lamp or LED: on, and voltage and iris where NIS controls them |
+| `get_lasers` / `set_laser` | `line` (from 1) or `wavelength_nm`, optionally `laser`; `on`, `power` | each multi-laser and its lines: wavelength, on, power and its steps |
+| `get_shutters` / `set_shutter` | `name`, `open` | each shutter by name, open or not |
+| `get_filters` / `set_filter` | `changer`; `position` (from 1) or `filter` (its name) | each filter changer: position and the filter in each |
+| `get_light_path` / `set_light_path` | any of `condenser`, `aperture` (`field`, `epi_field`, `dia`) with `size`, `zoom`, `analyzer` | condenser, apertures, zoom (and whether it is turned by hand), analyzer |
+| `get_environment` | | heating stages: temperature and status (read only) |
 | `autofocus` | `range_um`, `speed` | the position after NIS's image-based focus sweep |
 | `snap` | `path` | the path of the saved TIFF and the pixel size in um (None when not calibrated) |
 
 A command's result is always read back from NIS after the change, so it can
 differ from what was asked (NIS rounds exposures, for instance).
+
+Laser lines are numbered from 1, as NIS's own panel shows them; NIS's macro
+functions count from 0, and the bridge converts. A device NIS does not have,
+or a value it cannot set (a zoom turned by hand), is refused with what it has.
 
 **Optical configurations.** A configuration may be named as NIS lists it
 ("Spinning Disk (2):BF") or without the light path ("BF"). NIS 6.10 has no

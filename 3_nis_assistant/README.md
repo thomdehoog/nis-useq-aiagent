@@ -165,7 +165,12 @@ optical configuration, exposure, objective and PFS, focus (PFS or the NIS
 image sweep), look at an image and describe it, ask about the images already
 seen. It can also show, change (the exposure, for now), copy and delete the
 optical configurations saved in NIS-Elements, when you ask for that; the
-bridge keeps a backup of all of them before every change. Acquisitions go
+bridge keeps a backup of all of them before every change. It reads and sets
+the other devices too: lamps and LEDs, laser lines (by wavelength), shutters,
+filter changers (by filter name), the condenser, apertures, zoom and analyzer,
+and the Perfect Focus offset and dish type. Laser power above
+`LASER_POWER_LIMIT` in `settings.py` (50 of 100 steps) is refused, like a move
+beyond the stage limits, whatever is asked in the chat. Acquisitions go
 through useq:
 
 - `plan_acquisition` turns a plan into a `useq.MDASequence` and has the engine

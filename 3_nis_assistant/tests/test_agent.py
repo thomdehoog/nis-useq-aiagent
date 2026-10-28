@@ -267,6 +267,75 @@ def test_a_bad_configuration_change_is_refused_before_anything_changes(
     assert not any(c.startswith(("import", "delete")) for c in fake.calls)
 
 
+# -- lights, lasers, shutters, filters, the light path ----------------------------------------
+
+
+def test_the_devices_are_read_in_one_call(microscope):
+    assistant, _ = talk(microscope, ("get_devices", {}), "Here they are.")
+    assistant.send("which lights and filters are there?")
+    devices = tool_results(assistant)[0]
+    assert devices["lights"][0]["name"] == "DIA" and devices["lasers"][0]["name"] == "SpectraIII"
+    assert devices["filters"][0]["name"] == "Turret-Up" and devices["laser_power_limit"] == 50
+    assert devices["light_path"]["condenser"]["positions"] == 7
+
+
+def test_illumination_is_set_by_name_and_wavelength(microscope, fake):
+    call = {"light": "DIA", "light_on": True, "wavelength_nm": 475, "laser_on": True,
+            "laser_power": 20, "shutter": "EPI", "shutter_open": True}  # fmt: skip
+    assistant, _ = talk(microscope, ("set_illumination", call), "Done.")
+    assistant.send("lamp on, 475 at 20, open the EPI shutter")
+    result = tool_results(assistant)[0]
+    assert result["light"]["on"] is True and result["shutter"]["open"] is True
+    assert result["laser"]["wavelength_nm"] == 475 and result["laser"]["power"] == 20
+    assert fake.lasers["SpectraIII"][2]["on"] is True  # 475 nm is NIS's line index 2
+
+
+@pytest.mark.parametrize(
+    ("call", "code", "message"),
+    [
+        ({"wavelength_nm": 488, "laser_power": 80}, "limit", "above the limit of 50"),
+        ({"wavelength_nm": 488, "laser_on": True}, "invalid", "no laser line at 488 nm"),
+        ({"light": "Halogen", "light_on": True}, "invalid", "'Halogen' is not a light"),
+        ({"shutter": "Laser", "shutter_open": True}, "invalid", "'Laser' is not a shutter"),
+        ({"light_on": True}, "invalid", "name a light"),
+    ],
+)
+def test_a_bad_illumination_is_refused_before_anything_changes(
+    microscope, fake, call, code, message
+):
+    assistant, _ = talk(microscope, ("set_illumination", call), "Not possible.")
+    assistant.send("light it")
+    error = tool_results(assistant)[0]["error"]
+    assert error["code"] == code and message in error["message"] and fake.calls == []
+    if code == "limit":
+        assert microscope.warnings == [error["message"]]  # the red banner
+
+
+def test_optics_are_set_in_the_light_path(microscope, fake):
+    call = {"filter_changer": "Turret-Up", "filter": "mCherry", "condenser": 2,
+            "aperture": "epi_field", "aperture_size": 40, "pfs_offset": 3100}  # fmt: skip
+    assistant, _ = talk(microscope, ("set_optics", call), "Set.")
+    assistant.send("mCherry cube, condenser 2, epi aperture 40, PFS offset 3100")
+    result = tool_results(assistant)[0]
+    assert result["filter"]["position"] == 3 and result["light_path"]["condenser"]["position"] == 2
+    assert result["pfs"]["offset"] == 3100
+    assert fake.calls == [
+        "filter(Turret-Up,3)",
+        "condenser(2)",
+        "aperture(1,40)",
+        "pfs_offset(3100)",
+    ]
+
+
+def test_an_unknown_filter_changer_is_refused(microscope, fake):
+    call = {"filter_changer": "Wheel", "filter_position": 2}
+    assistant, _ = talk(microscope, ("set_optics", call), "No such changer.")
+    assistant.send("wheel to 2")
+    error = tool_results(assistant)[0]["error"]
+    assert "'Wheel' is not a filter changer" in error["message"] and fake.calls == []
+    assert error["configured_options"] == ["Turret-Up", "Turret-Lo"]
+
+
 # -- cancelling and failing ------------------------------------------------------------------
 
 
