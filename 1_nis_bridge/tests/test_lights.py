@@ -99,7 +99,8 @@ def test_turns_a_changer_by_position_or_by_filter(client, fake):
     reply = client.request("set_filter", changer="Turret-Up", filter="mCherry")
     assert reply == {"changer": "Turret-Up", "position": 3, "filter": "mCherry"}
     assert client.request("set_filter", changer="Turret-Up", position=5)["filter"] == "Cy5"
-    assert fake.calls == ["filter(Turret-Up,3)", "filter(Turret-Up,5)"]
+    # positions 3 and 5 are NIS's indexes 2 and 4: NIS counts filter positions from 0
+    assert fake.calls == ["filter(Turret-Up,2)", "filter(Turret-Up,4)"]
 
 
 def test_a_filter_change_is_checked_first(client, fake):
@@ -281,3 +282,17 @@ def test_no_roi_is_the_full_sensor(client, fake):
     assert client.request("get_camera")["roi"] == {
         "left": 0, "top": 0, "right": 2048, "bottom": 2048,
     }  # fmt: skip
+
+
+def test_probing_is_off_without_its_switch_file(client, fake, monkeypatch):
+    monkeypatch.setattr("nis_bridge.commands.PROBE_SWITCH", "no-such-switch-file")
+    with pytest.raises(ValueError, match="probing is off"):
+        client.request("probe_macro", function="StgZ_Escape")
+
+
+def test_escape_live_and_auto_exposure(client, fake):
+    assert client.request("escape", on=True)["escaped"] is True
+    assert client.request("escape", on=False)["escaped"] is False
+    assert client.request("live", on=True) == {"live": True} and fake.live_on
+    assert client.request("auto_exposure") == {"exposure_ms": 7.3}
+    assert fake.calls == ["escape", "refocus", "live(on)", "auto_exposure"]

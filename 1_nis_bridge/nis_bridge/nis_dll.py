@@ -252,15 +252,17 @@ class NisDll:
             raise NisError(f"Stg_SetMultiLaserLineUsed({laser}, {line}) was refused")
 
     def laser_power(self, laser: str, line: int) -> int:
-        return int(self._fn("Stg_GetMultiLaserPower", [ct.c_wchar_p, ct.c_int32])(laser, line))
+        """Through a macro: the DLL's Stg_GetMultiLaserPower reads 0 on NIS 6.10."""
+        return int(self._macro.call("Stg_GetMultiLaserPower", f'"{laser}", {line}')[0])
 
     def laser_power_steps(self, laser: str, line: int) -> int:
         fn = self._fn("Stg_GetMultiLaserPowerSteps", [ct.c_wchar_p, ct.c_int32])
         return int(fn(laser, line))
 
     def set_laser_power(self, laser: str, line: int, power: int) -> None:
-        fn = self._fn("Stg_SetMultiLaserPower", [ct.c_wchar_p, ct.c_int32, ct.c_uint32])
-        if fn(laser, line, power) != 1:
+        """Through a macro: the DLL's Stg_SetMultiLaserPower answers 1 and changes nothing."""
+        result = self._macro.call("Stg_SetMultiLaserPower", f'"{laser}", {line}, {power}')[0]
+        if result != 1:
             raise NisError(f"Stg_SetMultiLaserPower({laser}, {line}, {power}) was refused")
 
     def shutter_names(self) -> list[str]:
@@ -440,6 +442,32 @@ class NisDll:
             "format": fmt,
             "roi": roi,
         }
+
+    def macro(self, function: str, arguments: str, ints=(), doubles=(), texts=()) -> list:
+        """Any one NIS function, inside a macro: for probing (Commands.probe_macro)."""
+        result, values = self._macro.call(
+            function, arguments, ints=tuple(ints), doubles=tuple(doubles), texts=tuple(texts)
+        )
+        return [result, values]
+
+    def escaped(self) -> bool:
+        return self._fn("StgZ_GetEscape", [])() == 1
+
+    def escape(self) -> None:
+        """Lower the objective away from the sample (the Ti2's Escape)."""
+        _check_negative(self._fn("StgZ_Escape", [])(), "StgZ_Escape")
+
+    def refocus(self) -> None:
+        """Back from Escape, to the focus it left."""
+        _check_negative(self._fn("StgZ_Refocus", [])(), "StgZ_Refocus")
+
+    def live(self, on: bool) -> None:
+        """Start (LiveSync) or freeze NIS's live view. Not in the DLL: through a macro."""
+        self._macro.call("LiveSync" if on else "Freeze", "")
+
+    def auto_exposure(self) -> None:
+        """Let NIS choose the exposure from the current image (CameraCmd_AutoExposure)."""
+        self._macro.call("CameraCmd_AutoExposure", "")
 
     def camera_averaging(self) -> int:
         """Frames averaged per image (1: none). Through a macro: it hands the value back."""

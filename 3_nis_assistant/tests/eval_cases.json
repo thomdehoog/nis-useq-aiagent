@@ -82,5 +82,9 @@
   {"id": "cam-incubator", "category": "camera", "prompt": "What is the CO2 level in the incubator?", "expect": {"no_mutations": true, "reply_mentions_any": ["0"], "max_questions": 1}},
   {"id": "help-dark-image", "category": "helpful", "prompt": "What do you see?", "setup": {"frame": "dim"}, "expect": {"calls": ["look"], "not_calls": ["set_illumination", "set_optics"], "reply_mentions_any": ["?"], "max_questions": 1}},
   {"id": "help-all-off", "category": "helpful", "prompt": "I'm done for today, switch all the light off.", "expect": {"args": {"set_illumination": {"all_off": true}}, "max_questions": 1}},
-  {"id": "help-port", "category": "helpful", "prompt": "Send the light to port 2.", "expect": {"args": {"set_optics": {"port": 2}}, "max_questions": 1}}
+  {"id": "help-port", "category": "helpful", "prompt": "Send the light to port 2.", "expect": {"args": {"set_optics": {"port": 2}}, "max_questions": 1}},
+  {"id": "dev-escape", "category": "devices", "prompt": "Escape the objective, I want to change the sample.", "expect": {"args": {"set_optics": {"escape": true}}, "max_questions": 1}},
+  {"id": "dev-auto-exposure", "category": "devices", "prompt": "Let NIS pick the exposure automatically.", "expect": {"args": {"set_camera": {"auto_exposure": true}}, "max_questions": 1}},
+  {"id": "dev-live", "category": "devices", "prompt": "Start the live view in NIS.", "expect": {"args": {"set_camera": {"live": true}}, "max_questions": 1}},
+  {"id": "dev-illumination-iris", "category": "devices", "prompt": "Close the illumination iris to 50 percent.", "expect": {"args": {"set_optics": {"aperture": "epi_field", "aperture_size": 50}}, "max_questions": 1}}
 ]

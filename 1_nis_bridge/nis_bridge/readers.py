@@ -141,15 +141,18 @@ class Readers:
         ]
 
     def get_filters(self, args: dict) -> list:
-        """Each filter changer (turret, wheel): its position and the filter in each position."""
+        """Each filter changer (turret, wheel): its position and the filter in each position.
+
+        Positions are numbered from 1, as NIS shows them; NIS's own index is one less.
+        """
         changers = []
         for name in self.api.filter_changer_names():
             count = self.api.filter_position_count(name)
             changers.append(
                 {
                     "name": name,
-                    "position": self.api.filter_position(name),
-                    "filters": {p: self.api.filter_name(name, p) for p in range(1, count + 1)},
+                    "position": self.api.filter_position(name) + 1,
+                    "filters": {i + 1: self.api.filter_name(name, i) for i in range(count)},
                 }
             )
         return changers

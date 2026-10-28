@@ -82,5 +82,9 @@
   {"id": "h-cam-incubator", "category": "camera", "prompt": "Check the gas concentration of the incubator.", "expect": {"no_mutations": true, "reply_mentions_any": ["0"], "max_questions": 1}},
   {"id": "h-help-dark-image", "category": "helpful", "prompt": "Take a look at the sample for me.", "setup": {"frame": "dim"}, "expect": {"calls": ["look"], "not_calls": ["set_illumination", "set_optics"], "reply_mentions_any": ["?"], "max_questions": 1}},
   {"id": "h-help-all-off", "category": "helpful", "prompt": "Turn every light source off, I'm leaving.", "expect": {"args": {"set_illumination": {"all_off": true}}, "max_questions": 1}},
-  {"id": "h-help-port", "category": "helpful", "prompt": "Switch the light path to port 3.", "expect": {"args": {"set_optics": {"port": 3}}, "max_questions": 1}}
+  {"id": "h-help-port", "category": "helpful", "prompt": "Switch the light path to port 3.", "expect": {"args": {"set_optics": {"port": 3}}, "max_questions": 1}},
+  {"id": "h-dev-escape", "category": "devices", "prompt": "Lower the objective out of the way, I need to swap the dish.", "expect": {"args": {"set_optics": {"escape": true}}, "max_questions": 1}},
+  {"id": "h-dev-auto-exposure", "category": "devices", "prompt": "Use auto exposure.", "expect": {"args": {"set_camera": {"auto_exposure": true}}, "max_questions": 1}},
+  {"id": "h-dev-live", "category": "devices", "prompt": "Put the camera in live mode.", "expect": {"args": {"set_camera": {"live": true}}, "max_questions": 1}},
+  {"id": "h-dev-illumination-iris", "category": "devices", "prompt": "Set the illumination iris to 70 %.", "expect": {"args": {"set_optics": {"aperture": "epi_field", "aperture_size": 70}}, "max_questions": 1}}
 ]

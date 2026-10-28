@@ -243,6 +243,10 @@ milliseconds for exposure, nosepiece slots numbered from 1.
 | `get_incubator` | optionally `key` | gas (%) and pressure (mbar), now and as set (read only) |
 | `set_port` | any of `port`, `disk_shutter`, `disk_speed_rpm` | the light path port and the spinning disk (also in `get_light_path`) |
 | `move_piezo_z` | `distance_um` (at most 50) or `center` | what was done; NIS cannot read the piezo position back |
+| `escape` | `on` (true: lower the objective away; false: back to its focus) | whether escaped, and the position |
+| `live` | `on` (true: live view; false: freeze) | the state asked for (NIS cannot read it) |
+| `auto_exposure` | | the exposure NIS chose from the current picture |
+| `probe_macro` | `function`, `arguments`, `ints`/`doubles`/`texts` | for development only: one NIS function through a macro, and only while `nis_bridge/probe.enabled` exists |
 | `safe_state` | | every laser line off, every shutter and the disk shutter closed, every lamp off; what it switched off |
 | `autofocus` | `range_um`, `speed` | the position after NIS's image-based focus sweep |
 | `snap` | `path` | the path of the saved TIFF and the pixel size in um (None when not calibrated) |
@@ -250,8 +254,11 @@ milliseconds for exposure, nosepiece slots numbered from 1.
 A command's result is always read back from NIS after the change, so it can
 differ from what was asked (NIS rounds exposures, for instance).
 
-Laser lines are numbered from 1, as NIS's own panel shows them; NIS's macro
-functions count from 0, and the bridge converts. A device NIS does not have,
+Laser lines and filter positions are numbered from 1, as NIS's own panels
+show them; NIS's macro functions count from 0, and the bridge converts. Laser
+power goes through a macro: the DLL's power functions answer but change
+nothing on 6.10. On an X-Light spinning disk, the `epi_field` aperture is its
+Illumination Iris. A device NIS does not have,
 or a value it cannot set (a zoom turned by hand), is refused with what it has.
 
 **Optical configurations.** A configuration may be named as NIS lists it

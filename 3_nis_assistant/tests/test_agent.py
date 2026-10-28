@@ -320,7 +320,7 @@ def test_optics_are_set_in_the_light_path(microscope, fake):
     assert result["filter"]["position"] == 3 and result["light_path"]["condenser"]["position"] == 2
     assert result["pfs"]["offset"] == 3100
     assert fake.calls == [
-        "filter(Turret-Up,3)",
+        "filter(Turret-Up,2)",  # mCherry, position 3, is NIS's index 2
         "condenser(2)",
         "aperture(1,40)",
         "pfs_offset(3100)",

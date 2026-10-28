@@ -527,7 +527,8 @@ def set_illumination(
     Args:
         light: name of a lamp or LED, e.g. "DIA".
         light_on: switch that light on (true) or off (false).
-        light_iris: its iris intensity, where NIS controls it.
+        light_iris: the lamp's own iris intensity, where NIS controls it; not the
+            X-Light's Illumination Iris, which is set_optics aperture "epi_field".
         light_voltage: its voltage in V, where NIS controls it.
         wavelength_nm: the laser line, by wavelength, e.g. 488.
         laser_on: switch that line on (true) or off (false).
@@ -608,16 +609,18 @@ def set_optics(
     port: int | None = None,
     disk_shutter_open: bool | None = None,
     disk_speed_rpm: int | None = None,
+    escape: bool | None = None,
 ) -> dict[str, Any]:
     """in: {filter_changer?, filter?, filter_position?, condenser?, aperture?,
     aperture_size?, zoom?, analyzer_in?, pfs_offset?, pfs_dish?, port?, disk_shutter_open?,
-    disk_speed_rpm?}. out: {each part as it is now}.
+    disk_speed_rpm?, escape?}. out: {each part as it is now}.
 
     Sets the optics in the light path: a filter changer (turret, wheel) to a
     filter by name or to a position, the condenser position, an aperture's size,
     the zoom, the analyzer in or out, the Perfect Focus offset and dish type, the
     light path port (where the light goes: camera, eyepieces ...), and the spinning
-    disk (its shutter, its speed).
+    disk (its shutter, its speed). escape lowers the objective away from the sample,
+    as the microscope's Escape button does, and false brings it back to its focus.
     Names are the ones get_devices lists. Everything is checked first.
 
     Args:
@@ -625,7 +628,8 @@ def set_optics(
         filter: the filter to turn to, by the name the changer gives it.
         filter_position: or the position to turn to, from 1.
         condenser: condenser position.
-        aperture: which aperture: "field", "epi_field" or "dia".
+        aperture: which aperture: "field", "epi_field" or "dia". On an X-Light
+            spinning disk, epi_field is its Illumination Iris (0 to 100 %).
         aperture_size: its size, in NIS's units.
         zoom: the zoom factor; NIS takes its closest step.
         analyzer_in: put the analyzer in (true) or take it out (false).
@@ -634,6 +638,7 @@ def set_optics(
         port: the light path port, as get_devices lists it under light_path.port.
         disk_shutter_open: open (true) or close (false) the spinning disk's shutter.
         disk_speed_rpm: the spinning disk's speed in RPM.
+        escape: true lowers the objective away from the sample; false brings it back.
     """
     client = ctx.deps.client
     if filter_changer is not None:
@@ -660,6 +665,8 @@ def set_optics(
     disk = {k: v for k, v in disk.items() if v is not None}
     if disk:
         applied["port_and_disk"] = client.request("set_port", **disk)
+    if escape is not None:
+        applied["escape"] = client.request("escape", on=escape)
     if not applied:
         return refusal(ctx, "invalid", "name something to set", FAILURE_ADVICE)
     return applied
@@ -682,15 +689,19 @@ def set_camera(
     roi: RegionOfInterest | None = None,
     averaging: int | None = None,
     integration: int | None = None,
+    live: bool | None = None,
+    auto_exposure: bool | None = None,
 ) -> dict[str, Any]:
-    """in: {binning?, camera_format?, roi?, averaging?, integration?}. out: {the camera
-    as it is now: name, width_px, height_px, format, roi, exposure_ms, averaging, integration}.
+    """in: {binning?, camera_format?, roi?, averaging?, integration?, live?, auto_exposure?}.
+    out: {the camera as it is now: name, width_px, height_px, format, roi, exposure_ms,
+    averaging, integration, live?}.
 
     Sets how the camera takes images: binning (2 for 2x2), or a format by the name
     NIS gives it ("FMT 2x2 16"); the region of the sensor read out, in sensor
     pixels; and how many frames each image averages or sums (1 for none). The
-    exposure is set with set_microscope. A format the camera lacks is reported,
-    and the camera keeps its own.
+    exposure is set with set_microscope, or chosen by NIS from what the camera sees
+    now with auto_exposure. live starts NIS's live view on its screen, or freezes it;
+    nothing is saved. A format the camera lacks is reported, and the camera keeps its own.
 
     Args:
         binning: pixels binned in each direction: 1, 2, 4 ...
@@ -698,6 +709,8 @@ def set_camera(
         roi: the region read out, inside the sensor (camera width_px x height_px).
         averaging: frames averaged into each image.
         integration: frames summed into each image.
+        live: true starts NIS's live view; false freezes it.
+        auto_exposure: true lets NIS choose the exposure from the current picture.
     """
     args = {
         "binning": binning,
@@ -706,12 +719,19 @@ def set_camera(
         "averaging": averaging,
         "integration": integration,
     }
+    client = ctx.deps.client
+    settings = {k: v for k, v in args.items() if v is not None}
+    if not settings and live is None and not auto_exposure:
+        return refusal(ctx, "invalid", "name something to set", FAILURE_ADVICE)
     try:
-        return ctx.deps.client.request(
-            "set_camera", **{k: v for k, v in args.items() if v is not None}
-        )
+        camera = client.request("set_camera", **settings) if settings else {}
     except ValueError as exc:  # checked by the bridge before anything changed
         return refusal(ctx, "invalid", str(exc), FAILURE_ADVICE)
+    if auto_exposure:
+        camera = {**camera, **client.request("auto_exposure")}
+    if live is not None:
+        camera = {**camera, **client.request("live", on=live)}
+    return camera
 
 
 @guarded_tool

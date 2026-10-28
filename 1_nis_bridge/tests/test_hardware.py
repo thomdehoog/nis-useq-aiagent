@@ -197,3 +197,14 @@ def test_port_and_disk_change_and_go_back_and_safe_state_runs(client):
     off = client.request("safe_state")
     print("safe state", off)
     assert not off["failed"] and not client.request("get_light_path")["disk"]["shutter_open"]
+
+
+def test_escape_and_auto_exposure_and_back(client):
+    escaped = client.request("escape", on=True)
+    back = client.request("escape", on=False)
+    assert escaped["escaped"] is True and back["escaped"] is False
+    before = client.request("get_camera")["exposure_ms"]
+    chosen = client.request("auto_exposure")["exposure_ms"]
+    client.request("set_exposure", exposure_ms=before)
+    print("auto exposure chose", chosen, "ms; back to", before)
+    assert chosen > 0

@@ -55,4 +55,5 @@ INFOSTR_VERSION = 1  # Get_InfoStr: the NIS version string
 CAMERA_MODE = 2  # GetCameraResolution, CameraFormatGet: 2 = quality capture (1 = live)
 CAMERA_MODES = (1, 2)  # CameraFormatSet sets both: live, and capture
 MAX_FRAMES = 256  # the most frames set_camera averages or integrates
+PROBE_SWITCH = "probe.enabled"  # probe_macro works only while this file is in the package
 PIEZO_MAX_STEP_UM = 50.0  # the longest relative piezo Z move: NIS cannot read its position

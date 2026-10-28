@@ -41,6 +41,7 @@ from .settings import (
     PFS_DISHES,
     PFS_SETTLE_S,
     PIEZO_MAX_STEP_UM,
+    PROBE_SWITCH,
 )
 
 
@@ -397,6 +398,51 @@ class Commands:
         self.api.move_piezo_z(distance)
         return {"moved_um": distance}
 
+    def probe_macro(self, args: dict) -> list:
+        """Run one NIS function in a macro and hand back what it returned, to find out how
+        a device is driven. Off unless the file PROBE_SWITCH is in the package folder: a
+        tool for development, never for an assistant. ``arguments`` is the macro's
+        argument list with {name} where a value comes back; ``ints``/``doubles``/``texts``
+        name those values."""
+        switch = os.path.join(os.path.dirname(os.path.abspath(__file__)), PROBE_SWITCH)
+        if not os.path.exists(switch):
+            raise ValueError(f"probing is off: create {switch} to turn it on")
+        function = args.get("function")
+        if not isinstance(function, str) or not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", function):
+            raise ValueError("'function' must be a NIS function name")
+        return self.api.macro(
+            function,
+            str(args.get("arguments", "")),
+            args.get("ints", ()),
+            args.get("doubles", ()),
+            args.get("texts", ()),
+        )
+
+    def escape(self, args: dict) -> dict:
+        """``on`` true lowers the objective away from the sample (Escape); false brings it
+        back to the focus it left (Refocus)."""
+        on = args.get("on")
+        if not isinstance(on, bool):
+            raise ValueError("'on' must be true (escape) or false (back to focus)")
+        if on:
+            self.api.escape()
+        else:
+            self.api.refocus()
+        return {"escaped": self.api.escaped(), **self.read.get_position({})}
+
+    def live(self, args: dict) -> dict:
+        """Start (``on`` true) or freeze (false) NIS's live view. Nothing is saved."""
+        on = args.get("on")
+        if not isinstance(on, bool):
+            raise ValueError("'on' must be true (live) or false (freeze)")
+        self.api.live(on)
+        return {"live": on}
+
+    def auto_exposure(self, args: dict) -> dict:
+        """Let NIS choose the exposure from what the camera sees now; the exposure it chose."""
+        self.api.auto_exposure()
+        return {"exposure_ms": self.api.exposure_ms()}
+
     def safe_state(self, args: dict) -> dict:
         """Everything that sends light to the sample off: every laser line, every shutter
         and the spinning disk shutter closed, every lamp off. Says what it switched off.
@@ -458,7 +504,7 @@ class Commands:
             position = named[0]
         if position not in filters:
             raise ValueError(f"{name} has positions 1 to {len(filters)}")
-        self.api.set_filter_position(name, position)
+        self.api.set_filter_position(name, position - 1)  # NIS counts from 0
         now = next(c for c in self.read.get_filters({}) if c["name"] == name)
         return {
             "changer": name,
@@ -534,7 +580,11 @@ COMMANDS = (
     "set_camera",
     "set_port",
     "move_piezo_z",
+    "escape",
+    "live",
+    "auto_exposure",
     "safe_state",
+    "probe_macro",
     "set_pfs",
     "autofocus",
     "snap",

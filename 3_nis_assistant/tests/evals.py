@@ -294,7 +294,7 @@ def _run_once(case: dict, model, vision_model) -> dict:
                 for line in lines
             },
             "shutters_open": sorted(n for n, is_open in fake.shutters.items() if is_open),
-            "filters": dict(fake.filter_positions),
+            "filters": {n: i + 1 for n, i in fake.filter_positions.items()},  # from 1
             "condenser": fake.condenser["position"],
             "pfs_offset": fake.pfs_offset_value,
             "camera_format": fake.camera_format,

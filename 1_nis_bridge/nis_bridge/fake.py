@@ -87,7 +87,8 @@ class FakeNisApi:
             "Turret-Up": ["DAPI", "GFP", "mCherry", "", "Cy5", "Empty"],
             "Turret-Lo": ["", "Empty"],
         }
-        self.filter_positions = dict.fromkeys(self.filters, 1)
+        self.filter_positions = dict.fromkeys(self.filters, 0)  # NIS's index: the first
+        self.escaped_state, self.live_on = False, False
         self.shutters = {"DIA LED": False, "EPI": False}  # open or not
         self.condenser = {"position": 1, "positions": 7}
         self.apertures = {1: {"size": 100.0, "steps": 1001}}  # by NIS's type: 1 epi-field
@@ -205,6 +206,25 @@ class FakeNisApi:
             "format": self.camera_format,
             "roi": dict(self.roi),
         }
+
+    def escaped(self) -> bool:
+        return self.escaped_state
+
+    def escape(self) -> None:
+        self.calls.append("escape")
+        self.escaped_state = True
+
+    def refocus(self) -> None:
+        self.calls.append("refocus")
+        self.escaped_state = False
+
+    def live(self, on: bool) -> None:
+        self.calls.append(f"live({'on' if on else 'freeze'})")
+        self.live_on = on
+
+    def auto_exposure(self) -> None:
+        self.calls.append("auto_exposure")
+        self.exposure = 7.3  # as the Ti2 simulator chose
 
     def camera_averaging(self) -> int:
         return self.averaging
@@ -433,11 +453,11 @@ class FakeNisApi:
     def filter_position_count(self, changer: str) -> int:
         return len(self.filters[changer])
 
-    def filter_name(self, changer: str, position: int) -> str:
-        return self.filters[changer][position - 1]
+    def filter_name(self, changer: str, index: int) -> str:
+        return self.filters[changer][index]  # NIS counts positions from 0
 
     def set_filter_position(self, changer: str, position: int) -> None:
-        if not 1 <= position <= len(self.filters[changer]):
+        if not 0 <= position < len(self.filters[changer]):
             raise NisError(f"Stg_Filter_SetPosition({changer}, {position}): DR_BADPARAMETER (-2)")
         self.calls.append(f"filter({changer},{position})")
         self.filter_positions[changer] = position

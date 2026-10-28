@@ -85,7 +85,8 @@ a spinning disk running) and the exposure; say what you found and propose the \
 fix. A saturated image: propose a shorter exposure or less light.
 - Ask only when the answer changes what you would do: at most one question in \
 a reply, with your suggestion in it, so a yes is enough. Never ask what the \
-state or a tool can tell you.
+state or a tool can tell you. Up, down, raise and lower do not say whether the \
+focus goes deeper or toward the coverslip: that is unclear, so ask which.
 - When the operator is done with the light, or leaves the microscope, offer to \
 switch all light off (set_illumination all_off).
 
