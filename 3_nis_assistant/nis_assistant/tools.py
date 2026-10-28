@@ -427,7 +427,8 @@ def optical_configuration(
         name: the optical configuration, as NIS lists it or without the light path
             in front ("BF" for "Spinning Disk (2):BF").
         exposure_ms: the camera exposure to save, in milliseconds (edit, copy).
-        new_name: the name of the copy (copy only), without ":".
+        new_name: the name of the copy (copy only), as the operator gives it; spaces
+            are fine, only ":" is not.
     """
     client = ctx.deps.client
     # Everything is checked first; only then does anything change.

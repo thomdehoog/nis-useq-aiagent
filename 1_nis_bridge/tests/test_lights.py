@@ -268,3 +268,16 @@ def test_safe_state_switches_off_everything_that_lights_the_sample(client, fake)
     }
     assert not fake.lasers["SpectraIII"][2]["on"] and not fake.lights["DIA"]["on"]
     assert client.request("safe_state")["lasers_off"] == []  # nothing left to switch off
+
+
+def test_a_power_nis_does_not_read_back_is_noted(client, fake):
+    fake.set_laser_power = lambda laser, index, power: None  # as on the Ti2 simulator
+    reply = client.request("set_laser", wavelength_nm=405, power=30)
+    assert reply["power"] == 0 and "not the 30 asked" in reply["note"]
+
+
+def test_no_roi_is_the_full_sensor(client, fake):
+    fake.roi = {"left": 0, "top": 0, "right": 0, "bottom": 0}  # what NIS says without one
+    assert client.request("get_camera")["roi"] == {
+        "left": 0, "top": 0, "right": 2048, "bottom": 2048,
+    }  # fmt: skip

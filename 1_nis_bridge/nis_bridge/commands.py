@@ -218,7 +218,15 @@ class Commands:
         if on is not None:
             self.api.set_laser_line_on(name, line["line"] - 1, on)
         again = next(laser for laser in self.read.get_lasers({}) if laser["name"] == name)
-        return {"laser": name, **next(x for x in again["lines"] if x["line"] == line["line"])}
+        now = next(x for x in again["lines"] if x["line"] == line["line"])
+        reply = {"laser": name, **now}
+        if power is not None and now["power"] != power:
+            # The Ti2 simulator takes the power and reads 0 back; a real light source may differ.
+            reply["note"] = (
+                f"NIS reads back power {now['power']}, not the {power} asked; "
+                "check the laser panel in NIS-Elements"
+            )
+        return reply
 
     def set_shutter(self, args: dict) -> dict:
         """Open or close a shutter, by name."""

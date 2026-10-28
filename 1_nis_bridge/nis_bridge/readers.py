@@ -226,8 +226,13 @@ class Readers:
     def get_camera(self, args: dict) -> dict:
         """The current camera: name, sensor, format, ROI, exposure, frames averaged and
         summed (through macros on 6.10: about 0.2 s)."""
+        camera = self.api.camera()
+        if not any(camera["roi"].values()):  # NIS reports no ROI as 0, 0, 0, 0: the full sensor
+            camera["roi"] = {
+                "left": 0, "top": 0, "right": camera["width_px"], "bottom": camera["height_px"]
+            }  # fmt: skip
         return {
-            **self.api.camera(),
+            **camera,
             "exposure_ms": self.api.exposure_ms(),
             "averaging": self.api.camera_averaging(),
             "integration": self.api.camera_integration(),
