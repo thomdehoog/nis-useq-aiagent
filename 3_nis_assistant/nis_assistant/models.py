@@ -27,6 +27,7 @@ Acknowledgement: if you use this code or build on its ideas, please acknowledge 
 
 from __future__ import annotations
 
+import contextlib
 import os
 from dataclasses import dataclass, field
 from typing import Any
@@ -131,12 +132,24 @@ def build_model(endpoint: Endpoint) -> Any:
     return OpenAIChatModel(endpoint.model, provider=provider)
 
 
+def check(endpoint: Endpoint) -> None:
+    """Ask the model for one word, so a wrong key or address shows up before the chat.
+
+    Raises whatever the provider raises. Any answer counts, even an empty one.
+    """
+    from pydantic_ai import Agent
+    from pydantic_ai.exceptions import UnexpectedModelBehavior
+
+    with contextlib.suppress(UnexpectedModelBehavior):  # it answered, only not as text
+        Agent(build_model(endpoint)).run_sync("Reply with OK.", model_settings={"max_tokens": 16})
+
+
 def missing_key_advice(endpoint: Endpoint) -> str:
     """One sentence on how to give the key, for a message to the operator."""
     if not endpoint.needs_key:
         return "This server refused the request; if it wants a key, type it in the Model panel."
     variable = endpoint.key_variable
     return (
-        f"Type the {endpoint.provider} API key in the Model panel and press Use this model, "
+        f"Type the {endpoint.provider} API key in the Model panel and press Connect, "
         f"or set {variable} before starting."
     )

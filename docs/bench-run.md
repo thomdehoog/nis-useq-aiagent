@@ -156,5 +156,5 @@ nis-assistant
 ```
 
 The Model panel opens on Anthropic with `claude-haiku-5-5` filled in; the
-operator pastes the key there and presses *Use this model*. Remind them to
-set the limit fields below the chat before the first move.
+operator pastes the key there and presses *Connect*. Remind them to
+set the limit fields in the Model panel before the first move.
