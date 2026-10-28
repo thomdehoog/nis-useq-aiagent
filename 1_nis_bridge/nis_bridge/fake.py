@@ -33,11 +33,33 @@ from contextlib import contextmanager
 import numpy as np
 import tifffile
 
-from . import dispatch
+from . import dispatch, optconf
 from .nis_dll import NisError
 from .settings import HOST, PORT
 
 IMAGE_SHAPE = (48, 64)  # height, width
+
+# The shape of NIS's optical configuration backup (BackupOptConf), cut down to what
+# optconf.py reads: one <OptN> per configuration, an exposure for fast and quality.
+_BACKUP = (
+    '<?xml version="1.0" encoding="UTF-16"?><variant version="1.0">'
+    '<optconf_backup runtype="CLxListVariant"><OpticalConfigs runtype="CLxListVariant">'
+    "{blocks}</OpticalConfigs>"
+    '<Objectives runtype="CLxListVariant"></Objectives></optconf_backup></variant>'
+)
+_BLOCK = (
+    '<Opt{i} runtype="CLxListVariant"><Name runtype="CLxStringW" value="{name}"/>'
+    '<ObjectiveName runtype="CLxStringW" value="Plan Apo 10x"/>'
+    '<CameraSettingList runtype="CLxListVariant">'
+    '<CameraUserName runtype="CLxStringW" value="Fake camera"/>'
+    '<LightPathName runtype="CLxStringW" value="L100"/>'
+    '<wszFormatText runtype="CLxStringW" value="16-bit - No Binning"/>'
+    '<dBinningX runtype="double" value="1.000000000000000"/>'
+    '<PropertiesFast runtype="CLxListVariant"><Exposure runtype="double" value="{ms:.15f}"/>'
+    '<CaptureMaxExposure runtype="double" value="1000.000000000000000"/></PropertiesFast>'
+    '<PropertiesQuality runtype="CLxListVariant"><Exposure runtype="double" value="{ms:.15f}"/>'
+    "</PropertiesQuality></CameraSettingList></Opt{i}>"
+)
 
 
 class FakeNisApi:
@@ -49,6 +71,8 @@ class FakeNisApi:
             "z": {"min": 0.0, "max": 10000.0},
         }
         self.configurations = ["DAPI", "FITC", "TxRed", "Brightfield"]
+        self.saved_exposures = dict.fromkeys(self.configurations, 100.0)  # ms
+        self.import_fails = 0  # how many imports to come answer but add nothing
         self.objectives = {1: "Plan Apo 10x", 2: "Apo 20x WI", 3: "", 4: "Plan Apo 60x WI"}
         self.nosepiece = 1
         self.has_pfs = pfs
@@ -100,6 +124,37 @@ class FakeNisApi:
 
     def select_optical_configuration(self, name: str) -> None:
         self.calls.append(f"config({name})")
+
+    def backup_optical_configurations(self, path: str) -> None:
+        blocks = "".join(
+            _BLOCK.format(i=i, name=name, ms=self.saved_exposures[name])
+            for i, name in enumerate(self.configurations)
+        )
+        optconf.write(path, _BACKUP.format(blocks=blocks))
+
+    def import_optical_configurations(self, path: str, options: int) -> None:
+        xml = optconf.read(path)
+        for start, end, name in optconf.blocks(xml):
+            exists = [n for n in self.configurations if optconf.matches(n, name)]
+            if exists and options == 0:
+                raise NisError(f"RestoreOptConfEx: {name!r} exists; NIS would wait in a dialog")
+            if self.import_fails:
+                self.import_fails -= 1
+                return  # NIS answers, but nothing changes
+            if exists and options == 2:  # only names NIS does not have
+                continue
+            self.calls.append(f"import({name},{options})")
+            if not exists:
+                self.configurations.append(name)
+            self.saved_exposures[exists[0] if exists else name] = optconf.settings(xml[start:end])[
+                "exposure_ms"
+            ]
+
+    def delete_optical_configuration(self, name: str) -> None:
+        self.calls.append(f"delete({name})")
+        if name in self.configurations:  # like NIS: an unknown name is no error
+            self.configurations.remove(name)
+            del self.saved_exposures[name]
 
     def set_exposure_ms(self, exposure_ms: float) -> float:
         self.calls.append(f"exposure({exposure_ms:g})")

@@ -15,10 +15,14 @@ Acknowledgement: if you use this code or build on its ideas, please acknowledge 
 
 from __future__ import annotations
 
+import os
+import tempfile
+import time
 from typing import Any
 
+from . import optconf
 from .nis_dll import PFS_STATUS
-from .settings import PFS_ON_STATUSES
+from .settings import OPTCONF_FOLDER, PFS_ON_STATUSES
 
 
 class Readers:
@@ -37,6 +41,49 @@ class Readers:
 
     def get_optical_configurations(self, args: dict) -> list:
         return self.api.optical_configurations()
+
+    def get_optical_configuration(self, args: dict) -> dict:
+        """What one optical configuration holds: camera, format, exposure, light path ..."""
+        name = self.configuration_name(args, "name")
+        return optconf.settings(optconf.find(optconf.read(self.backup()), name))
+
+    # -- helpers for the optical configuration requests, not requests themselves --
+
+    def configuration_name(self, args: dict, key: str) -> str:
+        """The configuration named in ``args[key]``, as NIS lists it; ValueError if none."""
+        name = args.get(key)
+        listed = self.api.optical_configurations()
+        found = [n for n in listed if n == name] or [
+            n for n in listed if isinstance(name, str) and optconf.matches(n, name)
+        ]
+        if len(found) != 1:
+            raise ValueError(
+                f"unknown optical configuration {name!r}; NIS has: {', '.join(listed)}"
+            )
+        return found[0]
+
+    def optconf_folder(self) -> str:
+        """Where the backups and the files to import are written."""
+        folder = os.path.join(tempfile.gettempdir(), OPTCONF_FOLDER)
+        os.makedirs(folder, exist_ok=True)
+        return folder
+
+    def backup(self, keep: bool = False) -> str:
+        """Write all optical configurations to an XML file and return its path.
+
+        ``keep``: a file of its own with the time in its name, so a change can be
+        undone by hand; otherwise one file that each read overwrites.
+        """
+        folder = self.optconf_folder()
+        stamp = f"{time.strftime('%Y%m%d-%H%M%S')}-{time.time_ns() // 1_000_000 % 1000:03d}"
+        name = f"backup-{stamp}.xml" if keep else "read.xml"
+        path = os.path.join(folder, name)
+        if os.path.exists(path):
+            os.remove(path)
+        self.api.backup_optical_configurations(path)
+        if not os.path.exists(path):
+            raise RuntimeError(f"BackupOptConf returned but wrote no file at {path}")
+        return path
 
     def get_objectives(self, args: dict) -> dict:
         if not self.api.nosepiece_present():
@@ -64,6 +111,7 @@ READS = (
     "get_position",
     "get_limits",
     "get_optical_configurations",
+    "get_optical_configuration",
     "get_objectives",
     "get_pfs",
 )

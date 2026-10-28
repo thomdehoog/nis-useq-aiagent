@@ -74,3 +74,21 @@ def test_snaps_an_image(client, tmp_path):
     image = tifffile.imread(reply["path"])
     print("image", image.shape, image.dtype, "pixel size (um)", reply["pixel_size_um"])
     assert image.ndim >= 2 and image.max() > 0
+
+
+def test_copies_edits_and_deletes_a_configuration(client):
+    """On a copy only; NIS's own configurations are left as they are."""
+    name = client.request("get_optical_configurations")[0]
+    original = client.request("get_optical_configuration", name=name)
+    print("configuration", original)
+    copy = client.request("copy_optical_configuration", name=name, new_name="nis-bridge test")
+    try:
+        assert copy["exposure_ms"] == original["exposure_ms"]
+        edited = client.request("edit_optical_configuration", name=copy["name"], exposure_ms=37)
+        assert edited["exposure_ms"] == 37.0 and edited["name"] == copy["name"]
+        client.request("select_optical_configuration", name=edited["name"])
+    finally:
+        client.request("select_optical_configuration", name=name)
+        client.request("delete_optical_configuration", name=copy["name"])
+    assert client.request("get_optical_configurations").count(name) == 1
+    assert client.request("get_optical_configuration", name=name) == original

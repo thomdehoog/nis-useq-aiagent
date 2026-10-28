@@ -30,6 +30,13 @@ PUMP_WAIT_S = 0.05  # how long one macro-loop pass waits for a request to arrive
 SERVE_POLL_S = 0.05  # how often the socket thread checks for shutdown
 STALE_SERVER_S = 2.0  # a server not pumped for this long is from an earlier macro run
 LOG_FILE = "nis-bridge.log"  # in the Windows temp folder
+OPTCONF_FOLDER = "nis-bridge-optconf"  # in the Windows temp folder: a backup before each change
+# RestoreOptConfEx, for a name NIS already has: 1 overwrites it, 2 leaves it (0 asks in a dialog)
+OPTCONF_OVERWRITE = 1
+OPTCONF_NEW_ONLY = 2
+# the message RestoreOptConfEx ends with; the bridge presses its OK (NIS's spelling)
+OPTCONF_IMPORT_DONE = ("Import Optical Configurations", "Import succesfully finished")
+DIALOG_POLL_S = 0.1  # how often to look for that message while an import runs
 
 # -- starting NIS-Elements from outside (start.py) ------------------------------------
 NIS_EXECUTABLE = r"C:\Program Files\NIS-Elements\nis_ar.exe"

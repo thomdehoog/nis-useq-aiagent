@@ -222,6 +222,10 @@ milliseconds for exposure, nosepiece slots numbered from 1.
 | `move` | any of `x`, `y`, `z` (um, absolute) | the position after the move |
 | `get_optical_configurations` | | the configuration names |
 | `select_optical_configuration` | `name` | the selected name |
+| `get_optical_configuration` | `name` | what it holds: objective, camera, format, binning, `exposure_ms`, `max_exposure_ms`, light path |
+| `edit_optical_configuration` | `name`, `exposure_ms` | the configuration as NIS now holds it, and `backup` |
+| `copy_optical_configuration` | `name`, `new_name`, optionally `exposure_ms` | the new configuration, and `backup` |
+| `delete_optical_configuration` | `name` | the deleted name, and `backup` |
 | `set_exposure` | `exposure_ms` | the exposure NIS applied (it may round) |
 | `get_objectives` | | the current nosepiece slot and the objective in each slot |
 | `set_objective` | `position` (slot, from 1) | the current slot |
@@ -232,6 +236,18 @@ milliseconds for exposure, nosepiece slots numbered from 1.
 
 A command's result is always read back from NIS after the change, so it can
 differ from what was asked (NIS rounds exposures, for instance).
+
+**Optical configurations.** A configuration may be named as NIS lists it
+("Spinning Disk (2):BF") or without the light path ("BF"). NIS 6.10 has no
+macro function that changes a saved configuration, so the bridge goes through
+NIS's own backup file: it writes all configurations to XML (`BackupOptConf`),
+changes the one block, and imports it again (`RestoreOptConfEx`), over the old
+one for an edit and only as a new name for a copy, so NIS never asks which one
+to keep. Before every change the bridge keeps a backup in
+`%TEMP%\nis-bridge-optconf`; `backup` in the reply is its path, and NIS's
+import of optical configurations brings it back. NIS ends
+each import with an "Import succesfully finished" message; the bridge presses
+its OK itself. For now the exposure is the setting that can be changed.
 
 ## Testing without a microscope
 
@@ -323,6 +339,8 @@ ruff check . && ruff format --check .   # lint and formatting, rules in pyprojec
 | `nis_bridge/readers.py` | The read-only requests, one method each: they observe NIS and change nothing. |
 | `nis_bridge/commands.py` | The requests that change something, one method each, all in the same shape (check, call NIS, read back). The place to look up or add a command. |
 | `nis_bridge/nis_dll.py` | C to Python: the raw NIS functions of `g5_regprocs.dll`, one thin wrapper each. |
+| `nis_bridge/optconf.py` | NIS's optical configuration backup file: find a configuration, change it, write a file to import. |
+| `nis_bridge/dialogs.py` | Presses OK on the one NIS message that would otherwise stop the bridge. |
 | `nis_bridge/dispatch.py` | The server inside NIS: the queue, the main-thread pump, the timeouts. |
 | `nis_bridge/bridge.py` | What `start_bridge.mac` calls: start, pump, stop. |
 | `nis_bridge/settings.py` | Every constant: ports, timeouts, defaults. |

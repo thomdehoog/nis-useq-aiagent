@@ -30,8 +30,23 @@ PACKAGE_DIR = Path(__file__).resolve().parent
 MACRO = PACKAGE_DIR / MACRO_FILE  # where the macro goes unless another folder is named
 PROJECT_DIR = PACKAGE_DIR.parent  # the folder that contains the nis_bridge package
 
+# The modules NIS runs, each after those it imports from. The macro imports and
+# reloads them one by one in this order: a new module importing a new name from one
+# NIS still holds in its old version would fail, and the bridge would not start.
+MODULES = (
+    "settings",
+    "protocol",
+    "dialogs",
+    "nis_dll",
+    "optconf",
+    "readers",
+    "commands",
+    "dispatch",
+    "bridge",
+)
+
 TEMPLATE = """WaitText(1, "nis-bridge: starting");
-Python_RunString("import sys; p = r'{project_dir}'; sys.path.insert(0, p) if p not in sys.path else None; import importlib, nis_bridge.settings, nis_bridge.protocol, nis_bridge.nis_dll, nis_bridge.readers, nis_bridge.commands, nis_bridge.dispatch, nis_bridge.bridge as b; [importlib.reload(m) for m in (nis_bridge.settings, nis_bridge.protocol, nis_bridge.nis_dll, nis_bridge.readers, nis_bridge.commands, nis_bridge.dispatch, b)]; import nis; nis.log(b.start(port={port}))");
+Python_RunString("import sys; p = r'{project_dir}'; sys.path.insert(0, p) if p not in sys.path else None; import importlib; [importlib.reload(importlib.import_module('nis_bridge.' + n)) for n in {modules}]; import nis, nis_bridge.bridge as b; nis.log(b.start(port={port}))");
 WaitText(1, "nis-bridge: running on port {port}. Press the macro Stop button to end it.");
 while (ExistFile("{stop_file}") == 0)
 {{
@@ -50,7 +65,10 @@ def _mac_literal(path: Path | str) -> str:
 
 def render(project_dir: Path | str, stop_file: Path | str, port: int) -> str:
     return TEMPLATE.format(
-        project_dir=_mac_literal(project_dir), stop_file=_mac_literal(stop_file), port=int(port)
+        project_dir=_mac_literal(project_dir),
+        stop_file=_mac_literal(stop_file),
+        port=int(port),
+        modules=repr(MODULES),
     )
 
 

@@ -24,7 +24,8 @@ from __future__ import annotations
 import ctypes as ct
 from typing import Any
 
-from .settings import CLOSE_WITHOUT_ASKING, INFOSTR_VERSION, TIFF_ALL_LAYERS
+from .dialogs import ClickOk
+from .settings import CLOSE_WITHOUT_ASKING, INFOSTR_VERSION, OPTCONF_IMPORT_DONE, TIFF_ALL_LAYERS
 
 # What NIS's own codes mean; lookup tables, not settings. 1 and 2 mean success.
 DR_CODES = {
@@ -138,6 +139,25 @@ class NisDll:
 
     def select_optical_configuration(self, name: str) -> None:
         _check_negative(self._fn("SelectOptConf", [ct.c_wchar_p])(name), f"SelectOptConf({name})")
+
+    def backup_optical_configurations(self, path: str) -> None:
+        """Write every optical configuration to ``path`` as XML (see ``optconf.py``)."""
+        _check_negative(self._fn("BackupOptConf", [ct.c_wchar_p])(path), "BackupOptConf")
+
+    def import_optical_configurations(self, path: str, options: int) -> None:
+        """Import the configurations in the XML file at ``path`` into NIS's.
+
+        ``options`` says what happens to a name NIS already has (settings.py). NIS
+        ends with a message that waits for a click, and has no way to leave it out;
+        it is pressed here.
+        """
+        fn = self._fn("RestoreOptConfEx", [ct.c_wchar_p, ct.c_int32])
+        with ClickOk(*OPTCONF_IMPORT_DONE):
+            _check_negative(fn(path, options), "RestoreOptConfEx")
+
+    def delete_optical_configuration(self, name: str) -> None:
+        fn = self._fn("DeleteOptConf", [ct.c_wchar_p])
+        _check_negative(fn(name), f"DeleteOptConf({name})")
 
     def set_exposure_ms(self, exposure_ms: float) -> float:
         """Set the camera exposure; return the value NIS applied (it may round it).

@@ -27,11 +27,14 @@ from __future__ import annotations
 import os
 from typing import Any
 
+from . import optconf
 from .readers import Readers
 from .settings import (
     AUTOFOCUS_MAX_SPEED,
     AUTOFOCUS_RANGE_UM,
     AUTOFOCUS_SPEED,
+    OPTCONF_NEW_ONLY,
+    OPTCONF_OVERWRITE,
     PFS_SETTLE_S,
 )
 
@@ -80,6 +83,72 @@ class Commands:
         if exposure_ms <= 0:
             raise ValueError("'exposure_ms' must be positive")
         return {"exposure_ms": self.api.set_exposure_ms(exposure_ms)}
+
+    def edit_optical_configuration(self, args: dict) -> dict:
+        """Change a saved optical configuration: for now its camera exposure (ms).
+
+        NIS has no call for this (see ``optconf.py``): the configurations are backed
+        up, and the changed one is imported over the old one. ``backup`` in the reply
+        is the file from before.
+        """
+        name = self.read.configuration_name(args, "name")
+        backup = self.read.backup(keep=True)
+        xml = optconf.read(backup)
+        changed = self._changed(optconf.find(xml, name), args)
+        self._import(xml, changed, OPTCONF_OVERWRITE)
+        now = self.read.get_optical_configuration({"name": name})
+        if now["exposure_ms"] != optconf.settings(changed)["exposure_ms"]:
+            raise RuntimeError(f"RestoreOptConfEx returned but {name!r} did not change")
+        return {**now, "backup": backup}
+
+    def copy_optical_configuration(self, args: dict) -> dict:
+        """Save a copy of a configuration under ``new_name``, with any changes given."""
+        name = self.read.configuration_name(args, "name")
+        new_name = args.get("new_name")
+        if not isinstance(new_name, str) or not new_name.strip() or ":" in new_name:
+            raise ValueError("'new_name' must be a name without ':'")
+        new_name = new_name.strip()
+        taken = [n for n in self.api.optical_configurations() if optconf.matches(n, new_name)]
+        if taken:  # an import of a name NIS has would wait for a click in a dialog
+            raise ValueError(f"NIS already has an optical configuration {taken[0]!r}")
+        backup = self.read.backup(keep=True)
+        xml = optconf.read(backup)
+        block = optconf.renamed(optconf.find(xml, name), new_name)
+        before = self.api.optical_configurations()
+        self._import(xml, self._changed(block, args), OPTCONF_NEW_ONLY)
+        added = [n for n in self.api.optical_configurations() if n not in before]
+        if len(added) != 1:
+            raise RuntimeError(
+                f"RestoreOptConfEx added {len(added)} optical configurations: {added}"
+            )
+        return {**self.read.get_optical_configuration({"name": added[0]}), "backup": backup}
+
+    def delete_optical_configuration(self, args: dict) -> dict:
+        """Delete a configuration; ``backup`` in the reply still holds it."""
+        name = self.read.configuration_name(args, "name")
+        backup = self.read.backup(keep=True)
+        self.api.delete_optical_configuration(name)
+        if name in self.api.optical_configurations():
+            raise RuntimeError(f"DeleteOptConf returned but NIS still lists {name!r}")
+        return {"deleted": name, "backup": backup}
+
+    def _changed(self, block: str, args: dict) -> str:
+        """The block with the changes asked for in ``args``; at least one when editing."""
+        if args.get("exposure_ms") is None:
+            if "new_name" in args:
+                return block  # a copy may keep every setting
+            raise ValueError("nothing to change: give 'exposure_ms'")
+        exposure_ms = _number(args, "exposure_ms")
+        limit = optconf.settings(block)["max_exposure_ms"]
+        if exposure_ms <= 0 or (limit and exposure_ms > limit):
+            raise ValueError(f"'exposure_ms' must be above 0 and at most {limit or 'the max'}")
+        return optconf.with_exposure(block, exposure_ms)
+
+    def _import(self, xml: str, block: str, options: int) -> None:
+        """Import ``block`` into NIS; ``options`` says what a name NIS has gets."""
+        path = os.path.join(self.read.optconf_folder(), "import.xml")
+        optconf.write(path, optconf.only(xml, block))
+        self.api.import_optical_configurations(path, options)
 
     def set_objective(self, args: dict) -> dict:
         position = args.get("position")
@@ -135,6 +204,9 @@ class Commands:
 COMMANDS = (
     "move",
     "select_optical_configuration",
+    "edit_optical_configuration",
+    "copy_optical_configuration",
+    "delete_optical_configuration",
     "set_exposure",
     "set_objective",
     "set_pfs",
