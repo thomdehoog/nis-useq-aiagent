@@ -333,3 +333,10 @@ def test_the_limit_buttons_say_so_when_the_microscope_does_not_answer(qtbot, ope
     engine.reconnect = no_bridge
     window.use_nis_limits()
     assert "the microscope did not answer" in window.warning.text()
+
+
+def test_the_chat_is_empty_until_the_operator_speaks(qtbot, open_window):
+    window = open_window("Hi.")
+    assert "assistant" not in window.transcript.toPlainText()  # nothing said for it
+    window.clear_context()
+    assert "assistant" not in window.transcript.toPlainText()

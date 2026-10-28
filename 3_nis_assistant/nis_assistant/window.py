@@ -71,12 +71,6 @@ from .tools import TOOLS, Microscope, bridge_steps
 # The colour of each voice in the transcript.
 COLOURS = {"you": "#1a5fb4", "assistant": "#26a269", "system": "#b00020"}
 
-WELCOME = (
-    "Hello. I can move the stage, change the optical settings, focus, look at the "
-    "sample and run acquisitions. Ask me in your own words, for example "
-    "<i>What do you see?</i> or <i>Take a 3-channel Z-stack of 10 um here</i>."
-)
-
 
 class _Signals(QObject):
     """Carries results from the assistant's thread to the window's thread."""
@@ -196,7 +190,7 @@ class AssistantWindow(QMainWindow):
         self.splitter.setChildrenCollapsible(False)
         self.setCentralWidget(self.splitter)
 
-        self._say("assistant", WELCOME, escape=False)
+        # The chat starts empty: the assistant speaks only after the operator has.
         if nis_starting:
             self._say(
                 "system",
@@ -352,7 +346,6 @@ class AssistantWindow(QMainWindow):
             return
         self.assistant.clear()
         self.transcript.clear()
-        self._say("assistant", WELCOME, escape=False)
 
     # -- stage limits -------------------------------------------------------------------
 
