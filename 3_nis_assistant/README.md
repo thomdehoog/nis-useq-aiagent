@@ -128,6 +128,8 @@ Things to try: *Where is the stage?* · *What do you see?* · *Is it in focus?* 
 *Switch to FITC at 50 ms* · *Take a Z-stack of 10 um in 1 um steps in DAPI and FITC here* ·
 *Image a 3 by 3 grid of tiles around here* · *Run the useq sequence in D:\sequences\cells.json* ·
 *Show me the useq sequence for that plan* · *How does the engine move the stage? Show me the code* ·
+*Switch on the 488 nm laser at 20 %* · *Put the DAPI filter in* · *Escape the objective* ·
+*Bin the camera 2 by 2* · *Start live view* · *Switch all light off* ·
 *What is new in useq v2?* · *Move the sample a little to the left* · *Look again: has anything
 changed since the first image?* · *Take 10 time points, one every 3 minutes, here*
 
@@ -197,6 +199,29 @@ through useq:
 - `search_source` and `read_source` search and read the source of the three
   parts and of useq-schema (read only, nothing else on the computer).
 
+Every tool, in short:
+
+| Call | What it does |
+|---|---|
+| `check_setup` | Checks that NIS-Elements and the bridge answer; if not, says how to start them. |
+| `get_status` | Reads the stage position and limits, objectives, optical configurations and PFS. |
+| `get_devices` | Reads lamps, lasers, shutters, filters, light path, camera and incubator. |
+| `move_stage` | Moves the stage in x, y and z, within the stage limits. |
+| `focus` | Finds focus with the Perfect Focus System, or by an image sweep. |
+| `set_microscope` | Sets the optical configuration, exposure, objective and PFS. |
+| `optical_configuration` | Shows, edits, copies or deletes a saved optical configuration. |
+| `set_illumination` | Switches lamps, laser lines (with power) and shutters; or all light off. |
+| `set_optics` | Sets filters, condenser, apertures and iris, zoom, analyzer, port, spinning disk, PFS offset and Escape. |
+| `set_camera` | Sets binning, region, frame averaging; live view; auto exposure. |
+| `look` | Takes one image and describes it; nothing is saved. |
+| `ask_eyes` | Answers a question about the images already seen, or compares them. |
+| `plan_acquisition` | Turns a request into a useq plan and checks it, without moving. |
+| `plan_useq_sequence` | Loads and checks a useq sequence from a file or text. |
+| `run_acquisition` | Runs a checked plan and saves it as OME-TIFF. |
+| `search_source` | Searches the source code of the three parts and useq. |
+| `read_source` | Reads a part of that source code. |
+| `load_skill` | Loads one of your step-by-step procedures. |
+
 Plans run as a classic `useq.MDASequence`, because the pymmcore-plus file
 writers (0.18) keep the channel and Z axes only for that form. The classic
 API and useq v2 are documented in [docs/useq.md](../docs/useq.md).
@@ -209,8 +234,8 @@ looking, and `ask_eyes` puts a question to the images already seen without
 taking a new one. The last eight images stay attached; older turns keep their
 words, and beyond forty looks the oldest are dropped. The last image of an
 acquisition is shown to the eyes too. Clear context makes the eyes forget with
-the rest, and so does choosing another vision model, since one model cannot
-read another's images and answers.
+the rest, and so does choosing another model, since one model cannot read
+another's images and answers.
 
 **The coordinate system.** Microscopes differ in what a positive stage move
 does to the picture on the screen. The *Coordinate system* box in the Model
@@ -225,9 +250,8 @@ assistant, which has no clock or timer of its own.
 
 **The session's size.** The conversation is kept whole until *Clear
 context*, so each message carries the session so far; nothing is cut or
-summarised. The status line shows the size of the last request in tokens.
-Past the model's warning a line in the chat says the session is large; past
-its ceiling no message is sent until you clear it.
+summarised. Past the model's warning a line in the chat says the session is
+large; past its ceiling no message is sent until you clear it.
 
 ## Skills: your own procedures
 
@@ -296,9 +320,10 @@ each lab writes its own. Test a new skill by asking for its task once with
   request with a few measured numbers (brightness, saturation, sharpness),
   binned 2 x 2 so a 2048-pixel camera image arrives at 1024 pixels. A model
   that cannot see gets the numbers only.
-- **Cancel prompt** stops the assistant: every further tool call in that turn
-  does nothing. **Stop microscope** also ends a running acquisition after the
-  image being taken. A single stage move that NIS has already started runs to
+- **Cancel prompt** stops the assistant at once, a request still waiting for
+  the model included; a move or an image already under way finishes first.
+  **Stop microscope** ends a running acquisition after the image being taken,
+  and switches every laser, shutter and lamp off. A single stage move that NIS has already started runs to
   its end; the joystick or NIS-Elements stops it sooner. The window does not
   close while the assistant is still working.
 - **Clear context** forgets the conversation; **Show tool calls** lists each

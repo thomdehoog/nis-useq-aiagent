@@ -81,7 +81,7 @@ for the hardware checklist and the current status.
 
 | | |
 |---|---|
-| **Tested** | On the Ti2 simulator of NIS-Elements AR 6.10.02: all hardware tests of the three parts, and the assistant with Gemini. |
+| **Tested** | On the Ti2 simulator of NIS-Elements AR 6.10.02: all hardware tests of the three parts, including lasers, filters, shutters, light path and camera, and the assistant with Gemini and Claude Haiku. |
 | **Not yet** | Run on a real microscope with a sample. |
 | **Next** | Testing on a Ti2 with a sample, following [docs/testing.md](docs/testing.md). |
 
@@ -92,6 +92,29 @@ for the hardware checklist and the current status.
 *The assistant on a Ti2 (NIS-Elements 6.10, Gemini as the model): it asks
 which channel, shows the plan, runs it as a useq sequence, and describes the
 image it took.*
+
+What the assistant can call:
+
+| Call | What it does |
+|---|---|
+| `check_setup` | Checks that NIS-Elements and the bridge answer; if not, says how to start them. |
+| `get_status` | Reads the stage position and limits, objectives, optical configurations and PFS. |
+| `get_devices` | Reads lamps, lasers, shutters, filters, light path, camera and incubator. |
+| `move_stage` | Moves the stage in x, y and z, within the stage limits. |
+| `focus` | Finds focus with the Perfect Focus System, or by an image sweep. |
+| `set_microscope` | Sets the optical configuration, exposure, objective and PFS. |
+| `optical_configuration` | Shows, edits, copies or deletes a saved optical configuration. |
+| `set_illumination` | Switches lamps, laser lines (with power) and shutters; or all light off. |
+| `set_optics` | Sets filters, condenser, apertures and iris, zoom, analyzer, port, spinning disk, PFS offset and Escape. |
+| `set_camera` | Sets binning, region, frame averaging; live view; auto exposure. |
+| `look` | Takes one image and describes it; nothing is saved. |
+| `ask_eyes` | Answers a question about the images already seen, or compares them. |
+| `plan_acquisition` | Turns a request into a useq plan and checks it, without moving. |
+| `plan_useq_sequence` | Loads and checks a useq sequence from a file or text. |
+| `run_acquisition` | Runs a checked plan and saves it as OME-TIFF. |
+| `search_source` | Searches the source code of the three parts and useq. |
+| `read_source` | Reads a part of that source code. |
+| `load_skill` | Loads one of your step-by-step procedures. |
 
 ## Licence and acknowledgement
 

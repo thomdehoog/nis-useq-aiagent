@@ -241,10 +241,11 @@ it can plan within them.
 
 ## The buttons
 
-- **Cancel prompt** stops the assistant in the middle of a turn: every
-  further tool call in that turn does nothing.
-- **Stop microscope** also ends a running acquisition after the image being
-  taken. A single stage move that NIS has already started runs to its end; the joystick or NIS stops it sooner.
+- **Cancel prompt** stops the assistant in the middle of a turn, also while
+  it is still waiting for the model. A move or an image under way finishes
+  first.
+- **Stop microscope** ends a running acquisition after the image being
+  taken, and switches every laser, shutter and lamp off. A single stage move that NIS has already started runs to its end; the joystick or NIS stops it sooner.
 - **Clear context** forgets the conversation (and the eyes' images).
 - **Show tool calls** lists each tool call in the chat as it happens: which
   tool, with which arguments, and what came back. Switch it on for your
@@ -271,14 +272,13 @@ detail:
 4. The model reads the answer and either calls another tool, or writes its
    reply to you.
 
-The conversation is kept whole until *Clear context*. The status line shows
-its size; past the model's ceiling, clear it to go on.
+The conversation is kept whole until *Clear context*. When it grows large
+the chat says so; past the model's ceiling, clear it to go on.
 
 ## Good habits
 
 - Keep NIS-Elements visible next to the window, and check it after each
-  action. The status panel shows what the assistant read; NIS shows what is
-  true.
+  action. NIS shows what is true.
 - Narrow the Z limit before you start. It costs nothing and removes the one
   mistake that damages things.
 - Say numbers with units (*20 um*, *50 ms*). When the assistant asks which
