@@ -967,8 +967,11 @@ def test_a_malformed_plan_goes_back_to_the_model(microscope):
     )
     assistant.send("plan it")
     retry = script.requests[1][-1].parts[-1]
-    assert retry.part_kind == "retry-prompt"  # Pydantic caught it before our code ran
-    assert tool_results(assistant)[0]["plan_id"] == "stack_test-1"
+    # Pydantic caught it before our code ran: Pydantic AI 2.51 sends a retry prompt, newer
+    # versions (2.63) a tool return with the same validation error.
+    assert retry.part_kind in ("retry-prompt", "tool-return") and "too_short" in str(retry.content)
+    plans = [r for r in tool_results(assistant) if isinstance(r, dict) and "plan_id" in r]
+    assert [plan["plan_id"] for plan in plans] == ["stack_test-1"]  # only the good plan was made
 
 
 # -- reading the source ----------------------------------------------------------------------
