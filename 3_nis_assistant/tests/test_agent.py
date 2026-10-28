@@ -133,7 +133,7 @@ def test_the_model_acts_one_step_at_a_time():
 
 
 def test_status(microscope):
-    assistant, _ = talk(microscope, ("get_status", {}), "Here is the status.")
+    assistant, _ = talk(microscope, ("read_microscope", {}), "Here is the status.")
     assistant.send("where are we?")
     status = tool_results(assistant)[0]
     assert status["position_um"] == {"x": 1000.0, "y": -500.0, "z": 500.0}
@@ -271,7 +271,7 @@ def test_a_bad_configuration_change_is_refused_before_anything_changes(
 
 
 def test_the_devices_are_read_in_one_call(microscope):
-    assistant, _ = talk(microscope, ("get_devices", {}), "Here they are.")
+    assistant, _ = talk(microscope, ("read_microscope", {}), "Here they are.")
     assistant.send("which lights and filters are there?")
     devices = tool_results(assistant)[0]
     assert devices["lights"][0]["name"] == "DIA" and devices["lasers"][0]["name"] == "SpectraIII"
@@ -612,24 +612,24 @@ def test_the_state_carries_the_clock(microscope):
 # -- checking the setup ---------------------------------------------------------------
 
 
-def test_check_setup_reports_a_running_bridge_and_its_configurations(microscope):
-    assistant, _ = talk(microscope, ("check_setup", {}), "All good.")
+def test_read_microscope_reports_a_running_bridge_and_its_configurations(microscope):
+    assistant, _ = talk(microscope, ("read_microscope", {}), "All good.")
     assistant.send("is everything set up?")
     result = tool_results(assistant)[0]
     assert result["bridge"] == "running" and result["optical_configurations"]
     assert "steps_for_the_operator" not in result
 
 
-def test_check_setup_walks_through_adding_an_optical_configuration(microscope, fake):
+def test_read_microscope_walks_through_adding_an_optical_configuration(microscope, fake):
     fake.configurations.clear()
-    assistant, _ = talk(microscope, ("check_setup", {}), "Add one first.")
+    assistant, _ = talk(microscope, ("read_microscope", {}), "Add one first.")
     assistant.send("image in DAPI")
     result = tool_results(assistant)[0]
     assert result["optical_configurations"] == [] and "no optical configuration" in result["note"]
     assert "New Optical Configuration" in " ".join(result["steps_for_the_operator"])
 
 
-def test_check_setup_says_how_to_start_a_missing_bridge(microscope, tmp_path, monkeypatch):
+def test_read_microscope_says_how_to_start_a_missing_bridge(microscope, tmp_path, monkeypatch):
     from nis_assistant import tools as tools_module
 
     # The bridge went away: the connection is closed and cannot be made again.
@@ -640,7 +640,7 @@ def test_check_setup_says_how_to_start_a_missing_bridge(microscope, tmp_path, mo
 
     monkeypatch.setattr(microscope.engine, "reconnect", no_bridge)
     monkeypatch.setattr(tools_module, "MACRO", tmp_path / "start_bridge.mac")
-    assistant, script = talk(microscope, ("check_setup", {}), "Start the bridge first.")
+    assistant, script = talk(microscope, ("read_microscope", {}), "Start the bridge first.")
     assert assistant.send("where is the stage?") == "Start the bridge first."
     # the model was told the microscope does not answer, not shown an error
     assert "not answering" in script.requests[0][0].parts[0].content
@@ -649,7 +649,7 @@ def test_check_setup_says_how_to_start_a_missing_bridge(microscope, tmp_path, mo
     steps = " ".join(result["steps_for_the_operator"])
     assert "install_macros" in steps and "Run Macro From File" in steps
     (tmp_path / "start_bridge.mac").write_text("")
-    assistant, _ = talk(microscope, ("check_setup", {}), "Start it.")
+    assistant, _ = talk(microscope, ("read_microscope", {}), "Start it.")
     assistant.send("hello")
     steps = " ".join(tool_results(assistant)[0]["steps_for_the_operator"])
     assert str(tmp_path / "start_bridge.mac") in steps and "install_macros" not in steps

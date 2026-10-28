@@ -169,7 +169,7 @@ def checklist(configurations: list[str]) -> list[Step]:
         Step("Delete the bench copy configuration again.", calls("optical_configuration")),
         Step(
             "Which lights, lasers, shutters and filters does the microscope have?",
-            calls("get_devices"),
+            calls("read_microscope"),
         ),
         Step(
             "Switch on the 488 nm laser at 10 percent, then switch it off again.",

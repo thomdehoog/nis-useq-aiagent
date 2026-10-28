@@ -203,9 +203,7 @@ Every tool, in short:
 
 | Call | Options | What it controls |
 |---|---|---|
-| `check_setup` | – | whether NIS-Elements and the bridge answer, and how to start them |
-| `get_status` | – | reads stage position and limits, objectives, configurations, PFS |
-| `get_devices` | – | reads lamps, lasers, shutters, filters, light path, camera, incubator |
+| `read_microscope` | 0 | reads everything: stage and limits, objectives, configurations, PFS, lamps, lasers, shutters, filters, light path, camera, incubator; says how to start NIS when it does not answer |
 | `move_stage` | 3 | x, y, z, within the stage limits |
 | `focus` | 2 | Perfect Focus, or an image sweep over a range |
 | `set_microscope` | 4 | optical configuration, exposure, objective, PFS on/off |

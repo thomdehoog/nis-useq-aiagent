@@ -148,7 +148,7 @@ class Assistant:
             state = self.microscope.state()
         except (RuntimeError, ValueError, OSError) as exc:
             # No bridge, or NIS is closed: the model still gets the message, so it
-            # can call check_setup and tell the operator what to do.
+            # can call read_microscope and tell the operator what to do.
             state = {"microscope": f"not answering: {exc}"}
         self.microscope.turn += 1
         prompt = f"{text}\n\n<microscope_state>{json.dumps(state)}</microscope_state>"

@@ -25,5 +25,5 @@ def test_the_front_page_lists_every_tool_and_only_those():
     for tool in TOOLS:
         params = inspect.signature(getattr(tool, "__wrapped__", tool)).parameters
         count = len([name for name in params if name != "ctx"])
-        options[tool.__name__] = str(count) if count else "–"  # noqa: RUF001 - the table's en dash for "none"
+        options[tool.__name__] = str(count)
     assert {name: shown.strip() for name, shown in listed.items()} == options
