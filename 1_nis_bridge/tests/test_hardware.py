@@ -92,3 +92,41 @@ def test_copies_edits_and_deletes_a_configuration(client):
         client.request("delete_optical_configuration", name=copy["name"])
     assert client.request("get_optical_configurations").count(name) == 1
     assert client.request("get_optical_configuration", name=name) == original
+
+
+def test_lights_lasers_and_filters_change_and_go_back(client):
+    """Each change is read back, then undone."""
+    lights, lasers, filters = (
+        client.request(op) for op in ("get_lights", "get_lasers", "get_filters")
+    )
+    print("lights", lights)
+    for laser in lasers:
+        print(
+            "laser",
+            laser["name"],
+            [(x["wavelength_nm"], x["on"], x["power"]) for x in laser["lines"]],
+        )
+    print("filters", filters)
+    for changer in filters:
+        if len(changer["filters"]) > 1:
+            here = changer["position"]
+            other = next(int(p) for p in changer["filters"] if int(p) != here)
+            moved = client.request("set_filter", changer=changer["name"], position=other)
+            client.request("set_filter", changer=changer["name"], position=here)
+            assert moved["position"] == other
+            break
+    if lasers and lasers[0]["lines"]:
+        laser, line = lasers[0]["name"], lasers[0]["lines"][0]
+        changed = client.request(
+            "set_laser", laser=laser, line=line["line"], on=not line["on"], power=37
+        )
+        client.request(
+            "set_laser", laser=laser, line=line["line"], on=line["on"], power=line["power"]
+        )
+        assert changed["on"] is (not line["on"]) and changed["power"] == 37
+    for light in lights:
+        if light["on"] is not None:
+            switched = client.request("set_light", name=light["name"], on=not light["on"])
+            client.request("set_light", name=light["name"], on=light["on"])
+            assert switched["on"] is (not light["on"])
+            break

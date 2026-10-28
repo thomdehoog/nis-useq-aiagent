@@ -74,6 +74,20 @@ class FakeNisApi:
         self.saved_exposures = dict.fromkeys(self.configurations, 100.0)  # ms
         self.import_fails = 0  # how many imports to come answer but add nothing
         self.objectives = {1: "Plan Apo 10x", 2: "Apo 20x WI", 3: "", 4: "Plan Apo 60x WI"}
+        # lights, lasers and filter changers, named as on the Ti2 simulator
+        self.lights = {"DIA": {"on": False, "voltage": None, "iris": 0.5}}
+        self.lasers = {
+            "SpectraIII": [
+                {"name": f"{nm} nm", "wavelength_nm": nm, "on": False, "power": 0}
+                for nm in (405, 440, 475, 510, 555, 575, 637, 748)
+            ]
+        }
+        self.power_steps = 101  # laser power 0 to 100
+        self.filters = {
+            "Turret-Up": ["DAPI", "GFP", "mCherry", "", "Cy5", "Empty"],
+            "Turret-Lo": ["", "Empty"],
+        }
+        self.filter_positions = dict.fromkeys(self.filters, 1)
         self.nosepiece = 1
         self.has_pfs = pfs
         self.pfs_on = False
@@ -159,6 +173,92 @@ class FakeNisApi:
     def set_exposure_ms(self, exposure_ms: float) -> float:
         self.calls.append(f"exposure({exposure_ms:g})")
         return max(1.0, round(exposure_ms))  # the camera applies whole milliseconds
+
+    # lights, lasers and filter changers
+    def _light(self, name: str) -> dict:
+        if name not in self.lights:
+            raise NisError(f"Stg_Light: {name!r}: DR_NOTAVAILABLE (-4)")
+        return self.lights[name]
+
+    def light_names(self) -> list[str]:
+        return list(self.lights)
+
+    def light_on(self, name: str) -> bool:
+        return self._light(name)["on"]
+
+    def set_light_on(self, name: str, on: bool) -> None:
+        self.calls.append(f"light({name},{'on' if on else 'off'})")
+        self._light(name)["on"] = on
+
+    def light_voltage_controllable(self, name: str) -> bool:
+        return self._light(name)["voltage"] is not None
+
+    def light_voltage(self, name: str) -> float:
+        return self._light(name)["voltage"]
+
+    def set_light_voltage(self, name: str, volts: float) -> None:
+        self.calls.append(f"voltage({name},{volts:g})")
+        self._light(name)["voltage"] = round(volts, 1)  # NIS takes the closest step
+
+    def light_iris_controllable(self, name: str) -> bool:
+        return self._light(name)["iris"] is not None
+
+    def light_iris(self, name: str) -> float:
+        return self._light(name)["iris"]
+
+    def set_light_iris(self, name: str, intensity: float) -> None:
+        self.calls.append(f"iris({name},{intensity:g})")
+        self._light(name)["iris"] = intensity
+
+    def laser_names(self) -> list[str]:
+        return list(self.lasers)
+
+    def laser_line_count(self, laser: str) -> int:
+        return len(self.lasers.get(laser, []))
+
+    def _line(self, laser: str, line: int) -> dict:
+        return self.lasers[laser][line - 1]
+
+    def laser_line_name(self, laser: str, line: int) -> str:
+        return self._line(laser, line)["name"]
+
+    def laser_wavelength_nm(self, laser: str, line: int) -> int:
+        return self._line(laser, line)["wavelength_nm"]
+
+    def laser_line_on(self, laser: str, line: int) -> bool:
+        return self._line(laser, line)["on"]
+
+    def set_laser_line_on(self, laser: str, line: int, on: bool) -> None:
+        self.calls.append(f"laser({laser},{line},{'on' if on else 'off'})")
+        self._line(laser, line)["on"] = on
+
+    def laser_power(self, laser: str, line: int) -> int:
+        return self._line(laser, line)["power"]
+
+    def laser_power_steps(self, laser: str, line: int) -> int:
+        return self.power_steps
+
+    def set_laser_power(self, laser: str, line: int, power: int) -> None:
+        self.calls.append(f"power({laser},{line},{power})")
+        self._line(laser, line)["power"] = power
+
+    def filter_changer_names(self) -> list[str]:
+        return list(self.filters)
+
+    def filter_position(self, changer: str) -> int:
+        return self.filter_positions[changer]
+
+    def filter_position_count(self, changer: str) -> int:
+        return len(self.filters[changer])
+
+    def filter_name(self, changer: str, position: int) -> str:
+        return self.filters[changer][position - 1]
+
+    def set_filter_position(self, changer: str, position: int) -> None:
+        if not 1 <= position <= len(self.filters[changer]):
+            raise NisError(f"Stg_Filter_SetPosition({changer}, {position}): DR_BADPARAMETER (-2)")
+        self.calls.append(f"filter({changer},{position})")
+        self.filter_positions[changer] = position
 
     # nosepiece
     def nosepiece_present(self) -> bool:

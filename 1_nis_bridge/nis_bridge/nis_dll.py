@@ -173,6 +173,110 @@ class NisDll:
         out = list(out) if isinstance(out, (list, tuple)) else [out]
         return float(out[1]) if len(out) > 1 else float(exposure_ms)
 
+    # lights (lamps and LEDs, by name), lasers (a multi-laser's lines) and filter changers
+    def _name(self, function: str, index: int) -> str:
+        """A device name from a Get...Name(index, buffer) function; '' when there is none."""
+        buf = ct.create_unicode_buffer(256)
+        self._fn(function, [ct.c_int32, ct.c_wchar_p])(index, buf)
+        return buf.value
+
+    def light_names(self) -> list[str]:
+        count = _check_negative(self._fn("Stg_Light_GetCount", [])(), "Stg_Light_GetCount")
+        return [self._name("Stg_Light_GetName", i) for i in range(count)]
+
+    def light_on(self, name: str) -> bool:
+        state = self._fn("Stg_Light_GetState", [ct.c_wchar_p])(name)
+        return bool(_check_negative(state, f"Stg_Light_GetState({name})"))
+
+    def set_light_on(self, name: str, on: bool) -> None:
+        fn = self._fn("Stg_Light_SetState", [ct.c_wchar_p, ct.c_int32])
+        _check(fn(name, 1 if on else 0), f"Stg_Light_SetState({name})")
+
+    def light_voltage_controllable(self, name: str) -> bool:
+        return self._fn("Stg_Light_IsVoltageControllable", [ct.c_wchar_p])(name) == 1
+
+    def light_voltage(self, name: str) -> float:
+        fn = self._fn("Stg_Light_GetVoltage", [ct.c_wchar_p], ct.c_double)
+        return float(fn(name))
+
+    def set_light_voltage(self, name: str, volts: float) -> None:
+        """NIS takes the closest voltage it can set."""
+        fn = self._fn("Stg_Light_SetVoltage", [ct.c_wchar_p, ct.c_double])
+        _check(fn(name, volts), f"Stg_Light_SetVoltage({name})")
+
+    def light_iris_controllable(self, name: str) -> bool:
+        return self._fn("Stg_Light_IsIrisControllable", [ct.c_wchar_p])(name) == 1
+
+    def light_iris(self, name: str) -> float:
+        return float(self._fn("Stg_Light_GetIrisIntensity", [ct.c_wchar_p], ct.c_double)(name))
+
+    def set_light_iris(self, name: str, intensity: float) -> None:
+        fn = self._fn("Stg_Light_SetIrisIntensity", [ct.c_wchar_p, ct.c_double])
+        if fn(name, intensity) != 1:
+            raise NisError(f"Stg_Light_SetIrisIntensity({name}, {intensity:g}) was refused")
+
+    def laser_names(self) -> list[str]:
+        count = _check_negative(self._fn("Stg_GetMultiLaserCount", [])(), "Stg_GetMultiLaserCount")
+        return [self._name("Stg_GetMultiLaserName", i) for i in range(count)]
+
+    def laser_line_count(self, laser: str) -> int:
+        return max(int(self._fn("Stg_GetMultiLaserNumLines", [ct.c_wchar_p])(laser)), 0)
+
+    def laser_line_name(self, laser: str, line: int) -> str:
+        buf = ct.create_unicode_buffer(256)
+        fn = self._fn("Stg_GetMultiLaserLineName", [ct.c_wchar_p, ct.c_int32, ct.c_wchar_p])
+        fn(laser, line, buf)
+        return buf.value
+
+    def laser_wavelength_nm(self, laser: str, line: int) -> int:
+        fn = self._fn("Stg_GetMultiLaserWavelength", [ct.c_wchar_p, ct.c_int32])
+        return int(fn(laser, line))
+
+    def laser_line_on(self, laser: str, line: int) -> bool:
+        fn = self._fn("Stg_GetMultiLaserLineUsed", [ct.c_wchar_p, ct.c_int32])
+        return fn(laser, line) == 1
+
+    def set_laser_line_on(self, laser: str, line: int, on: bool) -> None:
+        fn = self._fn("Stg_SetMultiLaserLineUsed", [ct.c_wchar_p, ct.c_int32, ct.c_int32])
+        if fn(laser, line, 1 if on else 0) != 1:
+            raise NisError(f"Stg_SetMultiLaserLineUsed({laser}, {line}) was refused")
+
+    def laser_power(self, laser: str, line: int) -> int:
+        return int(self._fn("Stg_GetMultiLaserPower", [ct.c_wchar_p, ct.c_int32])(laser, line))
+
+    def laser_power_steps(self, laser: str, line: int) -> int:
+        fn = self._fn("Stg_GetMultiLaserPowerSteps", [ct.c_wchar_p, ct.c_int32])
+        return int(fn(laser, line))
+
+    def set_laser_power(self, laser: str, line: int, power: int) -> None:
+        fn = self._fn("Stg_SetMultiLaserPower", [ct.c_wchar_p, ct.c_int32, ct.c_uint32])
+        if fn(laser, line, power) != 1:
+            raise NisError(f"Stg_SetMultiLaserPower({laser}, {line}, {power}) was refused")
+
+    def filter_changer_names(self) -> list[str]:
+        count = _check_negative(self._fn("Stg_Filter_GetCount", [])(), "Stg_Filter_GetCount")
+        return [self._name("Stg_Filter_GetName", i) for i in range(count)]
+
+    def filter_position(self, changer: str) -> int:
+        position = self._fn("Stg_Filter_GetPosition", [ct.c_wchar_p])(changer)
+        return _check_negative(position, f"Stg_Filter_GetPosition({changer})")
+
+    def filter_position_count(self, changer: str) -> int:
+        count = self._fn("Stg_Filter_GetPositionCount", [ct.c_wchar_p])(changer)
+        return _check_negative(count, f"Stg_Filter_GetPositionCount({changer})")
+
+    def filter_name(self, changer: str, position: int) -> str:
+        buf = ct.create_unicode_buffer(256)
+        fn = self._fn(
+            "Stg_Filter_GetPositionName", [ct.c_wchar_p, ct.c_int32, ct.c_wchar_p, ct.c_int32]
+        )
+        fn(changer, position, buf, 255)
+        return buf.value
+
+    def set_filter_position(self, changer: str, position: int) -> None:
+        fn = self._fn("Stg_Filter_SetPosition", [ct.c_wchar_p, ct.c_int32])
+        _check_negative(fn(changer, position), f"Stg_Filter_SetPosition({changer}, {position})")
+
     # nosepiece
     def nosepiece_present(self) -> bool:
         return bool(self._fn("Stg_IsNosepiecePresent", [])())

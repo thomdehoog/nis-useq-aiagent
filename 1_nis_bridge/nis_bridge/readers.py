@@ -25,6 +25,14 @@ from .nis_dll import PFS_STATUS
 from .settings import OPTCONF_FOLDER, PFS_ON_STATUSES
 
 
+def _or_none(read: Any, *args: Any) -> Any:
+    """A reading, or None when NIS says it cannot give it (not supported, not present)."""
+    try:
+        return read(*args)
+    except RuntimeError:
+        return None
+
+
 class Readers:
     def __init__(self, api: Any) -> None:
         self.api = api
@@ -85,6 +93,58 @@ class Readers:
             raise RuntimeError(f"BackupOptConf returned but wrote no file at {path}")
         return path
 
+    def get_lights(self, args: dict) -> list:
+        """Each lamp or LED NIS has: on or off, and its voltage and iris where NIS controls them.
+
+        A value NIS cannot read or control is None.
+        """
+        api = self.api
+        return [
+            {
+                "name": name,
+                "on": _or_none(api.light_on, name),
+                "voltage": api.light_voltage(name)
+                if api.light_voltage_controllable(name)
+                else None,
+                "iris": api.light_iris(name) if api.light_iris_controllable(name) else None,
+            }
+            for name in api.light_names()
+        ]
+
+    def get_lasers(self, args: dict) -> list:
+        """Each multi-laser light source and its lines (numbered from 1): wavelength, on, power."""
+        return [
+            {
+                "name": laser,
+                "lines": [
+                    {
+                        "line": line,
+                        "name": self.api.laser_line_name(laser, line),
+                        "wavelength_nm": self.api.laser_wavelength_nm(laser, line),
+                        "on": self.api.laser_line_on(laser, line),
+                        "power": self.api.laser_power(laser, line),
+                        "power_steps": self.api.laser_power_steps(laser, line),
+                    }
+                    for line in range(1, self.api.laser_line_count(laser) + 1)
+                ],
+            }
+            for laser in self.api.laser_names()
+        ]
+
+    def get_filters(self, args: dict) -> list:
+        """Each filter changer (turret, wheel): its position and the filter in each position."""
+        changers = []
+        for name in self.api.filter_changer_names():
+            count = self.api.filter_position_count(name)
+            changers.append(
+                {
+                    "name": name,
+                    "position": self.api.filter_position(name),
+                    "filters": {p: self.api.filter_name(name, p) for p in range(1, count + 1)},
+                }
+            )
+        return changers
+
     def get_objectives(self, args: dict) -> dict:
         if not self.api.nosepiece_present():
             return {"current": None, "objectives": {}}
@@ -113,5 +173,8 @@ READS = (
     "get_optical_configurations",
     "get_optical_configuration",
     "get_objectives",
+    "get_lights",
+    "get_lasers",
+    "get_filters",
     "get_pfs",
 )

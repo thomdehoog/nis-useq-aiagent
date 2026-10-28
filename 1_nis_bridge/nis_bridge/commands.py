@@ -150,6 +150,95 @@ class Commands:
         optconf.write(path, optconf.only(xml, block))
         self.api.import_optical_configurations(path, options)
 
+    def set_light(self, args: dict) -> dict:
+        """Switch a lamp or LED on or off, and set its voltage or iris; reads it back."""
+        lights = {light["name"]: light for light in self.read.get_lights({})}
+        name = args.get("name")
+        if name not in lights:
+            raise ValueError(f"unknown light {name!r}; NIS has: {', '.join(lights) or 'none'}")
+        on, voltage, iris = args.get("on"), args.get("voltage"), args.get("iris")
+        if on is None and voltage is None and iris is None:
+            raise ValueError("nothing to change: give 'on', 'voltage' or 'iris'")
+        if on is not None and not isinstance(on, bool):
+            raise ValueError("'on' must be true or false")
+        if voltage is not None and lights[name]["voltage"] is None:
+            raise ValueError(f"NIS does not control the voltage of {name!r}")
+        if iris is not None and lights[name]["iris"] is None:
+            raise ValueError(f"NIS does not control the iris of {name!r}")
+        if voltage is not None:
+            self.api.set_light_voltage(name, _number(args, "voltage"))
+        if iris is not None:
+            self.api.set_light_iris(name, _number(args, "iris"))
+        if on is not None:
+            self.api.set_light_on(name, on)
+        return next(light for light in self.read.get_lights({}) if light["name"] == name)
+
+    def set_laser(self, args: dict) -> dict:
+        """Switch a laser line on or off and set its power; reads the line back.
+
+        The line is given by ``line`` (its number, from 1) or ``wavelength_nm``;
+        ``laser`` names the light source and may be left out when NIS has one.
+        """
+        lasers = self.read.get_lasers({})
+        name = args.get("laser")
+        if name is None and len(lasers) == 1:
+            name = lasers[0]["name"]
+        found = [laser for laser in lasers if laser["name"] == name]
+        if not found:
+            known = ", ".join(laser["name"] for laser in lasers) or "none"
+            raise ValueError(f"unknown laser {name!r}; NIS has: {known}")
+        lines = found[0]["lines"]
+        if args.get("line") is not None:
+            chosen = [x for x in lines if x["line"] == args["line"]]
+        else:
+            chosen = [x for x in lines if x["wavelength_nm"] == args.get("wavelength_nm")]
+        if len(chosen) != 1:
+            offered = ", ".join(f"{x['line']}: {x['wavelength_nm']} nm" for x in lines)
+            raise ValueError(f"give 'line' or 'wavelength_nm' of one line; {name} has {offered}")
+        line = chosen[0]
+        on, power = args.get("on"), args.get("power")
+        if on is None and power is None:
+            raise ValueError("nothing to change: give 'on' or 'power'")
+        if on is not None and not isinstance(on, bool):
+            raise ValueError("'on' must be true or false")
+        if power is not None:
+            top = line["power_steps"] - 1
+            if not isinstance(power, int) or isinstance(power, bool) or not 0 <= power <= top:
+                raise ValueError(f"'power' must be a whole number from 0 to {top}")
+            self.api.set_laser_power(name, line["line"], power)
+        if on is not None:
+            self.api.set_laser_line_on(name, line["line"], on)
+        again = next(laser for laser in self.read.get_lasers({}) if laser["name"] == name)
+        return {"laser": name, **next(x for x in again["lines"] if x["line"] == line["line"])}
+
+    def set_filter(self, args: dict) -> dict:
+        """Turn a filter changer to ``position`` (from 1) or to the filter named ``filter``."""
+        changers = {c["name"]: c for c in self.read.get_filters({})}
+        name = args.get("changer")
+        if name not in changers:
+            raise ValueError(
+                f"unknown filter changer {name!r}; NIS has: {', '.join(changers) or 'none'}"
+            )
+        filters = changers[name]["filters"]
+        position = args.get("position")
+        if position is None:
+            named = [p for p, f in filters.items() if f and f == args.get("filter")]
+            if len(named) != 1:
+                raise ValueError(
+                    f"give 'position' or one 'filter' of {name}: "
+                    + ", ".join(f"{p}: {f}" for p, f in filters.items())
+                )
+            position = named[0]
+        if position not in filters:
+            raise ValueError(f"{name} has positions 1 to {len(filters)}")
+        self.api.set_filter_position(name, position)
+        now = next(c for c in self.read.get_filters({}) if c["name"] == name)
+        return {
+            "changer": name,
+            "position": now["position"],
+            "filter": filters.get(now["position"]),
+        }
+
     def set_objective(self, args: dict) -> dict:
         position = args.get("position")
         if not isinstance(position, int) or isinstance(position, bool) or position < 1:
@@ -209,6 +298,9 @@ COMMANDS = (
     "delete_optical_configuration",
     "set_exposure",
     "set_objective",
+    "set_light",
+    "set_laser",
+    "set_filter",
     "set_pfs",
     "autofocus",
     "snap",
